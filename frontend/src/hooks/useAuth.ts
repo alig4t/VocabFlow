@@ -8,8 +8,6 @@ export function useLogin() {
   const setAuth = useAuthStore((s) => s.setAuth)
 
   return useMutation<AuthResponse, Error, LoginData>({
-    
-    
     mutationFn: (data) => authService.login(data),
     onSuccess: (response) => {
       setAuth(response.user, response.accessToken, response.refreshToken)

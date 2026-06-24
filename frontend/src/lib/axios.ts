@@ -1,24 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
 import { API_BASE_URL, API_ENDPOINTS } from '../config/api'
-
-// Lazy import to avoid circular dependency — read state directly from store
-let _getAccessToken: (() => string | null) | null = null
-let _getRefreshToken: (() => string | null) | null = null
-let _setAuth: ((user: any, accessToken: string, refreshToken: string) => void) | null = null
-let _clearAuth: (() => void) | null = null
-
-function getStore() {
-  if (!_getAccessToken) {
-    // Dynamic import resolved synchronously after first render via module cache
-    const { useAuthStore } = require('../store/authStore')
-    const state = useAuthStore.getState()
-    _getAccessToken = () => useAuthStore.getState().accessToken
-    _getRefreshToken = () => useAuthStore.getState().refreshToken
-    _setAuth = (user, accessToken, refreshToken) =>
-      useAuthStore.getState().setAuth(user, accessToken, refreshToken)
-    _clearAuth = () => useAuthStore.getState().clearAuth()
-  }
-}
+import { useAuthStore } from '../store/authStore'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -30,8 +12,7 @@ const api = axios.create({
 // Request interceptor: attach access token
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    getStore()
-    const token = _getAccessToken?.()
+    const token = useAuthStore.getState().accessToken
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -68,17 +49,15 @@ api.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    getStore()
-    const refreshToken = _getRefreshToken?.()
+    const refreshToken = useAuthStore.getState().refreshToken
 
     if (!refreshToken) {
-      _clearAuth?.()
+      useAuthStore.getState().clearAuth()
       window.location.href = '/login'
       return Promise.reject(error)
     }
 
     if (isRefreshing) {
-      // Queue request until refresh completes
       return new Promise((resolve, reject) => {
         pendingRequests.push({
           resolve: (newToken: string) => {
@@ -101,9 +80,10 @@ api.interceptors.response.use(
         { refreshToken }
       )
 
-      const { accessToken, refreshToken: newRefreshToken, user } = response.data
+      const { accessToken, refreshToken: newRefreshToken } = response.data.data
+      const currentUser = useAuthStore.getState().user!
 
-      _setAuth?.(user, accessToken, newRefreshToken)
+      useAuthStore.getState().setAuth(currentUser, accessToken, newRefreshToken)
 
       if (originalRequest.headers) {
         originalRequest.headers.Authorization = `Bearer ${accessToken}`
@@ -114,7 +94,7 @@ api.interceptors.response.use(
       return api(originalRequest)
     } catch (refreshError) {
       processPendingRequests(null, refreshError)
-      _clearAuth?.()
+      useAuthStore.getState().clearAuth()
       window.location.href = '/login'
       return Promise.reject(refreshError)
     } finally {

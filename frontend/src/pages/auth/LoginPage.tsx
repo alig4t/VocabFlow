@@ -31,12 +31,8 @@ export function LoginPage() {
   })
 
   const onSubmit = (data: LoginFormValues) => {
-    console.log('ddddd');
-
     login.mutate(data, {
-      
       onSuccess: () => {
-        console.log('ddddd2');
         navigate('/vocabulary')
       },
       onError: (error) => {

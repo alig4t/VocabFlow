@@ -267,7 +267,7 @@ export default function LandingPage() {
         ))}
 
         {/* Hero content */}
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-6 sm:px-10 pt-28 pb-20 flex flex-col-reverse lg:flex-row items-center gap-14 lg:gap-10">
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-6 sm:px-10 pt-28 pb-20 flex flex-col-reverse lg:flex-row-reverse items-center gap-14 lg:gap-10">
 
           {/* ── Books visual (LEFT in RTL = LTR end) ── */}
           <div className="flex-1 flex justify-center items-end pb-4 lg:pb-0 min-w-0">

@@ -10,6 +10,7 @@ import { ReviewPage } from './pages/vocabulary/ReviewPage'
 import { AdminPage } from './pages/admin/AdminPage'
 import { WordFormPage } from './pages/admin/WordFormPage'
 import LandingPage from './pages/LandingPage'
+import { Toaster } from './components/ui/toast'
 import { type Role } from './types'
 
 // HomeRoute: shows LandingPage for guests, redirects authenticated users to /vocabulary
@@ -63,6 +64,7 @@ export default function App() {
   return (
     <ThemeProvider defaultTheme="light" storageKey="eng-theme">
       <BrowserRouter>
+        <Toaster />
         <Routes>
           {/* Public auth routes */}
           <Route
