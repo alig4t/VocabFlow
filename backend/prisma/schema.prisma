@@ -1,0 +1,124 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  progress      UserWordProgress[]
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model LearningModule {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  order       Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  words Word[]
+
+  @@map("learning_modules")
+}
+
+model Word {
+  id                String   @id @default(cuid())
+  eng               String
+  per               String
+  description       String?
+  primaryExample    String?  @map("primary_example")
+  primaryExampleTrs String?  @map("primary_example_trs")
+  chapter           Int?
+  unit              Int?
+  moduleId          String   @map("module_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  module   LearningModule     @relation(fields: [moduleId], references: [id])
+  examples WordExample[]
+  progress UserWordProgress[]
+
+  @@index([moduleId])
+  @@index([chapter, unit])
+  @@map("words")
+}
+
+model WordExample {
+  id             String   @id @default(cuid())
+  wordId         String   @map("word_id")
+  engSentence    String   @map("eng_sentence")
+  perTranslation String   @map("per_translation")
+  order          Int      @default(0)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  word Word @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@map("word_examples")
+}
+
+model UserWordProgress {
+  id         String     @id @default(cuid())
+  userId     String     @map("user_id")
+  wordId     String     @map("word_id")
+  reviewMode ReviewMode @map("review_mode")
+  status     WordStatus @default(NOT_READ)
+  updatedAt  DateTime   @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  word Word @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, wordId, reviewMode])
+  @@index([userId, reviewMode])
+  @@map("user_word_progress")
+}
+
+enum ReviewMode {
+  EN_TO_FA
+  FA_TO_EN
+}
+
+enum WordStatus {
+  NOT_READ
+  KNOWN
+  NOT_KNOWN
+}
+
+model SynonymGroup {
+  id          String   @id @default(cuid())
+  conceptName String   @map("concept_name")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("synonym_groups")
+}
