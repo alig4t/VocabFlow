@@ -6,6 +6,6 @@ export const synonymService = {
   getSynonyms(wordId: string): Promise<SynonymResult[]> {
     return api
       .get<SynonymResult[]>(API_ENDPOINTS.synonyms.get(wordId))
-      .then((res) => res.data.data)
+      .then((res) => res.data)
   },
 }

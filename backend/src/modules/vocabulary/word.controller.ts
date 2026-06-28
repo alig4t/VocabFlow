@@ -35,12 +35,14 @@ export class WordController {
 
     res.json({
       success: true,
-      data: words,
-      meta: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
+      data: {
+        data: words,
+        meta: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
       },
     })
   }

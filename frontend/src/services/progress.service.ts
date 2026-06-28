@@ -14,7 +14,7 @@ export const progressService = {
   },
 
   getStats(): Promise<ProgressStats> {
-    return api.get(API_ENDPOINTS.progress.stats).then((res) => res.data.data)
+    return api.get(API_ENDPOINTS.progress.stats).then((res) => res.data)
   },
 
   resetProgress(reviewMode?: ReviewMode): Promise<void> {

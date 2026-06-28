@@ -15,11 +15,11 @@ export interface LoginData {
 
 export const authService = {
   register(data: RegisterData): Promise<AuthResponse> {
-    return api.post(API_ENDPOINTS.auth.register, data).then((res) => res.data.data)
+    return api.post(API_ENDPOINTS.auth.register, data).then((res) => res.data)
   },
 
   login(data: LoginData): Promise<AuthResponse> {
-    return api.post(API_ENDPOINTS.auth.login, data).then((res) => res.data.data)
+    return api.post(API_ENDPOINTS.auth.login, data).then((res) => res.data)
   },
 
   logout(refreshToken: string): Promise<void> {
@@ -27,10 +27,10 @@ export const authService = {
   },
 
   refreshToken(refreshToken: string): Promise<AuthResponse> {
-    return api.post(API_ENDPOINTS.auth.refresh, { refreshToken }).then((res) => res.data.data)
+    return api.post(API_ENDPOINTS.auth.refresh, { refreshToken }).then((res) => res.data)
   },
 
   getMe(): Promise<User> {
-    return api.get(API_ENDPOINTS.auth.me).then((res) => res.data.data)
+    return api.get(API_ENDPOINTS.auth.me).then((res) => res.data)
   },
 }

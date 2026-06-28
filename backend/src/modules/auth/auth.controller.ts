@@ -73,9 +73,7 @@ export class AuthController {
 
     res.status(200).json({
       success: true,
-      data: {
-        user: req.user,
-      },
+      data: req.user,
     })
   }
 }

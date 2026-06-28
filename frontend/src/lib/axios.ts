@@ -39,9 +39,14 @@ function processPendingRequests(token: string | null, error: unknown = null) {
   pendingRequests = []
 }
 
-// Response interceptor: handle 401 with token refresh
+// Response interceptor: unwrap { success, data } envelope
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (response.data && typeof response.data === 'object' && 'data' in response.data) {
+      response.data = response.data.data
+    }
+    return response
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
 
