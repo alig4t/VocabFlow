@@ -38,8 +38,10 @@ A complete, scalable English learning platform built with React and Node.js. The
 
 ### Prerequisites
 - Node.js (v20 or higher)
-- PostgreSQL (v15 or higher)
 - npm
+- Docker
+
+> No PostgreSQL installation needed — the database runs in Docker.
 
 ### 1. Clone the Repository
 ```bash
@@ -47,7 +49,15 @@ git clone https://github.com/yourusername/english-learning-platform.git
 cd english-learning-platform
 ```
 
-### 2. Backend Setup
+### 2. Start the Database
+
+```bash
+docker compose up -d
+```
+
+This starts PostgreSQL in the background. Data is stored in a Docker volume and persists across restarts.
+
+### 3. Backend Setup
 
 ```bash
 cd backend
@@ -58,9 +68,10 @@ npm install
 ```bash
 cp .env.example .env
 ```
-Edit .env with your values:
+
+The default `.env` connects to the Docker database — no edits needed for local development:
 ```env
-DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/english_learning"
+DATABASE_URL="postgresql://eng1_user:eng1_pass@localhost:5432/english_learning"
 JWT_SECRET="your-secret-key-min-32-chars"
 JWT_REFRESH_SECRET="your-refresh-secret-min-32-chars"
 JWT_EXPIRES_IN="15m"
@@ -70,13 +81,13 @@ NODE_ENV=development
 CORS_ORIGIN="http://localhost:5173"
 ```
 
-#### Setup Database & Seed Data
+#### Run Migrations & Seed Data
 ```bash
 npm run db:migrate
 npm run db:generate
 npm run db:seed
 ```
-This creates default admin and user accounts:
+This creates all tables and default accounts:
 - Admin: admin@example.com / Admin123!
 - User: user@example.com / User123!
 
@@ -86,7 +97,7 @@ npm run dev
 ```
 Server runs on http://localhost:3000
 
-### 3. Frontend Setup
+### 4. Frontend Setup
 
 ```bash
 cd frontend
@@ -99,8 +110,11 @@ npm run dev
 ```
 Application runs on http://localhost:5173
 
-### 4. Full Stack Development
+### 5. Full Stack Development
 ```bash
+# First — start the database (from project root)
+docker compose up -d
+
 # Terminal 1 - Backend
 cd backend && npm run dev
 
@@ -254,6 +268,13 @@ english-learning-platform/
 - **Tailwind CSS** with shadcn/ui components
 
 ## 🛠️ Development Commands
+
+### Database (Docker)
+```bash
+docker compose up -d      # Start database in background
+docker compose down       # Stop database (data preserved)
+docker compose down -v    # Stop and delete all data (fresh start)
+```
 
 ### Backend
 ```bash
