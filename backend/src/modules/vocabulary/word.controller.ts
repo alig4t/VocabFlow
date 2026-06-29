@@ -11,6 +11,9 @@ export class WordController {
     const limit = req.query.limit ? Number(req.query.limit) : 20
     const chapter = req.query.chapter ? Number(req.query.chapter) : undefined
     const unit = req.query.unit ? Number(req.query.unit) : undefined
+    const lessonId = req.query.lessonId as string | undefined
+    const volumeId = req.query.volumeId as string | undefined
+    const bookId = req.query.bookId as string | undefined
     const search = req.query.search as string | undefined
     const sort = req.query.sort as WordFilters['sort'] | undefined
     const order = req.query.order as WordFilters['order'] | undefined
@@ -22,6 +25,9 @@ export class WordController {
       limit,
       ...(chapter !== undefined && { chapter }),
       ...(unit !== undefined && { unit }),
+      ...(lessonId && { lessonId }),
+      ...(volumeId && { volumeId }),
+      ...(bookId && { bookId }),
       ...(search && { search }),
       ...(sort && { sort }),
       ...(order && { order }),

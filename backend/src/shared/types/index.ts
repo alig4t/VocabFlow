@@ -25,6 +25,9 @@ export interface PaginationQuery {
 export interface WordFilters extends PaginationQuery {
   chapter?: number
   unit?: number
+  lessonId?: string
+  volumeId?: string
+  bookId?: string
   status?: WordStatus
   mode?: ReviewMode
   sort?: 'chapter' | 'unit' | 'eng' | 'per'

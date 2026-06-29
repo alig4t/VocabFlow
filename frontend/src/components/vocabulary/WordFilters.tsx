@@ -3,6 +3,7 @@ import { X, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import { useBooksSimple, useVolumesSimple, useLessonsSimple } from '@/hooks/useBooks'
 import type { ReviewMode, WordStatus } from '@/types'
 
 export interface WordFiltersState {
@@ -11,6 +12,9 @@ export interface WordFiltersState {
   sort: 'chapter' | 'eng' | 'per'
   chapter: number | undefined
   search: string
+  bookId: string | undefined
+  volumeId: string | undefined
+  lessonId: string | undefined
 }
 
 interface WordFiltersProps {
@@ -34,9 +38,16 @@ const SORT_OPTIONS: { label: string; value: 'chapter' | 'eng' | 'per' }[] = [
 
 const CHAPTERS = Array.from({ length: 30 }, (_, i) => i + 1)
 
+const SELECT_CLASS =
+  'h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer'
+
 export function WordFilters({ filters, onChange, className }: WordFiltersProps) {
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
+
+  const { data: books } = useBooksSimple()
+  const { data: volumes } = useVolumesSimple(filters.bookId ?? '')
+  const { data: lessons } = useLessonsSimple(filters.bookId ?? '', filters.volumeId ?? '')
 
   useEffect(() => {
     return () => {
@@ -48,14 +59,20 @@ export function WordFilters({ filters, onChange, className }: WordFiltersProps) 
     onChange({ ...filters, ...partial })
   }
 
+  function handleBookChange(bookId: string) {
+    update({ bookId: bookId || undefined, volumeId: undefined, lessonId: undefined })
+  }
+
+  function handleVolumeChange(volumeId: string) {
+    update({ volumeId: volumeId || undefined, lessonId: undefined })
+  }
+
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
     searchTimeoutRef.current = setTimeout(() => {
       update({ search: val })
     }, 350)
-    // keep the input visually updated immediately by storing in a local ref approach
-    // but since we're controlled via filters.search (debounced), we need uncontrolled input
   }
 
   function clearSearch() {
@@ -71,6 +88,9 @@ export function WordFilters({ filters, onChange, className }: WordFiltersProps) 
       sort: 'chapter',
       chapter: undefined,
       search: '',
+      bookId: undefined,
+      volumeId: undefined,
+      lessonId: undefined,
     })
   }
 
@@ -79,7 +99,10 @@ export function WordFilters({ filters, onChange, className }: WordFiltersProps) 
     filters.status === 'ALL' &&
     filters.sort === 'chapter' &&
     filters.chapter === undefined &&
-    filters.search === ''
+    filters.search === '' &&
+    filters.bookId === undefined &&
+    filters.volumeId === undefined &&
+    filters.lessonId === undefined
 
   return (
     <div className={cn('space-y-4', className)}>
@@ -136,7 +159,67 @@ export function WordFilters({ filters, onChange, className }: WordFiltersProps) 
         </div>
       </div>
 
-      {/* Row 2: Sort + Chapter + Search + Reset */}
+      {/* Row 2: Book → Volume → Lesson cascaded filters */}
+      {books && books.length > 0 && (
+        <div className="flex flex-wrap gap-3 items-center">
+          {/* Book filter */}
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-muted-foreground whitespace-nowrap">کتاب:</label>
+            <select
+              value={filters.bookId ?? ''}
+              onChange={(e) => handleBookChange(e.target.value)}
+              className={SELECT_CLASS}
+            >
+              <option value="">همه کتاب‌ها</option>
+              {books.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Volume filter — only when book is selected */}
+          {filters.bookId && volumes && volumes.length > 0 && (
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-muted-foreground whitespace-nowrap">جلد:</label>
+              <select
+                value={filters.volumeId ?? ''}
+                onChange={(e) => handleVolumeChange(e.target.value)}
+                className={SELECT_CLASS}
+              >
+                <option value="">همه جلدها</option>
+                {volumes.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.title ?? `جلد ${v.volumeNumber}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Lesson filter — only when volume is selected */}
+          {filters.volumeId && lessons && lessons.length > 0 && (
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-muted-foreground whitespace-nowrap">درس:</label>
+              <select
+                value={filters.lessonId ?? ''}
+                onChange={(e) => update({ lessonId: e.target.value || undefined })}
+                className={SELECT_CLASS}
+              >
+                <option value="">همه درس‌ها</option>
+                {lessons.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.title ?? `درس ${l.lessonNumber}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Row 3: Sort + Chapter + Search + Reset */}
       <div className="flex flex-wrap gap-3 items-center">
         {/* Sort dropdown */}
         <div className="flex items-center gap-2">
@@ -144,7 +227,7 @@ export function WordFilters({ filters, onChange, className }: WordFiltersProps) 
           <select
             value={filters.sort}
             onChange={(e) => update({ sort: e.target.value as 'chapter' | 'eng' | 'per' })}
-            className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer"
+            className={SELECT_CLASS}
           >
             {SORT_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -154,24 +237,26 @@ export function WordFilters({ filters, onChange, className }: WordFiltersProps) 
           </select>
         </div>
 
-        {/* Chapter filter dropdown */}
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-muted-foreground whitespace-nowrap">فصل:</label>
-          <select
-            value={filters.chapter ?? ''}
-            onChange={(e) =>
-              update({ chapter: e.target.value ? Number(e.target.value) : undefined })
-            }
-            className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer"
-          >
-            <option value="">همه فصل‌ها</option>
-            {CHAPTERS.map((ch) => (
-              <option key={ch} value={ch}>
-                فصل {ch}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* Chapter filter (legacy for old words not in book system) */}
+        {!filters.bookId && (
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-muted-foreground whitespace-nowrap">فصل:</label>
+            <select
+              value={filters.chapter ?? ''}
+              onChange={(e) =>
+                update({ chapter: e.target.value ? Number(e.target.value) : undefined })
+              }
+              className={SELECT_CLASS}
+            >
+              <option value="">همه فصل‌ها</option>
+              {CHAPTERS.map((ch) => (
+                <option key={ch} value={ch}>
+                  فصل {ch}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Search input */}
         <div className="relative flex-1 min-w-[200px]">
@@ -195,7 +280,12 @@ export function WordFilters({ filters, onChange, className }: WordFiltersProps) 
 
         {/* Reset button */}
         {!isDefaultState && (
-          <Button variant="ghost" size="sm" onClick={resetAll} className="gap-1.5 text-muted-foreground">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={resetAll}
+            className="gap-1.5 text-muted-foreground"
+          >
             <RotateCcw className="h-3.5 w-3.5" />
             بازنشانی
           </Button>

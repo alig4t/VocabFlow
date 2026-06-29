@@ -6,8 +6,10 @@ export const createWordSchema = z.object({
   description: z.string().optional(),
   primaryExample: z.string().optional(),
   primaryExampleTrs: z.string().optional(),
+  pronunciationAudio: z.string().optional(),
   chapter: z.number().int().positive().optional(),
   unit: z.number().int().positive().optional(),
+  lessonId: z.string().optional(),
   moduleId: z.string().cuid(),
   examples: z
     .array(

@@ -8,8 +8,10 @@ export interface CreateWordData {
   description?: string
   primaryExample?: string
   primaryExampleTrs?: string
+  pronunciationAudio?: string
   chapter?: number
   unit?: number
+  lessonId?: string
   moduleId: string
 }
 

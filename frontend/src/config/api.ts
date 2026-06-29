@@ -15,6 +15,18 @@ export const API_ENDPOINTS = {
     examples: (id: string) => `/words/${id}/examples`,
     example: (id: string, exId: string) => `/words/${id}/examples/${exId}`,
   },
+  books: {
+    list: '/books',
+    simple: '/books/simple',
+    detail: (id: string) => `/books/${id}`,
+    volumes: (bookId: string) => `/books/${bookId}/volumes`,
+    volumesSimple: (bookId: string) => `/books/${bookId}/volumes/simple`,
+    volume: (bookId: string, volumeId: string) => `/books/${bookId}/volumes/${volumeId}`,
+    lessons: (bookId: string, volumeId: string) => `/books/${bookId}/volumes/${volumeId}/lessons`,
+    lessonsSimple: (bookId: string, volumeId: string) => `/books/${bookId}/volumes/${volumeId}/lessons/simple`,
+    lesson: (bookId: string, volumeId: string, lessonId: string) =>
+      `/books/${bookId}/volumes/${volumeId}/lessons/${lessonId}`,
+  },
   progress: {
     update: (wordId: string) => `/progress/words/${wordId}`,
     stats: '/progress/stats',

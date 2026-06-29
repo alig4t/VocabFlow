@@ -12,6 +12,9 @@ export class WordRepository {
       limit = 20,
       chapter,
       unit,
+      lessonId,
+      volumeId,
+      bookId,
       status,
       mode,
       sort = 'chapter',
@@ -24,6 +27,13 @@ export class WordRepository {
     const where: Prisma.WordWhereInput = {
       ...(chapter !== undefined && { chapter }),
       ...(unit !== undefined && { unit }),
+      ...(lessonId !== undefined && { lessonId }),
+      ...(volumeId !== undefined && {
+        lesson: { volumeId },
+      }),
+      ...(bookId !== undefined && {
+        lesson: { volume: { bookId } },
+      }),
       ...(search && {
         OR: [
           { eng: { contains: search, mode: 'insensitive' } },
@@ -47,6 +57,22 @@ export class WordRepository {
       [sort]: order,
     }
 
+    const lessonInclude = {
+      select: {
+        id: true,
+        lessonNumber: true,
+        title: true,
+        volume: {
+          select: {
+            id: true,
+            volumeNumber: true,
+            title: true,
+            book: { select: { id: true, title: true } },
+          },
+        },
+      },
+    }
+
     const [words, total] = await prisma.$transaction([
       prisma.word.findMany({
         where,
@@ -54,9 +80,8 @@ export class WordRepository {
         take: limit,
         orderBy,
         include: {
-          examples: {
-            orderBy: { order: 'asc' },
-          },
+          examples: { orderBy: { order: 'asc' } },
+          lesson: lessonInclude,
           progress:
             userId !== undefined && mode !== undefined
               ? {
@@ -64,9 +89,7 @@ export class WordRepository {
                   select: { status: true, reviewMode: true },
                 }
               : false,
-          module: {
-            select: { id: true, name: true, slug: true },
-          },
+          module: { select: { id: true, name: true, slug: true } },
         },
       }),
       prisma.word.count({ where }),
@@ -79,12 +102,23 @@ export class WordRepository {
     return prisma.word.findUnique({
       where: { id },
       include: {
-        examples: {
-          orderBy: { order: 'asc' },
+        examples: { orderBy: { order: 'asc' } },
+        lesson: {
+          select: {
+            id: true,
+            lessonNumber: true,
+            title: true,
+            volume: {
+              select: {
+                id: true,
+                volumeNumber: true,
+                title: true,
+                book: { select: { id: true, title: true } },
+              },
+            },
+          },
         },
-        module: {
-          select: { id: true, name: true, slug: true },
-        },
+        module: { select: { id: true, name: true, slug: true } },
       },
     })
   }
@@ -108,12 +142,23 @@ export class WordRepository {
           : {}),
       },
       include: {
-        examples: {
-          orderBy: { order: 'asc' },
+        examples: { orderBy: { order: 'asc' } },
+        lesson: {
+          select: {
+            id: true,
+            lessonNumber: true,
+            title: true,
+            volume: {
+              select: {
+                id: true,
+                volumeNumber: true,
+                title: true,
+                book: { select: { id: true, title: true } },
+              },
+            },
+          },
         },
-        module: {
-          select: { id: true, name: true, slug: true },
-        },
+        module: { select: { id: true, name: true, slug: true } },
       },
     })
   }
@@ -123,12 +168,23 @@ export class WordRepository {
       where: { id },
       data,
       include: {
-        examples: {
-          orderBy: { order: 'asc' },
+        examples: { orderBy: { order: 'asc' } },
+        lesson: {
+          select: {
+            id: true,
+            lessonNumber: true,
+            title: true,
+            volume: {
+              select: {
+                id: true,
+                volumeNumber: true,
+                title: true,
+                book: { select: { id: true, title: true } },
+              },
+            },
+          },
         },
-        module: {
-          select: { id: true, name: true, slug: true },
-        },
+        module: { select: { id: true, name: true, slug: true } },
       },
     })
   }
@@ -149,10 +205,7 @@ export class WordRepository {
   }
 
   async updateExample(exampleId: string, data: Partial<CreateExampleDto>) {
-    return prisma.wordExample.update({
-      where: { id: exampleId },
-      data,
-    })
+    return prisma.wordExample.update({ where: { id: exampleId }, data })
   }
 
   async deleteExample(exampleId: string) {
@@ -163,13 +216,7 @@ export class WordRepository {
     return prisma.learningModule.findMany({
       where: { isActive: true },
       orderBy: { order: 'asc' },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        description: true,
-        order: true,
-      },
+      select: { id: true, name: true, slug: true, description: true, order: true },
     })
   }
 }

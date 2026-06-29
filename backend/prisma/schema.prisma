@@ -53,25 +53,70 @@ model LearningModule {
   @@map("learning_modules")
 }
 
+model Book {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  coverImage  String?  @map("cover_image")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  volumes Volume[]
+
+  @@map("books")
+}
+
+model Volume {
+  id           String   @id @default(cuid())
+  bookId       String   @map("book_id")
+  volumeNumber Int      @map("volume_number")
+  title        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  book    Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+
+  @@unique([bookId, volumeNumber])
+  @@map("volumes")
+}
+
+model Lesson {
+  id           String   @id @default(cuid())
+  volumeId     String   @map("volume_id")
+  lessonNumber Int      @map("lesson_number")
+  title        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  volume Volume @relation(fields: [volumeId], references: [id], onDelete: Cascade)
+  words  Word[]
+
+  @@unique([volumeId, lessonNumber])
+  @@map("lessons")
+}
+
 model Word {
-  id                String   @id @default(cuid())
-  eng               String
-  per               String
-  description       String?
-  primaryExample    String?  @map("primary_example")
-  primaryExampleTrs String?  @map("primary_example_trs")
-  chapter           Int?
-  unit              Int?
-  moduleId          String   @map("module_id")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  id                 String   @id @default(cuid())
+  eng                String
+  per                String
+  description        String?
+  primaryExample     String?  @map("primary_example")
+  primaryExampleTrs  String?  @map("primary_example_trs")
+  pronunciationAudio String?  @map("pronunciation_audio")
+  chapter            Int?
+  unit               Int?
+  lessonId           String?  @map("lesson_id")
+  moduleId           String   @map("module_id")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
   module   LearningModule     @relation(fields: [moduleId], references: [id])
+  lesson   Lesson?            @relation(fields: [lessonId], references: [id])
   examples WordExample[]
   progress UserWordProgress[]
 
   @@index([moduleId])
   @@index([chapter, unit])
+  @@index([lessonId])
   @@map("words")
 }
 

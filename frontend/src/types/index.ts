@@ -21,6 +21,65 @@ export interface AuthResponse {
   refreshToken: string
 }
 
+export interface Book {
+  id: string
+  title: string
+  description?: string
+  coverImage?: string
+  createdAt: string
+  updatedAt: string
+  _count?: { volumes: number }
+  volumes?: Volume[]
+}
+
+export interface BookSimple {
+  id: string
+  title: string
+}
+
+export interface Volume {
+  id: string
+  bookId: string
+  volumeNumber: number
+  title?: string
+  createdAt: string
+  _count?: { lessons: number }
+  lessons?: Lesson[]
+}
+
+export interface VolumeSimple {
+  id: string
+  volumeNumber: number
+  title?: string
+}
+
+export interface Lesson {
+  id: string
+  volumeId: string
+  lessonNumber: number
+  title?: string
+  createdAt: string
+  _count?: { words: number }
+}
+
+export interface LessonSimple {
+  id: string
+  lessonNumber: number
+  title?: string
+}
+
+export interface WordLesson {
+  id: string
+  lessonNumber: number
+  title?: string
+  volume: {
+    id: string
+    volumeNumber: number
+    title?: string
+    book: { id: string; title: string }
+  }
+}
+
 export interface Word {
   id: string
   eng: string
@@ -28,9 +87,12 @@ export interface Word {
   description?: string
   primaryExample?: string
   primaryExampleTrs?: string
+  pronunciationAudio?: string
   chapter?: number
   unit?: number
+  lessonId?: string
   moduleId: string
+  lesson?: WordLesson
   examples: WordExample[]
   progress?: UserWordProgress[]
   createdAt: string
@@ -67,6 +129,9 @@ export interface WordFilters {
   limit?: number
   chapter?: number
   unit?: number
+  lessonId?: string
+  volumeId?: string
+  bookId?: string
   status?: WordStatus | 'ALL'
   mode?: ReviewMode
   sort?: 'chapter' | 'unit' | 'eng' | 'per'

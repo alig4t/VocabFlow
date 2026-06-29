@@ -9,6 +9,10 @@ import { VocabularyPage } from './pages/vocabulary/VocabularyPage'
 import { ReviewPage } from './pages/vocabulary/ReviewPage'
 import { AdminPage } from './pages/admin/AdminPage'
 import { WordFormPage } from './pages/admin/WordFormPage'
+import { BookListPage } from './pages/admin/books/BookListPage'
+import { BookFormPage } from './pages/admin/books/BookFormPage'
+import { VolumeManagerPage } from './pages/admin/books/VolumeManagerPage'
+import { LessonManagerPage } from './pages/admin/books/LessonManagerPage'
 import LandingPage from './pages/LandingPage'
 import { Toaster } from './components/ui/toast'
 import { type Role } from './types'
@@ -139,6 +143,56 @@ export default function App() {
               <AdminRoute>
                 <Layout>
                   <WordFormPage />
+                </Layout>
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/books"
+            element={
+              <AdminRoute>
+                <Layout>
+                  <BookListPage />
+                </Layout>
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/books/new"
+            element={
+              <AdminRoute>
+                <Layout>
+                  <BookFormPage />
+                </Layout>
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/books/:id/edit"
+            element={
+              <AdminRoute>
+                <Layout>
+                  <BookFormPage />
+                </Layout>
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/books/:bookId/volumes"
+            element={
+              <AdminRoute>
+                <Layout>
+                  <VolumeManagerPage />
+                </Layout>
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/books/:bookId/volumes/:volumeId/lessons"
+            element={
+              <AdminRoute>
+                <Layout>
+                  <LessonManagerPage />
                 </Layout>
               </AdminRoute>
             }

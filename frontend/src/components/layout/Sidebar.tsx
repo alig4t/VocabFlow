@@ -1,4 +1,4 @@
-import { X, Book, Play, Settings } from 'lucide-react'
+import { X, Book, Play, Settings, Library } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { cn } from '../../lib/utils'
@@ -32,6 +32,12 @@ const navItems: NavItem[] = [
     to: '/admin',
     icon: <Settings className="h-5 w-5" />,
     label: 'پنل مدیریت',
+    adminOnly: true,
+  },
+  {
+    to: '/admin/books',
+    icon: <Library className="h-5 w-5" />,
+    label: 'کتاب‌ها',
     adminOnly: true,
   },
 ]

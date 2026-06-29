@@ -16,6 +16,9 @@ const DEFAULT_FILTERS: WordFiltersState = {
   sort: 'chapter',
   chapter: undefined,
   search: '',
+  bookId: undefined,
+  volumeId: undefined,
+  lessonId: undefined,
 }
 
 function loadPersistedMode(): ReviewMode {
@@ -79,6 +82,9 @@ export function VocabularyPage() {
     order: 'asc' as const,
     chapter: filters.chapter,
     search: filters.search || undefined,
+    bookId: filters.bookId,
+    volumeId: filters.volumeId,
+    lessonId: filters.lessonId,
   }
 
   const { data, isLoading, isError } = useWords(apiFilters)

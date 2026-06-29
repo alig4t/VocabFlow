@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Pencil, Trash2, Search, BookOpen, Users, Layers, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, Search, BookOpen, Users, Layers, ChevronLeft, ChevronRight, Loader2, Library } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useWords, useDeleteWord, useModules } from '@/hooks/useVocabulary'
+import { useBooks } from '@/hooks/useBooks'
 import type { Word } from '@/types'
 
 const PAGE_SIZE = 20
@@ -109,6 +110,7 @@ export function AdminPage() {
   })
 
   const { data: modules } = useModules()
+  const { data: books } = useBooks()
   const deleteWordMutation = useDeleteWord()
 
   const words = data?.data ?? []
@@ -116,6 +118,7 @@ export function AdminPage() {
   const totalWords = meta?.total ?? 0
   const totalPages = meta?.totalPages ?? 1
   const totalModules = modules?.length ?? 0
+  const totalBooks = books?.length ?? 0
 
   const handleSearchSubmit = useCallback(
     (e: React.FormEvent) => {
@@ -160,11 +163,53 @@ export function AdminPage() {
       </div>
 
       {/* آمار */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatCard icon={BookOpen} label="مجموع لغات" value={totalWords} />
+        <StatCard icon={Library} label="کتاب‌ها" value={totalBooks} />
         <StatCard icon={Users} label="کاربران" value="—" />
         <StatCard icon={Layers} label="ماژول‌ها" value={totalModules} />
       </div>
+
+      {/* مدیریت کتاب‌ها */}
+      <Card>
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <CardTitle className="flex items-center gap-2">
+            <Library className="h-5 w-5 text-primary" />
+            مدیریت کتاب‌ها
+          </CardTitle>
+          <Button onClick={() => navigate('/admin/books')}>
+            <BookOpen className="h-4 w-4 ml-2" />
+            مشاهده و مدیریت کتاب‌ها
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {totalBooks === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              هنوز کتابی اضافه نشده است.{' '}
+              <button
+                onClick={() => navigate('/admin/books/new')}
+                className="text-primary hover:underline"
+              >
+                اولین کتاب را اضافه کنید
+              </button>
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {(books ?? []).map((book) => (
+                <button
+                  key={book.id}
+                  onClick={() => navigate(`/admin/books/${book.id}/volumes`)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
+                >
+                  <BookOpen className="h-3.5 w-3.5" />
+                  {book.title}
+                  <span className="text-muted-foreground text-xs">({book._count?.volumes ?? 0} جلد)</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* مدیریت لغات */}
       <Card>
