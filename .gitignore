@@ -36,4 +36,6 @@ Thumbs.db
 *.swp
 *.swo
 
+# datas
 promptt.txt
+words-new.sql
