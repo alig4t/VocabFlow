@@ -86,6 +86,11 @@ export interface Word {
   eng: string
   per: string
   description?: string
+  pronunciation?: string
+  partOfSpeech?: string
+  wordForms?: string
+  synonyms: string[]
+  antonyms: string[]
   primaryExample?: string
   primaryExampleTrs?: string
   pronunciationAudio?: string
@@ -95,6 +100,7 @@ export interface Word {
   moduleId: string
   lesson?: WordLesson
   examples: WordExample[]
+  phrases: WordPhrase[]
   progress?: UserWordProgress[]
   createdAt: string
   updatedAt: string
@@ -103,6 +109,23 @@ export interface Word {
 export interface WordExample {
   id: string
   wordId: string
+  engSentence: string
+  perTranslation: string
+  order: number
+}
+
+export interface WordPhrase {
+  id: string
+  wordId: string
+  patternEng: string
+  patternPer: string
+  order: number
+  examples: WordPhraseExample[]
+}
+
+export interface WordPhraseExample {
+  id: string
+  phraseId: string
   engSentence: string
   perTranslation: string
   order: number

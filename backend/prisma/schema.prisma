@@ -100,6 +100,11 @@ model Word {
   eng                String
   per                String
   description        String?
+  pronunciation      String?
+  partOfSpeech       String?  @map("part_of_speech")
+  wordForms          String?  @map("word_forms")
+  synonyms           String[] @default([])
+  antonyms           String[] @default([])
   primaryExample     String?  @map("primary_example")
   primaryExampleTrs  String?  @map("primary_example_trs")
   pronunciationAudio String?  @map("pronunciation_audio")
@@ -113,12 +118,41 @@ model Word {
   module   LearningModule     @relation(fields: [moduleId], references: [id])
   lesson   Lesson?            @relation(fields: [lessonId], references: [id])
   examples WordExample[]
+  phrases  WordPhrase[]
   progress UserWordProgress[]
 
   @@index([moduleId])
   @@index([chapter, unit])
   @@index([lessonId])
   @@map("words")
+}
+
+model WordPhrase {
+  id         String   @id @default(cuid())
+  wordId     String   @map("word_id")
+  patternEng String   @map("pattern_eng")
+  patternPer String   @map("pattern_per")
+  order      Int      @default(0)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  word     Word               @relation(fields: [wordId], references: [id], onDelete: Cascade)
+  examples WordPhraseExample[]
+
+  @@index([wordId])
+  @@map("word_phrases")
+}
+
+model WordPhraseExample {
+  id             String @id @default(cuid())
+  phraseId       String @map("phrase_id")
+  engSentence    String @map("eng_sentence")
+  perTranslation String @map("per_translation")
+  order          Int    @default(0)
+
+  phrase WordPhrase @relation(fields: [phraseId], references: [id], onDelete: Cascade)
+
+  @@index([phraseId])
+  @@map("word_phrase_examples")
 }
 
 model WordExample {

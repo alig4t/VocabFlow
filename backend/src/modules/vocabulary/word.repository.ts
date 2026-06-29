@@ -5,6 +5,27 @@ import { CreateExampleDto, UpdateWordDto } from './dto/update-word.dto'
 
 const prisma = new PrismaClient()
 
+const lessonSelect = {
+  select: {
+    id: true,
+    lessonNumber: true,
+    title: true,
+    volume: {
+      select: {
+        id: true,
+        volumeNumber: true,
+        title: true,
+        book: { select: { id: true, title: true } },
+      },
+    },
+  },
+}
+
+const phrasesInclude = {
+  orderBy: { order: 'asc' as const },
+  include: { examples: { orderBy: { order: 'asc' as const } } },
+}
+
 export class WordRepository {
   async findAll(filters: WordFilters, userId?: string) {
     const {
@@ -57,22 +78,6 @@ export class WordRepository {
       [sort]: order,
     }
 
-    const lessonInclude = {
-      select: {
-        id: true,
-        lessonNumber: true,
-        title: true,
-        volume: {
-          select: {
-            id: true,
-            volumeNumber: true,
-            title: true,
-            book: { select: { id: true, title: true } },
-          },
-        },
-      },
-    }
-
     const [words, total] = await prisma.$transaction([
       prisma.word.findMany({
         where,
@@ -81,7 +86,8 @@ export class WordRepository {
         orderBy,
         include: {
           examples: { orderBy: { order: 'asc' } },
-          lesson: lessonInclude,
+          phrases: phrasesInclude,
+          lesson: lessonSelect,
           progress:
             userId !== undefined && mode !== undefined
               ? {
@@ -103,33 +109,20 @@ export class WordRepository {
       where: { id },
       include: {
         examples: { orderBy: { order: 'asc' } },
-        lesson: {
-          select: {
-            id: true,
-            lessonNumber: true,
-            title: true,
-            volume: {
-              select: {
-                id: true,
-                volumeNumber: true,
-                title: true,
-                book: { select: { id: true, title: true } },
-              },
-            },
-          },
-        },
+        phrases: phrasesInclude,
+        lesson: lessonSelect,
         module: { select: { id: true, name: true, slug: true } },
       },
     })
   }
 
   async create(data: CreateWordDto) {
-    const { examples, ...wordData } = data
+    const { examples, phrases, ...wordData } = data
 
     return prisma.word.create({
       data: {
         ...wordData,
-        ...(examples && examples.length > 0
+        ...(examples?.length
           ? {
               examples: {
                 create: examples.map((ex) => ({
@@ -140,50 +133,77 @@ export class WordRepository {
               },
             }
           : {}),
+        ...(phrases?.length
+          ? {
+              phrases: {
+                create: phrases.map((p) => ({
+                  patternEng: p.patternEng,
+                  patternPer: p.patternPer,
+                  order: p.order,
+                  ...(p.examples?.length
+                    ? {
+                        examples: {
+                          create: p.examples.map((ex) => ({
+                            engSentence: ex.engSentence,
+                            perTranslation: ex.perTranslation,
+                            order: ex.order,
+                          })),
+                        },
+                      }
+                    : {}),
+                })),
+              },
+            }
+          : {}),
       },
       include: {
         examples: { orderBy: { order: 'asc' } },
-        lesson: {
-          select: {
-            id: true,
-            lessonNumber: true,
-            title: true,
-            volume: {
-              select: {
-                id: true,
-                volumeNumber: true,
-                title: true,
-                book: { select: { id: true, title: true } },
-              },
-            },
-          },
-        },
+        phrases: phrasesInclude,
+        lesson: lessonSelect,
         module: { select: { id: true, name: true, slug: true } },
       },
     })
   }
 
   async update(id: string, data: UpdateWordDto) {
+    const { phrases, ...wordData } = data
+
+    // Replace all phrases when provided
+    if (phrases !== undefined) {
+      await prisma.wordPhrase.deleteMany({ where: { wordId: id } })
+    }
+
     return prisma.word.update({
       where: { id },
-      data,
+      data: {
+        ...wordData,
+        ...(phrases?.length
+          ? {
+              phrases: {
+                create: phrases.map((p) => ({
+                  patternEng: p.patternEng,
+                  patternPer: p.patternPer,
+                  order: p.order,
+                  ...(p.examples?.length
+                    ? {
+                        examples: {
+                          create: p.examples.map((ex) => ({
+                            engSentence: ex.engSentence,
+                            perTranslation: ex.perTranslation,
+                            order: ex.order,
+                          })),
+                        },
+                      }
+                    : {}),
+                })),
+              },
+            }
+          : {}),
+      },
       include: {
         examples: { orderBy: { order: 'asc' } },
-        lesson: {
-          select: {
-            id: true,
-            lessonNumber: true,
-            title: true,
-            volume: {
-              select: {
-                id: true,
-                volumeNumber: true,
-                title: true,
-                book: { select: { id: true, title: true } },
-              },
-            },
-          },
-        },
+        phrases: phrasesInclude,
+        lesson: lessonSelect,
         module: { select: { id: true, name: true, slug: true } },
       },
     })
