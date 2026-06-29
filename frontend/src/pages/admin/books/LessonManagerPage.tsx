@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Plus, Pencil, Trash2, Loader2, BookOpen } from 'lucide-react'
+import { ArrowLeft, Plus, Pencil, Trash2, Loader2, BookOpen, PenLine } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -85,28 +85,35 @@ function LessonRow({
   lesson,
   onEdit,
   onDelete,
+  onAddWord,
 }: {
   lesson: Lesson
   onEdit: () => void
   onDelete: () => void
+  onAddWord: () => void
 }) {
   return (
-    <li className="flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors">
-      <span className="font-medium">
-        درس {lesson.lessonNumber}
-        {lesson.title ? ` — ${lesson.title}` : ''}
-        <span className="text-sm text-muted-foreground font-normal mr-2">
+    <li className="flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors gap-3">
+      <div className="min-w-0">
+        <span className="font-medium">
+          درس {lesson.lessonNumber}
+          {lesson.title ? ` — ${lesson.title}` : ''}
+        </span>
+        <span className="text-sm text-muted-foreground mr-2">
           ({lesson._count?.words ?? 0} لغت)
         </span>
-      </span>
-      <div className="flex items-center gap-1">
+      </div>
+      <div className="flex items-center gap-1.5 shrink-0">
         <Button
-          size="icon"
-          variant="ghost"
-          className="h-8 w-8"
-          onClick={onEdit}
-          aria-label="ویرایش"
+          size="sm"
+          variant="outline"
+          className="gap-1.5 text-primary border-primary/40 hover:bg-primary/5 hover:border-primary"
+          onClick={onAddWord}
         >
+          <PenLine className="h-3.5 w-3.5" />
+          افزودن لغت
+        </Button>
+        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onEdit} aria-label="ویرایش">
           <Pencil className="h-3.5 w-3.5" />
         </Button>
         <Button
@@ -314,6 +321,11 @@ export function LessonManagerPage() {
                   lesson={lesson}
                   onEdit={() => openEdit(lesson)}
                   onDelete={() => setDeleteTarget(lesson)}
+                  onAddWord={() =>
+                    navigate(
+                      `/admin/words/new?bookId=${bookId}&volumeId=${volumeId}&lessonId=${lesson.id}`,
+                    )
+                  }
                 />
               ))}
             </ul>

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useState, useMemo } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -57,7 +57,14 @@ type WordFormInput = {
 export function WordFormPage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id?: string }>()
+  const [searchParams] = useSearchParams()
   const isEditMode = Boolean(id)
+
+  // Pre-fill from query params when coming from lesson manager
+  const prefilledBookId = searchParams.get('bookId') ?? ''
+  const prefilledVolumeId = searchParams.get('volumeId') ?? ''
+  const prefilledLessonId = searchParams.get('lessonId') ?? ''
+  const isLessonPrefilled = Boolean(prefilledLessonId)
 
   const { data: word, isLoading: wordLoading } = useWord(id ?? '')
   const { data: modules, isLoading: modulesLoading } = useModules()
@@ -66,12 +73,25 @@ export function WordFormPage() {
 
   // Book / volume / lesson selectors
   const { data: books } = useBooksSimple()
-  const [selectedBookId, setSelectedBookId] = useState<string>('')
-  const [selectedVolumeId, setSelectedVolumeId] = useState<string>('')
-  const [selectedLessonId, setSelectedLessonId] = useState<string>('')
+  const [selectedBookId, setSelectedBookId] = useState<string>(prefilledBookId)
+  const [selectedVolumeId, setSelectedVolumeId] = useState<string>(prefilledVolumeId)
+  const [selectedLessonId, setSelectedLessonId] = useState<string>(prefilledLessonId)
 
   const { data: volumes } = useVolumesSimple(selectedBookId)
   const { data: lessons } = useLessonsSimple(selectedBookId, selectedVolumeId)
+
+  const selectedBook = useMemo(
+    () => books?.find((b) => b.id === selectedBookId),
+    [books, selectedBookId],
+  )
+  const selectedVolume = useMemo(
+    () => volumes?.find((v) => v.id === selectedVolumeId),
+    [volumes, selectedVolumeId],
+  )
+  const selectedLesson = useMemo(
+    () => lessons?.find((l) => l.id === selectedLessonId),
+    [lessons, selectedLessonId],
+  )
 
   const [draftExamples, setDraftExamples] = useState<DraftExample[]>([])
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -264,96 +284,124 @@ export function WordFormPage() {
             <CardTitle className="text-base">موقعیت در کتاب (اختیاری)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-xs text-muted-foreground">
-              اگر این لغت به درس خاصی تعلق دارد آن را انتخاب کنید. در غیر این صورت می‌توانید
-              خالی بگذارید.
-            </p>
 
-            {/* Book selector */}
-            {books && books.length > 0 ? (
-              <>
-                <div className="space-y-1.5">
-                  <Label>کتاب</Label>
-                  <select
-                    value={selectedBookId}
-                    onChange={(e) => handleBookChange(e.target.value)}
-                    className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  >
-                    <option value="">— بدون کتاب —</option>
-                    {books.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.title}
-                      </option>
-                    ))}
-                  </select>
+            {/* ── Locked banner when coming from lesson manager ── */}
+            {isLessonPrefilled ? (
+              <div className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 space-y-2">
+                <p className="text-xs font-medium text-primary">این لغت به درس زیر اضافه می‌شود:</p>
+                <div className="flex flex-wrap gap-2 text-sm font-medium text-foreground">
+                  {selectedBook && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-background border border-border px-2.5 py-0.5 text-xs">
+                      📚 {selectedBook.title}
+                    </span>
+                  )}
+                  {selectedVolume && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-background border border-border px-2.5 py-0.5 text-xs">
+                      📖 جلد {selectedVolume.volumeNumber}{selectedVolume.title ? ` — ${selectedVolume.title}` : ''}
+                    </span>
+                  )}
+                  {selectedLesson && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/30 px-2.5 py-0.5 text-xs text-primary font-semibold">
+                      درس {selectedLesson.lessonNumber}{selectedLesson.title ? ` — ${selectedLesson.title}` : ''}
+                    </span>
+                  )}
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  برای تغییر درس، از صفحه مدیریت درس‌ها اقدام کنید.
+                </p>
+              </div>
+            ) : (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  اگر این لغت به درس خاصی تعلق دارد آن را انتخاب کنید. در غیر این صورت
+                  می‌توانید خالی بگذارید.
+                </p>
 
-                {selectedBookId && volumes && volumes.length > 0 && (
-                  <div className="space-y-1.5">
-                    <Label>جلد</Label>
-                    <select
-                      value={selectedVolumeId}
-                      onChange={(e) => handleVolumeChange(e.target.value)}
-                      className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    >
-                      <option value="">— انتخاب جلد —</option>
-                      {volumes.map((v) => (
-                        <option key={v.id} value={v.id}>
-                          {v.title ?? `جلد ${v.volumeNumber}`}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                {books && books.length > 0 ? (
+                  <>
+                    <div className="space-y-1.5">
+                      <Label>کتاب</Label>
+                      <select
+                        value={selectedBookId}
+                        onChange={(e) => handleBookChange(e.target.value)}
+                        className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      >
+                        <option value="">— بدون کتاب —</option>
+                        {books.map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {selectedBookId && volumes && volumes.length > 0 && (
+                      <div className="space-y-1.5">
+                        <Label>جلد</Label>
+                        <select
+                          value={selectedVolumeId}
+                          onChange={(e) => handleVolumeChange(e.target.value)}
+                          className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        >
+                          <option value="">— انتخاب جلد —</option>
+                          {volumes.map((v) => (
+                            <option key={v.id} value={v.id}>
+                              {v.title ?? `جلد ${v.volumeNumber}`}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {selectedVolumeId && lessons && lessons.length > 0 && (
+                      <div className="space-y-1.5">
+                        <Label>درس</Label>
+                        <select
+                          value={selectedLessonId}
+                          onChange={(e) => setSelectedLessonId(e.target.value)}
+                          className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        >
+                          <option value="">— انتخاب درس —</option>
+                          {lessons.map((l) => (
+                            <option key={l.id} value={l.id}>
+                              {l.title ?? `درس ${l.lessonNumber}`}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">
+                    هنوز کتابی تعریف نشده است. ابتدا از بخش «کتاب‌ها» یک کتاب اضافه کنید.
+                  </p>
                 )}
 
-                {selectedVolumeId && lessons && lessons.length > 0 && (
-                  <div className="space-y-1.5">
-                    <Label>درس</Label>
-                    <select
-                      value={selectedLessonId}
-                      onChange={(e) => setSelectedLessonId(e.target.value)}
-                      className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    >
-                      <option value="">— انتخاب درس —</option>
-                      {lessons.map((l) => (
-                        <option key={l.id} value={l.id}>
-                          {l.title ?? `درس ${l.lessonNumber}`}
-                        </option>
-                      ))}
-                    </select>
+                {!selectedBookId && (
+                  <div className="grid grid-cols-2 gap-4 pt-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="chapter">فصل (قدیمی)</Label>
+                      <Input
+                        id="chapter"
+                        type="number"
+                        min="1"
+                        placeholder="مثال: ۳"
+                        {...register('chapter')}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="unit">درس (قدیمی)</Label>
+                      <Input
+                        id="unit"
+                        type="number"
+                        min="1"
+                        placeholder="مثال: ۲"
+                        {...register('unit')}
+                      />
+                    </div>
                   </div>
                 )}
               </>
-            ) : (
-              <p className="text-sm text-muted-foreground italic">
-                هنوز کتابی تعریف نشده است. ابتدا از بخش «کتاب‌ها» یک کتاب اضافه کنید.
-              </p>
-            )}
-
-            {/* Legacy chapter/unit for words not in book system */}
-            {!selectedBookId && (
-              <div className="grid grid-cols-2 gap-4 pt-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="chapter">فصل (قدیمی)</Label>
-                  <Input
-                    id="chapter"
-                    type="number"
-                    min="1"
-                    placeholder="مثال: ۳"
-                    {...register('chapter')}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="unit">درس (قدیمی)</Label>
-                  <Input
-                    id="unit"
-                    type="number"
-                    min="1"
-                    placeholder="مثال: ۲"
-                    {...register('unit')}
-                  />
-                </div>
-              </div>
             )}
           </CardContent>
         </Card>

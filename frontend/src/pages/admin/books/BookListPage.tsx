@@ -20,27 +20,34 @@ import type { Book } from '@/types'
 function BookCover({ book }: { book: Book }) {
   if (book.coverImage) {
     return (
-      <figure className="h-40 overflow-hidden bg-muted">
-        <img src={book.coverImage} alt={book.title} className="w-full h-full object-cover" />
+      <figure className="relative w-full" style={{ paddingBottom: '140%' }}>
+        <img
+          src={book.coverImage}
+          alt={book.title}
+          className="absolute inset-0 w-full h-full object-cover"
+        />
       </figure>
     )
   }
   return (
-    <div className="h-40 bg-muted flex items-center justify-center" aria-hidden>
-      <BookOpen className="h-12 w-12 text-muted-foreground opacity-30" />
+    <div
+      className="relative w-full bg-gradient-to-br from-muted to-muted/60 flex items-center justify-center"
+      style={{ paddingBottom: '140%' }}
+      aria-hidden
+    >
+      <BookOpen className="absolute inset-0 m-auto h-14 w-14 text-muted-foreground opacity-20" />
     </div>
   )
 }
 
 function BookMeta({ book }: { book: Book }) {
   return (
-    <header className="space-y-1">
-      <h3 className="font-semibold text-foreground text-base leading-tight">{book.title}</h3>
-      {book.description && (
-        <p className="text-sm text-muted-foreground line-clamp-2">{book.description}</p>
-      )}
-      <p className="text-xs text-muted-foreground flex items-center gap-1 pt-0.5">
-        <Layers className="h-3.5 w-3.5" />
+    <header className="space-y-0.5">
+      <h3 className="font-semibold text-foreground text-sm leading-snug line-clamp-2">
+        {book.title}
+      </h3>
+      <p className="text-xs text-muted-foreground flex items-center gap-1">
+        <Layers className="h-3 w-3" />
         {book._count?.volumes ?? 0} جلد
       </p>
     </header>
@@ -48,29 +55,27 @@ function BookMeta({ book }: { book: Book }) {
 }
 
 function BookActions({
-  book,
   onEdit,
   onVolumes,
   onDelete,
 }: {
-  book: Book
   onEdit: () => void
   onVolumes: () => void
   onDelete: () => void
 }) {
   return (
-    <footer className="flex gap-2 pt-1">
-      <Button size="sm" variant="outline" className="flex-1" onClick={onVolumes}>
-        <Layers className="h-3.5 w-3.5 ml-1.5" />
-        مدیریت جلدها
+    <footer className="flex gap-1">
+      <Button size="sm" variant="outline" className="flex-1 text-xs h-8" onClick={onVolumes}>
+        <Layers className="h-3 w-3 ml-1" />
+        جلدها
       </Button>
-      <Button size="sm" variant="ghost" onClick={onEdit} aria-label="ویرایش">
+      <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={onEdit} aria-label="ویرایش">
         <Pencil className="h-3.5 w-3.5" />
       </Button>
       <Button
-        size="sm"
+        size="icon"
         variant="ghost"
-        className="text-destructive hover:text-destructive"
+        className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
         onClick={onDelete}
         aria-label="حذف"
       >
@@ -92,11 +97,11 @@ function BookCard({
   onDelete: () => void
 }) {
   return (
-    <article className="rounded-lg border border-border bg-card overflow-hidden">
+    <article className="rounded-lg border border-border bg-card overflow-hidden hover:shadow-md transition-shadow">
       <BookCover book={book} />
-      <div className="p-4 space-y-3">
+      <div className="p-3 space-y-2">
         <BookMeta book={book} />
-        <BookActions book={book} onEdit={onEdit} onVolumes={onVolumes} onDelete={onDelete} />
+        <BookActions onEdit={onEdit} onVolumes={onVolumes} onDelete={onDelete} />
       </div>
     </article>
   )
@@ -195,7 +200,7 @@ export function BookListPage() {
       ) : !books || books.length === 0 ? (
         <EmptyState onAdd={() => navigate('/admin/books/new')} />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {books.map((book) => (
             <BookCard
               key={book.id}

@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Loader2 } from 'lucide-react'
 import { useAuthStore } from './store/authStore'
 import { ThemeProvider } from './components/layout/ThemeProvider'
 import { Layout } from './components/layout/Layout'
@@ -17,19 +18,10 @@ import LandingPage from './pages/LandingPage'
 import { Toaster } from './components/ui/toast'
 import { type Role } from './types'
 
-// HomeRoute: shows LandingPage for guests, redirects authenticated users to /vocabulary
-function HomeRoute() {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  if (isAuthenticated) return <Navigate to="/vocabulary" replace />
-  return <LandingPage />
-}
-
 // ProtectedRoute: redirects unauthenticated users to /login
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
-  }
+  if (!isAuthenticated) return <Navigate to="/login" replace />
   return <>{children}</>
 }
 
@@ -37,39 +29,47 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const user = useAuthStore((s) => s.user)
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
-  }
-
-  if (user?.role !== ('ADMIN' as Role)) {
-    return <Navigate to="/vocabulary" replace />
-  }
-
+  if (!isAuthenticated) return <Navigate to="/login" replace />
+  if (user?.role !== ('ADMIN' as Role)) return <Navigate to="/vocabulary" replace />
   return <>{children}</>
 }
 
 // PublicRoute: redirects authenticated users away from auth pages
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  if (isAuthenticated) {
-    return <Navigate to="/vocabulary" replace />
-  }
+  if (isAuthenticated) return <Navigate to="/vocabulary" replace />
   return <>{children}</>
 }
 
 export default function App() {
   const initAuth = useAuthStore((s) => s.initAuth)
+  const isReady = useAuthStore((s) => s.isReady)
 
   useEffect(() => {
     initAuth()
   }, [initAuth])
+
+  // Block route rendering until auth is restored from localStorage.
+  // Without this gate, AdminRoute renders with user=null and redirects
+  // to /vocabulary before initAuth has a chance to run.
+  if (!isReady) {
+    return (
+      <ThemeProvider defaultTheme="light" storageKey="eng-theme">
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </ThemeProvider>
+    )
+  }
 
   return (
     <ThemeProvider defaultTheme="light" storageKey="eng-theme">
       <BrowserRouter>
         <Toaster />
         <Routes>
+          {/* Landing page — always accessible */}
+          <Route path="/" element={<LandingPage />} />
+
           {/* Public auth routes */}
           <Route
             path="/login"
@@ -88,13 +88,6 @@ export default function App() {
             }
           />
 
-          {/* Landing page — unauthenticated users see it, authenticated users go to /vocabulary */}
-          <Route
-            path="/"
-            element={
-              <HomeRoute />
-            }
-          />
           <Route
             path="/vocabulary"
             element={
