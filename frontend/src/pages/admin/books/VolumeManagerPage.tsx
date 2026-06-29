@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Plus, Pencil, Trash2, Loader2, BookOpen, ChevronLeft } from 'lucide-react'
+import { ArrowLeft, Plus, Pencil, Trash2, Loader2, BookOpen, ChevronLeft, Upload, X, Image } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -21,15 +21,100 @@ import {
   useDeleteVolume,
 } from '@/hooks/useBooks'
 import { toast } from '@/components/ui/use-toast'
+import { cn } from '@/lib/utils'
 import type { Volume } from '@/types'
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
+function VolumeCoverUpload({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (v: string) => void
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [isDragOver, setIsDragOver] = useState(false)
+
+  async function handleFile(file: File) {
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'لطفاً یک فایل تصویری انتخاب کنید', variant: 'destructive' })
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = (e) => onChange(e.target?.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  const onDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(false)
+    const file = e.dataTransfer.files[0]
+    if (file) await handleFile(file)
+  }, [])
+
+  const onDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(true)
+  }, [])
+
+  if (value) {
+    return (
+      <figure className="relative inline-block">
+        <img
+          src={value}
+          alt="جلد جلد"
+          className="h-32 w-auto rounded-lg border border-border object-cover"
+          style={{ aspectRatio: '3/4' }}
+        />
+        <button
+          type="button"
+          onClick={() => onChange('')}
+          aria-label="حذف تصویر"
+          className="absolute -top-2 -left-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow"
+        >
+          <X className="h-3 w-3" />
+        </button>
+      </figure>
+    )
+  }
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onDrop={onDrop}
+      onDragOver={onDragOver}
+      onDragLeave={() => setIsDragOver(false)}
+      onClick={() => inputRef.current?.click()}
+      onKeyDown={(e) => e.key === 'Enter' && inputRef.current?.click()}
+      className={cn(
+        'flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-lg p-6 cursor-pointer transition-colors text-center select-none',
+        isDragOver
+          ? 'border-primary bg-primary/5'
+          : 'border-border hover:border-primary/50 hover:bg-muted/30',
+      )}
+    >
+      <Upload className="h-6 w-6 text-muted-foreground" aria-hidden />
+      <p className="text-xs text-muted-foreground">تصویر بکشید یا کلیک کنید</p>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
+      />
+    </div>
+  )
+}
+
 interface VolumeFormProps {
   volumeNumber: string
   title: string
+  coverImage: string
   onVolumeNumberChange: (v: string) => void
   onTitleChange: (v: string) => void
+  onCoverImageChange: (v: string) => void
   onSubmit: (e: React.FormEvent) => void
   onCancel: () => void
   isLoading: boolean
@@ -38,8 +123,10 @@ interface VolumeFormProps {
 function VolumeForm({
   volumeNumber,
   title,
+  coverImage,
   onVolumeNumberChange,
   onTitleChange,
+  onCoverImageChange,
   onSubmit,
   onCancel,
   isLoading,
@@ -67,6 +154,13 @@ function VolumeForm({
           onChange={(e) => onTitleChange(e.target.value)}
         />
       </div>
+      <div className="space-y-1.5">
+        <Label className="flex items-center gap-1.5">
+          <Image className="h-3.5 w-3.5" />
+          تصویر جلد (اختیاری)
+        </Label>
+        <VolumeCoverUpload value={coverImage} onChange={onCoverImageChange} />
+      </div>
       <DialogFooter className="flex-row-reverse gap-2">
         <Button type="submit" disabled={isLoading}>
           {isLoading && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
@@ -77,6 +171,14 @@ function VolumeForm({
         </Button>
       </DialogFooter>
     </form>
+  )
+}
+
+function VolumeThumbnail({ src }: { src: string }) {
+  return (
+    <figure className="shrink-0 h-12 w-9 overflow-hidden rounded border border-border bg-muted">
+      <img src={src} alt="" className="h-full w-full object-cover" />
+    </figure>
   )
 }
 
@@ -92,15 +194,24 @@ function VolumeRow({
   onDelete: () => void
 }) {
   return (
-    <li className="flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors">
-      <span className="font-medium">
-        جلد {volume.volumeNumber}
-        {volume.title ? ` — ${volume.title}` : ''}
-        <span className="text-sm text-muted-foreground font-normal mr-2">
-          ({volume._count?.lessons ?? 0} درس)
-        </span>
-      </span>
-      <div className="flex items-center gap-1">
+    <li className="flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors gap-3">
+      <div className="flex items-center gap-3 min-w-0">
+        {volume.coverImage ? (
+          <VolumeThumbnail src={volume.coverImage} />
+        ) : (
+          <div className="shrink-0 h-12 w-9 rounded border border-dashed border-border bg-muted/50 flex items-center justify-center">
+            <BookOpen className="h-4 w-4 text-muted-foreground opacity-40" />
+          </div>
+        )}
+        <div className="min-w-0">
+          <p className="font-medium">
+            جلد {volume.volumeNumber}
+            {volume.title ? ` — ${volume.title}` : ''}
+          </p>
+          <p className="text-xs text-muted-foreground">{volume._count?.lessons ?? 0} درس</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-1 shrink-0">
         <Button size="sm" variant="outline" className="gap-1.5" onClick={onLessons}>
           درس‌ها
           <ChevronLeft className="h-3.5 w-3.5" />
@@ -189,16 +300,19 @@ export function VolumeManagerPage() {
   const [deleteTarget, setDeleteTarget] = useState<Volume | null>(null)
   const [formNumber, setFormNumber] = useState('')
   const [formTitle, setFormTitle] = useState('')
+  const [formCoverImage, setFormCoverImage] = useState('')
 
   function openAdd() {
     setFormNumber('')
     setFormTitle('')
+    setFormCoverImage('')
     setAddOpen(true)
   }
 
   function openEdit(vol: Volume) {
     setFormNumber(String(vol.volumeNumber))
     setFormTitle(vol.title ?? '')
+    setFormCoverImage(vol.coverImage ?? '')
     setEditVolume(vol)
   }
 
@@ -213,7 +327,11 @@ export function VolumeManagerPage() {
     try {
       await createVolume.mutateAsync({
         bookId: bookId!,
-        data: { volumeNumber: Number(formNumber), title: formTitle.trim() || undefined },
+        data: {
+          volumeNumber: Number(formNumber),
+          title: formTitle.trim() || undefined,
+          coverImage: formCoverImage || undefined,
+        },
       })
       toast({ title: 'جلد اضافه شد', variant: 'success' })
       setAddOpen(false)
@@ -229,7 +347,11 @@ export function VolumeManagerPage() {
       await updateVolume.mutateAsync({
         bookId: bookId!,
         volumeId: editVolume.id,
-        data: { volumeNumber: Number(formNumber), title: formTitle.trim() || undefined },
+        data: {
+          volumeNumber: Number(formNumber),
+          title: formTitle.trim() || undefined,
+          coverImage: formCoverImage || undefined,
+        },
       })
       toast({ title: 'جلد ویرایش شد', variant: 'success' })
       setEditVolume(null)
@@ -253,8 +375,10 @@ export function VolumeManagerPage() {
   const sharedFormProps = {
     volumeNumber: formNumber,
     title: formTitle,
+    coverImage: formCoverImage,
     onVolumeNumberChange: setFormNumber,
     onTitleChange: setFormTitle,
+    onCoverImageChange: setFormCoverImage,
     onCancel: closeForm,
   }
 
@@ -294,9 +418,7 @@ export function VolumeManagerPage() {
                   key={vol.id}
                   volume={vol}
                   onEdit={() => openEdit(vol)}
-                  onLessons={() =>
-                    navigate(`/admin/books/${bookId}/volumes/${vol.id}/lessons`)
-                  }
+                  onLessons={() => navigate(`/admin/books/${bookId}/volumes/${vol.id}/lessons`)}
                   onDelete={() => setDeleteTarget(vol)}
                 />
               ))}
@@ -311,11 +433,7 @@ export function VolumeManagerPage() {
           <DialogHeader>
             <DialogTitle>افزودن جلد جدید</DialogTitle>
           </DialogHeader>
-          <VolumeForm
-            {...sharedFormProps}
-            onSubmit={handleAddSubmit}
-            isLoading={createVolume.isPending}
-          />
+          <VolumeForm {...sharedFormProps} onSubmit={handleAddSubmit} isLoading={createVolume.isPending} />
         </DialogContent>
       </Dialog>
 
@@ -325,11 +443,7 @@ export function VolumeManagerPage() {
           <DialogHeader>
             <DialogTitle>ویرایش جلد</DialogTitle>
           </DialogHeader>
-          <VolumeForm
-            {...sharedFormProps}
-            onSubmit={handleEditSubmit}
-            isLoading={updateVolume.isPending}
-          />
+          <VolumeForm {...sharedFormProps} onSubmit={handleEditSubmit} isLoading={updateVolume.isPending} />
         </DialogContent>
       </Dialog>
 

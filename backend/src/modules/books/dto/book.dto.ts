@@ -11,6 +11,7 @@ export const updateBookSchema = createBookSchema.partial()
 export const createVolumeSchema = z.object({
   volumeNumber: z.number().int().positive(),
   title: z.string().optional(),
+  coverImage: z.string().optional(),
 })
 
 export const updateVolumeSchema = createVolumeSchema.partial()

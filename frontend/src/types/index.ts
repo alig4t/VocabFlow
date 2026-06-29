@@ -42,6 +42,7 @@ export interface Volume {
   bookId: string
   volumeNumber: number
   title?: string
+  coverImage?: string
   createdAt: string
   _count?: { lessons: number }
   lessons?: Lesson[]

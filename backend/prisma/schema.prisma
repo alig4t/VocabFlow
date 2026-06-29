@@ -71,6 +71,7 @@ model Volume {
   bookId       String   @map("book_id")
   volumeNumber Int      @map("volume_number")
   title        String?
+  coverImage   String?  @map("cover_image")
   createdAt    DateTime @default(now()) @map("created_at")
 
   book    Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
