@@ -24,6 +24,11 @@ export class UserService {
     return safeUser
   }
 
+  /** Admin: list all users (password hashes are never selected). */
+  async listUsers() {
+    return this.repository.findAll()
+  }
+
   async updateProfile(
     userId: string,
     data: { name?: string; email?: string },

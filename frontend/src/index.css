@@ -20,14 +20,14 @@
     --card-foreground: 222.2 47% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 47% 11%;
-    --primary: 243 75% 59%;
+    --primary: 176 82% 28%;
     --primary-foreground: 0 0% 100%;
     --secondary: 220 14% 96%;
     --secondary-foreground: 222.2 47% 11%;
     --muted: 220 14% 96%;
     --muted-foreground: 220 9% 46%;
-    --accent: 243 75% 96%;
-    --accent-foreground: 243 60% 40%;
+    --accent: 176 55% 94%;
+    --accent-foreground: 176 70% 22%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
     --success: 152 60% 38%;
@@ -36,16 +36,16 @@
     --warning-foreground: 30 50% 16%;
     --border: 220 16% 90%;
     --input: 220 16% 90%;
-    --ring: 243 75% 59%;
+    --ring: 176 82% 28%;
     --radius: 0.75rem;
     /* gradient endpoints + data-viz palette */
-    --gradient-from: 243 75% 59%;
-    --gradient-to: 268 70% 60%;
-    --chart-1: 243 75% 59%;
-    --chart-2: 268 70% 60%;
+    --gradient-from: 176 80% 32%;
+    --gradient-to: 192 85% 38%;
+    --chart-1: 176 78% 36%;
+    --chart-2: 192 82% 42%;
     --chart-3: 152 60% 42%;
     --chart-4: 35 92% 52%;
-    --chart-5: 199 89% 48%;
+    --chart-5: 224 76% 58%;
   }
   .dark {
     --background: 222 47% 6%;
@@ -54,14 +54,14 @@
     --card-foreground: 210 40% 96%;
     --popover: 222 41% 9%;
     --popover-foreground: 210 40% 96%;
-    --primary: 243 80% 70%;
+    --primary: 174 70% 45%;
     --primary-foreground: 222 47% 8%;
     --secondary: 217 33% 16%;
     --secondary-foreground: 210 40% 96%;
     --muted: 217 33% 15%;
     --muted-foreground: 218 14% 64%;
-    --accent: 243 40% 20%;
-    --accent-foreground: 243 90% 85%;
+    --accent: 176 40% 20%;
+    --accent-foreground: 174 80% 80%;
     --destructive: 0 63% 50%;
     --destructive-foreground: 0 0% 100%;
     --success: 152 52% 46%;
@@ -70,14 +70,14 @@
     --warning-foreground: 30 50% 12%;
     --border: 217 30% 20%;
     --input: 217 30% 22%;
-    --ring: 243 80% 70%;
-    --gradient-from: 243 80% 66%;
-    --gradient-to: 268 72% 66%;
-    --chart-1: 243 80% 70%;
-    --chart-2: 268 72% 70%;
+    --ring: 174 70% 45%;
+    --gradient-from: 174 72% 44%;
+    --gradient-to: 190 78% 46%;
+    --chart-1: 174 70% 50%;
+    --chart-2: 192 80% 55%;
     --chart-3: 152 52% 52%;
     --chart-4: 35 90% 60%;
-    --chart-5: 199 85% 58%;
+    --chart-5: 224 80% 68%;
   }
   /* ── Study mode · warm, low-blue, easy on the eyes for long reading ── */
   .study {
@@ -117,6 +117,23 @@
   body { @apply bg-background text-foreground font-sans; }
   .rtl { direction: rtl; font-family: 'Anjoman', system-ui, sans-serif; }
   .font-persian { font-family: 'Anjoman', system-ui, sans-serif; }
+
+  /* Thin, subtle scrollbars (replaces the heavy default track/thumb) */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.5);
+  }
 }
 
 @layer components {
@@ -143,6 +160,18 @@
     box-shadow:
       0 1px 2px -1px hsl(222 47% 11% / 0.08),
       0 4px 16px -6px hsl(222 47% 11% / 0.08);
+  }
+
+  /* Styled native <select>: removes the OS arrow and draws a clean chevron
+     with breathing room at the inline-end (left in RTL, right in LTR). */
+  .select-field {
+    @apply h-10 w-full appearance-none rounded-md border border-input bg-background bg-no-repeat text-sm text-foreground ring-offset-background transition-colors hover:border-ring/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    /* App is RTL: chevron sits at the left edge with breathing room. */
+    background-position: left 0.75rem center;
+    background-size: 1.05rem;
+    padding-left: 2.25rem;
+    padding-right: 0.875rem;
   }
 }
 

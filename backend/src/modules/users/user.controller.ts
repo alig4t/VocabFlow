@@ -29,6 +29,13 @@ export async function getMe(req: Request, res: Response): Promise<void> {
   res.json({ success: true, data: user })
 }
 
+/** Admin: list all users. */
+export async function listUsers(_req: Request, res: Response): Promise<void> {
+  const users = await userService.listUsers()
+
+  res.json({ success: true, data: users })
+}
+
 export async function updateProfile(
   req: Request,
   res: Response,

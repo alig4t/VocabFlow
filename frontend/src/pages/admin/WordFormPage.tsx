@@ -418,7 +418,7 @@ export function WordFormPage() {
                       <select
                         value={selectedBookId}
                         onChange={(e) => handleBookChange(e.target.value)}
-                        className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        className="select-field"
                       >
                         <option value="">— بدون کتاب —</option>
                         {books.map((b) => (
@@ -433,7 +433,7 @@ export function WordFormPage() {
                         <select
                           value={selectedVolumeId}
                           onChange={(e) => handleVolumeChange(e.target.value)}
-                          className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          className="select-field"
                         >
                           <option value="">— انتخاب جلد —</option>
                           {volumes.map((v) => (
@@ -449,7 +449,7 @@ export function WordFormPage() {
                         <select
                           value={selectedLessonId}
                           onChange={(e) => setSelectedLessonId(e.target.value)}
-                          className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          className="select-field"
                         >
                           <option value="">— انتخاب درس —</option>
                           {lessons.map((l) => (

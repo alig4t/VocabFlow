@@ -11,6 +11,7 @@ import { LibraryPage } from './pages/library/LibraryPage'
 import { VocabularyPage } from './pages/vocabulary/VocabularyPage'
 import { ReviewPage } from './pages/vocabulary/ReviewPage'
 import { AdminPage } from './pages/admin/AdminPage'
+import { UsersPage } from './pages/admin/UsersPage'
 import { WordFormPage } from './pages/admin/WordFormPage'
 import { BookListPage } from './pages/admin/books/BookListPage'
 import { BookFormPage } from './pages/admin/books/BookFormPage'
@@ -138,6 +139,16 @@ export default function App() {
               <AdminRoute>
                 <Layout>
                   <AdminPage />
+                </Layout>
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <AdminRoute>
+                <Layout>
+                  <UsersPage />
                 </Layout>
               </AdminRoute>
             }

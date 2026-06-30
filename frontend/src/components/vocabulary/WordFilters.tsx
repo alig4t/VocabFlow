@@ -1,21 +1,13 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { X, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { useBooksSimple, useVolumesSimple, useLessonsSimple } from '@/hooks/useBooks'
-import type { ReviewMode, WordStatus } from '@/types'
+import { DEFAULT_VOCAB_FILTERS, type WordFiltersState } from '@/lib/vocabFilters'
+import type { WordStatus } from '@/types'
 
-export interface WordFiltersState {
-  mode: ReviewMode
-  status: WordStatus | 'ALL'
-  sort: 'chapter' | 'eng' | 'per'
-  chapter: number | undefined
-  search: string
-  bookId: string | undefined
-  volumeId: string | undefined
-  lessonId: string | undefined
-}
+export type { WordFiltersState }
 
 interface WordFiltersProps {
   filters: WordFiltersState
@@ -38,12 +30,16 @@ const SORT_OPTIONS: { label: string; value: 'chapter' | 'eng' | 'per' }[] = [
 
 const CHAPTERS = Array.from({ length: 30 }, (_, i) => i + 1)
 
-const SELECT_CLASS =
-  'h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer'
+const SELECT_CLASS = 'select-field w-auto min-w-[9rem] cursor-pointer'
 
 export function WordFilters({ filters, onChange, className }: WordFiltersProps) {
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const searchInputRef = useRef<HTMLInputElement>(null)
+  // Local mirror of the search text so typing stays responsive while the URL
+  // update is debounced; re-syncs when filters.search changes (URL restore/reset).
+  const [searchValue, setSearchValue] = useState(filters.search)
+  useEffect(() => {
+    setSearchValue(filters.search)
+  }, [filters.search])
 
   const { data: books } = useBooksSimple()
   const { data: volumes } = useVolumesSimple(filters.bookId ?? '')
@@ -69,6 +65,7 @@ export function WordFilters({ filters, onChange, className }: WordFiltersProps) 
 
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value
+    setSearchValue(val)
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
     searchTimeoutRef.current = setTimeout(() => {
       update({ search: val })
@@ -76,22 +73,14 @@ export function WordFilters({ filters, onChange, className }: WordFiltersProps) 
   }
 
   function clearSearch() {
-    if (searchInputRef.current) searchInputRef.current.value = ''
+    setSearchValue('')
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
     update({ search: '' })
   }
 
   function resetAll() {
-    if (searchInputRef.current) searchInputRef.current.value = ''
-    onChange({
-      mode: 'EN_TO_FA',
-      status: 'ALL',
-      sort: 'chapter',
-      chapter: undefined,
-      search: '',
-      bookId: undefined,
-      volumeId: undefined,
-      lessonId: undefined,
-    })
+    setSearchValue('')
+    onChange({ ...DEFAULT_VOCAB_FILTERS })
   }
 
   const isDefaultState =
@@ -261,14 +250,13 @@ export function WordFilters({ filters, onChange, className }: WordFiltersProps) 
         {/* Search input */}
         <div className="relative flex-1 min-w-[200px]">
           <Input
-            ref={searchInputRef}
             type="text"
             placeholder="جستجو در لغات..."
-            defaultValue={filters.search}
+            value={searchValue}
             onChange={handleSearchChange}
             className="pr-8"
           />
-          {filters.search && (
+          {searchValue && (
             <button
               onClick={clearSearch}
               className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"

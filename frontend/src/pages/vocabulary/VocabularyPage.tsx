@@ -1,35 +1,19 @@
-import { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useCallback } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { BookOpen, CheckCircle2, XCircle, Eye, ChevronLeft, ChevronRight, LayoutGrid } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { WordCard } from '@/components/vocabulary/WordCard'
 import { WordFilters, type WordFiltersState } from '@/components/vocabulary/WordFilters'
 import { useWords } from '@/hooks/useVocabulary'
 import { useProgressStats } from '@/hooks/useProgress'
-import type { ReviewMode, WordStatus } from '@/types'
+import {
+  parseVocabParams,
+  serializeVocabParams,
+  toApiFilters,
+  VOCAB_PARAMS_STORAGE_KEY,
+} from '@/lib/vocabFilters'
 
 const LIMIT = 20
-
-const DEFAULT_FILTERS: WordFiltersState = {
-  mode: 'EN_TO_FA',
-  status: 'ALL',
-  sort: 'chapter',
-  chapter: undefined,
-  search: '',
-  bookId: undefined,
-  volumeId: undefined,
-  lessonId: undefined,
-}
-
-function loadPersistedMode(): ReviewMode {
-  try {
-    const val = localStorage.getItem('vocab_review_mode')
-    if (val === 'EN_TO_FA' || val === 'FA_TO_EN') return val
-  } catch {
-    // ignore
-  }
-  return 'EN_TO_FA'
-}
 
 function SkeletonCard() {
   return (
@@ -52,40 +36,49 @@ function SkeletonCard() {
 
 export function VocabularyPage() {
   const navigate = useNavigate()
-  const [page, setPage] = useState(1)
-  const [filters, setFilters] = useState<WordFiltersState>(() => ({
-    ...DEFAULT_FILTERS,
-    mode: loadPersistedMode(),
-  }))
+  const [searchParams, setSearchParams] = useSearchParams()
 
-  // Persist review mode
+  // On first mount with an empty query string, restore the last-used filters
+  // from localStorage so returning to the page resumes where you left off.
+  const didRestore = useRef(false)
   useEffect(() => {
+    if (didRestore.current) return
+    didRestore.current = true
+    if (searchParams.toString() === '') {
+      try {
+        const saved = localStorage.getItem(VOCAB_PARAMS_STORAGE_KEY)
+        if (saved) setSearchParams(new URLSearchParams(saved), { replace: true })
+      } catch {
+        // ignore
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // URL is the single source of truth for filters + page.
+  const { filters, page } = parseVocabParams(searchParams)
+
+  // Persist the current query string (and review mode) for the next visit.
+  useEffect(() => {
+    const qs = searchParams.toString()
     try {
+      if (qs) localStorage.setItem(VOCAB_PARAMS_STORAGE_KEY, qs)
       localStorage.setItem('vocab_review_mode', filters.mode)
     } catch {
       // ignore
     }
-  }, [filters.mode])
+  }, [searchParams, filters.mode])
 
-  // Reset page when filters change
-  const handleFiltersChange = useCallback((newFilters: WordFiltersState) => {
-    setFilters(newFilters)
-    setPage(1)
-  }, [])
+  // Changing any filter resets to page 1 and pushes to the URL (applies immediately).
+  const handleFiltersChange = useCallback(
+    (newFilters: WordFiltersState) => {
+      setSearchParams(serializeVocabParams(newFilters, 1))
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    },
+    [setSearchParams],
+  )
 
-  const apiFilters = {
-    page,
-    limit: LIMIT,
-    mode: filters.mode,
-    status: filters.status === 'ALL' ? undefined : filters.status as WordStatus,
-    sort: filters.sort,
-    order: 'asc' as const,
-    chapter: filters.chapter,
-    search: filters.search || undefined,
-    bookId: filters.bookId,
-    volumeId: filters.volumeId,
-    lessonId: filters.lessonId,
-  }
+  const apiFilters = toApiFilters(filters, page, LIMIT)
 
   const { data, isLoading, isError } = useWords(apiFilters)
   const { data: stats } = useProgressStats()
@@ -97,7 +90,7 @@ export function VocabularyPage() {
   const currentStats = stats?.[filters.mode]
 
   function goToPage(p: number) {
-    setPage(p)
+    setSearchParams(serializeVocabParams(filters, p))
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -174,7 +167,12 @@ export function VocabularyPage() {
             </p>
           )}
         </div>
-        <Button onClick={() => navigate('/vocabulary/review')} className="gap-2 self-start sm:self-auto">
+        <Button
+          onClick={() =>
+            navigate(`/vocabulary/review?${serializeVocabParams(filters, 1).toString()}`)
+          }
+          className="gap-2 self-start sm:self-auto"
+        >
           <LayoutGrid className="h-4 w-4" />
           شروع مرور
         </Button>

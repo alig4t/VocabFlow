@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ChevronLeft, ChevronRight, SkipForward } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ReviewCard } from '@/components/vocabulary/ReviewCard'
 import { useWords } from '@/hooks/useVocabulary'
 import { useUpdateWordStatus, useWordStatus } from '@/hooks/useProgress'
 import { cn } from '@/lib/utils'
+import { parseVocabParams } from '@/lib/vocabFilters'
 import type { ReviewMode, WordStatus, Word } from '@/types'
 
 type ReviewFilter = 'ALL' | 'NOT_READ' | 'NOT_KNOWN'
@@ -18,6 +19,13 @@ function loadPersistedMode(): ReviewMode {
     // ignore
   }
   return 'EN_TO_FA'
+}
+
+/** Map a vocabulary status param to the review page's filter options. */
+function statusToReviewFilter(status: WordStatus | 'ALL'): ReviewFilter {
+  if (status === 'NOT_READ') return 'NOT_READ'
+  if (status === 'NOT_KNOWN') return 'NOT_KNOWN'
+  return 'ALL'
 }
 
 function StatusLabel({ status }: { status: string }) {
@@ -93,8 +101,17 @@ function ReviewActions({ word, mode, onKnown, onNotKnown, onSkip, isPending }: R
 
 export function ReviewPage() {
   const navigate = useNavigate()
-  const [mode, setMode] = useState<ReviewMode>(loadPersistedMode)
-  const [reviewFilter, setReviewFilter] = useState<ReviewFilter>('NOT_READ')
+  const [searchParams] = useSearchParams()
+  // Seed the session from URL params carried over from the vocabulary page,
+  // so "continue review" opens the same book/mode/status scope.
+  const initial = useMemo(() => parseVocabParams(searchParams), [searchParams])
+
+  const [mode, setMode] = useState<ReviewMode>(() =>
+    searchParams.get('mode') ? initial.filters.mode : loadPersistedMode(),
+  )
+  const [reviewFilter, setReviewFilter] = useState<ReviewFilter>(() =>
+    searchParams.has('status') ? statusToReviewFilter(initial.filters.status) : 'NOT_READ',
+  )
   const [currentIndex, setCurrentIndex] = useState(0)
 
   const { mutate: updateStatus, isPending } = useUpdateWordStatus()
@@ -114,6 +131,11 @@ export function ReviewPage() {
     status: apiStatus,
     sort: 'chapter',
     order: 'asc',
+    // Scope to the same book/volume/lesson the user was filtering by, if any.
+    bookId: initial.filters.bookId,
+    volumeId: initial.filters.volumeId,
+    lessonId: initial.filters.lessonId,
+    chapter: initial.filters.chapter,
   })
 
   const words = data?.data ?? []

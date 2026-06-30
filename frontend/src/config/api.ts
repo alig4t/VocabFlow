@@ -8,6 +8,10 @@ export const API_ENDPOINTS = {
     logout: '/auth/logout',
     me: '/auth/me',
   },
+  users: {
+    list: '/users',
+    me: '/users/me',
+  },
   words: {
     list: '/words',
     modules: '/words/modules',
