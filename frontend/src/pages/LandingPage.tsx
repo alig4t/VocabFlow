@@ -36,22 +36,30 @@ interface WordConfig {
   top: string
   left: string
   fontSize: number
-  opacity: number
+  maxOpacity: number
   duration: string
   delay: string
 }
 
 function useFloatingWords(count: number): WordConfig[] {
   return useMemo(() => {
-    return Array.from({ length: count }, (_, i) => ({
-      word: WORD_LIST[i % WORD_LIST.length],
-      top: `${5 + pseudo(i * 3) * 85}%`,
-      left: `${2 + pseudo(i * 7) * 92}%`,
-      fontSize: Math.round(10 + pseudo(i * 5) * 14),
-      opacity: 0.10 + pseudo(i * 11) * 0.22,
-      duration: `${9 + pseudo(i * 13) * 10}s`,
-      delay: `${pseudo(i * 17) * 9}s`,
-    }))
+    return Array.from({ length: count }, (_, i) => {
+      const topPct = 5 + pseudo(i * 3) * 85
+      const leftPct = 2 + pseudo(i * 7) * 92
+      // Central band = where the hero headline + book stack sit. Words landing
+      // there are kept very faint so the text underneath stays readable.
+      const inContentBand = topPct > 14 && topPct < 82 && leftPct > 10 && leftPct < 90
+      const base = 0.10 + pseudo(i * 11) * 0.22
+      return {
+        word: WORD_LIST[i % WORD_LIST.length],
+        top: `${topPct}%`,
+        left: `${leftPct}%`,
+        fontSize: Math.round(10 + pseudo(i * 5) * 14),
+        maxOpacity: inContentBand ? 0.06 : base,
+        duration: `${9 + pseudo(i * 13) * 10}s`,
+        delay: `${pseudo(i * 17) * 9}s`,
+      }
+    })
   }, [count])
 }
 
@@ -257,10 +265,11 @@ export default function LandingPage() {
               top: w.top,
               left: w.left,
               fontSize: w.fontSize,
-              opacity: w.opacity,
+              opacity: w.maxOpacity,
               animationDuration: w.duration,
               animationDelay: w.delay,
-            }}
+              ['--word-max-opacity' as string]: w.maxOpacity,
+            } as React.CSSProperties}
           >
             {w.word}
           </span>
