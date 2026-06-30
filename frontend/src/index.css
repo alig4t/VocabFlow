@@ -12,49 +12,138 @@
 }
 
 @layer base {
+  /* ── Calm Focused Minimal · indigo accent + slate neutrals ─────────── */
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 210 40% 99%;
+    --foreground: 222.2 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+    --card-foreground: 222.2 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 47% 11%;
+    --primary: 243 75% 59%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222.2 47% 11%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 243 75% 96%;
+    --accent-foreground: 243 60% 40%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 152 60% 38%;
+    --success-foreground: 0 0% 100%;
+    --warning: 35 92% 50%;
+    --warning-foreground: 30 50% 16%;
+    --border: 220 16% 90%;
+    --input: 220 16% 90%;
+    --ring: 243 75% 59%;
+    --radius: 0.75rem;
+    /* gradient endpoints + data-viz palette */
+    --gradient-from: 243 75% 59%;
+    --gradient-to: 268 70% 60%;
+    --chart-1: 243 75% 59%;
+    --chart-2: 268 70% 60%;
+    --chart-3: 152 60% 42%;
+    --chart-4: 35 92% 52%;
+    --chart-5: 199 89% 48%;
   }
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --background: 222 47% 6%;
+    --foreground: 210 40% 96%;
+    --card: 222 41% 9%;
+    --card-foreground: 210 40% 96%;
+    --popover: 222 41% 9%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 243 80% 70%;
+    --primary-foreground: 222 47% 8%;
+    --secondary: 217 33% 16%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 217 33% 15%;
+    --muted-foreground: 218 14% 64%;
+    --accent: 243 40% 20%;
+    --accent-foreground: 243 90% 85%;
+    --destructive: 0 63% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 152 52% 46%;
+    --success-foreground: 0 0% 100%;
+    --warning: 35 90% 58%;
+    --warning-foreground: 30 50% 12%;
+    --border: 217 30% 20%;
+    --input: 217 30% 22%;
+    --ring: 243 80% 70%;
+    --gradient-from: 243 80% 66%;
+    --gradient-to: 268 72% 66%;
+    --chart-1: 243 80% 70%;
+    --chart-2: 268 72% 70%;
+    --chart-3: 152 52% 52%;
+    --chart-4: 35 90% 60%;
+    --chart-5: 199 85% 58%;
   }
+  /* ── Study mode · warm, low-blue, easy on the eyes for long reading ── */
+  .study {
+    --background: 40 38% 90%;
+    --foreground: 28 28% 20%;
+    --card: 42 46% 94%;
+    --card-foreground: 28 28% 20%;
+    --popover: 42 46% 94%;
+    --popover-foreground: 28 28% 20%;
+    --primary: 26 70% 40%;
+    --primary-foreground: 42 50% 96%;
+    --secondary: 36 28% 84%;
+    --secondary-foreground: 28 30% 24%;
+    --muted: 36 26% 85%;
+    --muted-foreground: 30 16% 40%;
+    --accent: 33 44% 82%;
+    --accent-foreground: 26 40% 28%;
+    --destructive: 6 58% 46%;
+    --destructive-foreground: 42 50% 96%;
+    --success: 122 32% 34%;
+    --success-foreground: 42 50% 96%;
+    --warning: 33 78% 42%;
+    --warning-foreground: 30 50% 14%;
+    --border: 34 24% 78%;
+    --input: 34 24% 78%;
+    --ring: 26 70% 40%;
+    --gradient-from: 28 68% 44%;
+    --gradient-to: 16 62% 48%;
+    --chart-1: 26 70% 44%;
+    --chart-2: 16 62% 50%;
+    --chart-3: 122 32% 38%;
+    --chart-4: 40 80% 44%;
+    --chart-5: 200 40% 42%;
+  }
+
   * { @apply border-border; }
   body { @apply bg-background text-foreground font-sans; }
   .rtl { direction: rtl; font-family: 'Anjoman', system-ui, sans-serif; }
   .font-persian { font-family: 'Anjoman', system-ui, sans-serif; }
+}
+
+@layer components {
+  /* Brand gradient — used for progress fills, accent surfaces, hero text */
+  .bg-brand-gradient {
+    background-image: linear-gradient(
+      135deg,
+      hsl(var(--gradient-from)),
+      hsl(var(--gradient-to))
+    );
+  }
+  .text-brand-gradient {
+    background-image: linear-gradient(
+      135deg,
+      hsl(var(--gradient-from)),
+      hsl(var(--gradient-to))
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  /* Soft, layered card elevation tuned for calm-minimal */
+  .shadow-soft {
+    box-shadow:
+      0 1px 2px -1px hsl(222 47% 11% / 0.08),
+      0 4px 16px -6px hsl(222 47% 11% / 0.08);
+  }
 }
 
 /* ── Landing page animations ────────────────────────────────── */
@@ -96,7 +185,20 @@
   filter: brightness(1.15) drop-shadow(0 12px 28px rgba(99,102,241,0.5)) !important;
 }
 
+/* ── Dashboard helpers ──────────────────────────────────────── */
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+
+/* GitHub-style activity heatmap cell scale (indigo ramp) */
+.heat-0 { background-color: hsl(var(--muted)); }
+.heat-1 { background-color: hsl(var(--primary) / 0.25); }
+.heat-2 { background-color: hsl(var(--primary) / 0.45); }
+.heat-3 { background-color: hsl(var(--primary) / 0.70); }
+.heat-4 { background-color: hsl(var(--primary)); }
+
 @media (prefers-reduced-motion: reduce) {
   .float-word { animation: none !important; opacity: 0.12 !important; }
   .orb        { animation: none !important; }
+  .animate-shimmer::after { animation: none !important; }
 }

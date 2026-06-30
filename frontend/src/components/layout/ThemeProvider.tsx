@@ -1,12 +1,15 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 
-type Theme = 'light' | 'dark' | 'system'
+type Theme = 'light' | 'dark' | 'study' | 'system'
+type ResolvedTheme = 'light' | 'dark' | 'study'
 
 interface ThemeContextValue {
   theme: Theme
   setTheme: (theme: Theme) => void
-  resolvedTheme: 'light' | 'dark'
+  resolvedTheme: ResolvedTheme
 }
+
+const THEME_CLASSES: ResolvedTheme[] = ['light', 'dark', 'study']
 
 const ThemeContext = createContext<ThemeContextValue>({
   theme: 'system',
@@ -14,7 +17,7 @@ const ThemeContext = createContext<ThemeContextValue>({
   resolvedTheme: 'light',
 })
 
-const STORAGE_KEY = 'theme'
+const DEFAULT_STORAGE_KEY = 'theme'
 
 function getSystemTheme(): 'light' | 'dark' {
   if (typeof window === 'undefined') return 'light'
@@ -24,23 +27,28 @@ function getSystemTheme(): 'light' | 'dark' {
 interface ThemeProviderProps {
   children: React.ReactNode
   defaultTheme?: Theme
+  storageKey?: string
 }
 
-export function ThemeProvider({ children, defaultTheme = 'system' }: ThemeProviderProps) {
+export function ThemeProvider({
+  children,
+  defaultTheme = 'system',
+  storageKey = DEFAULT_STORAGE_KEY,
+}: ThemeProviderProps) {
   const [theme, setThemeState] = useState<Theme>(() => {
     if (typeof localStorage !== 'undefined') {
-      const stored = localStorage.getItem(STORAGE_KEY) as Theme | null
-      if (stored === 'light' || stored === 'dark' || stored === 'system') {
+      const stored = localStorage.getItem(storageKey) as Theme | null
+      if (stored === 'light' || stored === 'dark' || stored === 'study' || stored === 'system') {
         return stored
       }
     }
     return defaultTheme
   })
 
-  const resolveTheme = (t: Theme): 'light' | 'dark' =>
+  const resolveTheme = (t: Theme): ResolvedTheme =>
     t === 'system' ? getSystemTheme() : t
 
-  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>(() =>
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() =>
     resolveTheme(theme)
   )
 
@@ -48,7 +56,7 @@ export function ThemeProvider({ children, defaultTheme = 'system' }: ThemeProvid
     const resolved = resolveTheme(theme)
     setResolvedTheme(resolved)
     const root = window.document.documentElement
-    root.classList.remove('light', 'dark')
+    root.classList.remove(...THEME_CLASSES)
     root.classList.add(resolved)
   }, [theme])
 
@@ -59,7 +67,7 @@ export function ThemeProvider({ children, defaultTheme = 'system' }: ThemeProvid
       const resolved = resolveTheme('system')
       setResolvedTheme(resolved)
       const root = window.document.documentElement
-      root.classList.remove('light', 'dark')
+      root.classList.remove(...THEME_CLASSES)
       root.classList.add(resolved)
     }
     mediaQuery.addEventListener('change', handleChange)
@@ -67,7 +75,7 @@ export function ThemeProvider({ children, defaultTheme = 'system' }: ThemeProvid
   }, [theme])
 
   const setTheme = (newTheme: Theme) => {
-    localStorage.setItem(STORAGE_KEY, newTheme)
+    localStorage.setItem(storageKey, newTheme)
     setThemeState(newTheme)
   }
 

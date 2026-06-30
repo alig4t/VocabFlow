@@ -1,4 +1,4 @@
-import { X, Book, Play, Settings, Library } from 'lucide-react'
+import { X, Book, Play, Settings, Library, LayoutDashboard, Compass } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { cn } from '../../lib/utils'
@@ -18,6 +18,16 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
+  {
+    to: '/dashboard',
+    icon: <LayoutDashboard className="h-5 w-5" />,
+    label: 'داشبورد',
+  },
+  {
+    to: '/library',
+    icon: <Compass className="h-5 w-5" />,
+    label: 'کتابخانه',
+  },
   {
     to: '/vocabulary',
     icon: <Book className="h-5 w-5" />,

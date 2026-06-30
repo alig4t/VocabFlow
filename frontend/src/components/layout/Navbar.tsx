@@ -1,4 +1,4 @@
-import { Menu, Moon, Sun, User, LogOut } from 'lucide-react'
+import { Menu, Moon, Sun, Lamp, User, LogOut } from 'lucide-react'
 import { useTheme } from './ThemeProvider'
 import { useAuthStore } from '../../store/authStore'
 import { Button } from '../ui/button'
@@ -7,12 +7,23 @@ interface NavbarProps {
   onMenuClick: () => void
 }
 
+// Cycle order: light → dark → study → light.
+const THEME_CYCLE = { light: 'dark', dark: 'study', study: 'light' } as const
+
+const THEME_META = {
+  light: { Icon: Sun, label: 'حالت روشن', next: 'حالت تاریک' },
+  dark: { Icon: Moon, label: 'حالت تاریک', next: 'حالت مطالعه' },
+  study: { Icon: Lamp, label: 'حالت مطالعه', next: 'حالت روشن' },
+} as const
+
 export function Navbar({ onMenuClick }: NavbarProps) {
   const { resolvedTheme, setTheme } = useTheme()
   const { user, clearAuth } = useAuthStore()
 
+  const { Icon: ThemeIcon, label: themeLabel, next: nextLabel } = THEME_META[resolvedTheme]
+
   const toggleTheme = () => {
-    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')
+    setTheme(THEME_CYCLE[resolvedTheme])
   }
 
   const handleLogout = () => {
@@ -51,18 +62,15 @@ export function Navbar({ onMenuClick }: NavbarProps) {
           </div>
         )}
 
-        {/* تغییر تم */}
+        {/* تغییر تم: روشن → تاریک → مطالعه */}
         <Button
           variant="ghost"
           size="icon"
           onClick={toggleTheme}
-          aria-label={resolvedTheme === 'dark' ? 'تغییر به حالت روشن' : 'تغییر به حالت تاریک'}
+          title={`${themeLabel} — تغییر به ${nextLabel}`}
+          aria-label={`${themeLabel}. تغییر به ${nextLabel}`}
         >
-          {resolvedTheme === 'dark' ? (
-            <Sun className="h-5 w-5" />
-          ) : (
-            <Moon className="h-5 w-5" />
-          )}
+          <ThemeIcon className="h-5 w-5" />
         </Button>
 
         {/* خروج */}

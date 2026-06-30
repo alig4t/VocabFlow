@@ -6,6 +6,8 @@ import { ThemeProvider } from './components/layout/ThemeProvider'
 import { Layout } from './components/layout/Layout'
 import { LoginPage } from './pages/auth/LoginPage'
 import { RegisterPage } from './pages/auth/RegisterPage'
+import { DashboardPage } from './pages/dashboard/DashboardPage'
+import { LibraryPage } from './pages/library/LibraryPage'
 import { VocabularyPage } from './pages/vocabulary/VocabularyPage'
 import { ReviewPage } from './pages/vocabulary/ReviewPage'
 import { AdminPage } from './pages/admin/AdminPage'
@@ -30,14 +32,14 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const user = useAuthStore((s) => s.user)
   if (!isAuthenticated) return <Navigate to="/login" replace />
-  if (user?.role !== ('ADMIN' as Role)) return <Navigate to="/vocabulary" replace />
+  if (user?.role !== ('ADMIN' as Role)) return <Navigate to="/dashboard" replace />
   return <>{children}</>
 }
 
 // PublicRoute: redirects authenticated users away from auth pages
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  if (isAuthenticated) return <Navigate to="/vocabulary" replace />
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />
   return <>{children}</>
 }
 
@@ -88,6 +90,26 @@ export default function App() {
             }
           />
 
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <DashboardPage />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/library"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <LibraryPage />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/vocabulary"
             element={

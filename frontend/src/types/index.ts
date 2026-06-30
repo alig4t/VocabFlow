@@ -183,3 +183,67 @@ export interface SynonymResult {
   similarity: number
   source: string
 }
+
+// ─── Watchlist Dashboard (feature: personalized learning) ──────────────────────
+
+/** A book the user has added to their personal learning list, with progress. */
+export interface WatchlistBook {
+  id: string
+  bookId: string
+  title: string
+  coverImage?: string
+  totalWords: number
+  knownWords: number
+  unknownWords: number
+  notReadWords: number
+  reviewedToday: number
+  /** ISO date of the last study session, or null if never studied. */
+  lastStudiedAt: string | null
+  /** Words currently due for review (spaced repetition). */
+  dueCount: number
+  /** Estimated days to finish at the user's recent pace. */
+  estimatedDays: number
+}
+
+/** Cross-book user statistics shown in the global header strip. */
+export interface DashboardGlobalStats {
+  watchlistCount: number
+  totalWordsLearned: number
+  reviewsToday: number
+  /** Consecutive days with at least one study session. */
+  currentStreak: number
+  avgStudyMinutes: number
+  /** 0–100, share of reviews marked "known". */
+  accuracyRate: number
+}
+
+/** One day of activity for the GitHub-style heatmap. */
+export interface HeatmapDay {
+  /** ISO date (YYYY-MM-DD). */
+  date: string
+  count: number
+}
+
+/** A book with words due, shown in the Continue Learning queue. */
+export interface ReviewQueueItem {
+  bookId: string
+  title: string
+  dueCount: number
+}
+
+export interface DashboardData {
+  stats: DashboardGlobalStats
+  watchlist: WatchlistBook[]
+  heatmap: HeatmapDay[]
+  queue: ReviewQueueItem[]
+}
+
+/** A book in the discovery/library view, with watchlist membership flag. */
+export interface DiscoveryBook {
+  id: string
+  title: string
+  description?: string
+  coverImage?: string
+  totalWords: number
+  inWatchlist: boolean
+}
