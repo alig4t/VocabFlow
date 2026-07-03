@@ -311,7 +311,18 @@
   transition: filter 0.3s ease, transform 0.3s ease;
 }
 .landing-book:hover {
-  filter: brightness(1.15) drop-shadow(0 12px 28px rgba(99,102,241,0.5)) !important;
+  filter: brightness(1.15) drop-shadow(0 12px 28px rgba(228,168,36,0.5)) !important;
+}
+
+/* Faint gold pattern over the flat dark landing sections (dark mode only).
+   Two layers: a fine dot grid + a soft diagonal sheen, both very low-opacity,
+   so the near-black surfaces gain warmth and depth without distracting. */
+.dark .landing-texture {
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(228, 168, 36, 0.07) 1px, transparent 1.7px),
+    linear-gradient(135deg, rgba(228, 168, 36, 0.025) 0%, transparent 38%, transparent 62%, rgba(228, 168, 36, 0.02) 100%);
+  background-size: 30px 30px, 100% 100%;
+  background-position: 0 0, 0 0;
 }
 
 /* ── Dashboard helpers ──────────────────────────────────────── */

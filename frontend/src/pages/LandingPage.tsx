@@ -32,7 +32,7 @@ function pseudo(seed: number): number {
 
 // ─── Shared theme-aware class fragments ──────────────────────────────────────
 const cx = {
-  page: 'bg-[#faf7f1] dark:bg-[#0a0f1a]',
+  page: 'bg-[#faf7f1] dark:bg-[#0a0f1a] landing-texture',
   heading: 'text-slate-900 dark:text-white',
   muted: 'text-slate-600 dark:text-white/50',
   mutedSoft: 'text-slate-500 dark:text-white/45',
