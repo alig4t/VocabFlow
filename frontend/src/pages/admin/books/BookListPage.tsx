@@ -13,44 +13,36 @@ import {
 } from '@/components/ui/dialog'
 import { useBooks, useDeleteBook } from '@/hooks/useBooks'
 import { toast } from '@/components/ui/use-toast'
+import { faNum } from '@/lib/format'
 import type { Book } from '@/types'
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
 function BookCover({ book }: { book: Book }) {
-  if (book.coverImage) {
-    return (
-      <figure className="relative w-full" style={{ paddingBottom: '140%' }}>
+  const volumes = book._count?.volumes ?? 0
+  return (
+    <div className="relative aspect-[3/4] overflow-hidden bg-gradient-to-br from-muted to-muted/50">
+      {book.coverImage ? (
         <img
           src={book.coverImage}
           alt={book.title}
-          className="absolute inset-0 w-full h-full object-cover"
+          loading="lazy"
+          className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.05]"
         />
-      </figure>
-    )
-  }
-  return (
-    <div
-      className="relative w-full bg-gradient-to-br from-muted to-muted/60 flex items-center justify-center"
-      style={{ paddingBottom: '140%' }}
-      aria-hidden
-    >
-      <BookOpen className="absolute inset-0 m-auto h-14 w-14 text-muted-foreground opacity-20" />
-    </div>
-  )
-}
-
-function BookMeta({ book }: { book: Book }) {
-  return (
-    <header className="space-y-0.5">
-      <h3 className="font-semibold text-foreground text-sm leading-snug line-clamp-2">
-        {book.title}
-      </h3>
-      <p className="text-xs text-muted-foreground flex items-center gap-1">
+      ) : (
+        <div className="flex h-full w-full items-center justify-center" aria-hidden>
+          <BookOpen className="h-14 w-14 text-muted-foreground opacity-20" />
+        </div>
+      )}
+      {/* depth + slight darkening toward the bottom */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
+      <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-black/5" />
+      {/* volume-count badge */}
+      <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full border border-white/15 bg-black/50 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
         <Layers className="h-3 w-3" />
-        {book._count?.volumes ?? 0} جلد
-      </p>
-    </header>
+        {faNum(volumes)} جلد
+      </span>
+    </div>
   )
 }
 
@@ -64,24 +56,24 @@ function BookActions({
   onDelete: () => void
 }) {
   return (
-    <footer className="flex gap-1">
-      <Button size="sm" variant="outline" className="flex-1 text-xs h-8" onClick={onVolumes}>
-        <Layers className="h-3 w-3 ml-1" />
-        جلدها
+    <div className="flex items-center gap-1.5">
+      <Button size="sm" className="h-8 flex-1 gap-1.5 text-xs" onClick={onVolumes}>
+        <Layers className="h-3.5 w-3.5" />
+        مدیریت جلدها
       </Button>
-      <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={onEdit} aria-label="ویرایش">
+      <Button size="icon" variant="outline" className="h-8 w-8 shrink-0" onClick={onEdit} aria-label="ویرایش">
         <Pencil className="h-3.5 w-3.5" />
       </Button>
       <Button
         size="icon"
-        variant="ghost"
-        className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
+        variant="outline"
+        className="h-8 w-8 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
         onClick={onDelete}
         aria-label="حذف"
       >
         <Trash2 className="h-3.5 w-3.5" />
       </Button>
-    </footer>
+    </div>
   )
 }
 
@@ -97,11 +89,15 @@ function BookCard({
   onDelete: () => void
 }) {
   return (
-    <article className="rounded-lg border border-border bg-card overflow-hidden hover:shadow-md transition-shadow">
+    <article className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg">
       <BookCover book={book} />
-      <div className="p-3 space-y-2">
-        <BookMeta book={book} />
-        <BookActions onEdit={onEdit} onVolumes={onVolumes} onDelete={onDelete} />
+      <div className="flex flex-1 flex-col gap-3 p-3.5">
+        <h3 className="line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-snug text-foreground">
+          {book.title}
+        </h3>
+        <div className="mt-auto">
+          <BookActions onEdit={onEdit} onVolumes={onVolumes} onDelete={onDelete} />
+        </div>
       </div>
     </article>
   )
@@ -200,7 +196,7 @@ export function BookListPage() {
       ) : !books || books.length === 0 ? (
         <EmptyState onAdd={() => navigate('/admin/books/new')} />
       ) : (
-        <div className="grid gap-5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-5 min-[440px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
           {books.map((book) => (
             <BookCard
               key={book.id}
