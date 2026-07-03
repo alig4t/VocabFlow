@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, ChevronLeft, ChevronRight, SkipForward, Volume2, VolumeX, SquarePen } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, ChevronRight, Volume2, VolumeX, SquarePen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ReviewCard } from '@/components/vocabulary/ReviewCard'
 import { useWords } from '@/hooks/useVocabulary'
@@ -41,14 +41,6 @@ function statusToReviewFilter(status: WordStatus | 'ALL'): ReviewFilter {
   return 'ALL'
 }
 
-function StatusLabel({ status }: { status: string }) {
-  if (status === 'KNOWN')
-    return <span className="text-xs font-semibold text-green-600 dark:text-green-400">یاد گرفتم</span>
-  if (status === 'NOT_KNOWN')
-    return <span className="text-xs font-semibold text-red-600 dark:text-red-400">یاد نگرفتم</span>
-  return <span className="text-xs font-semibold text-muted-foreground">نخوانده</span>
-}
-
 interface ReviewWordRowProps {
   word: Word
   mode: ReviewMode
@@ -57,51 +49,44 @@ interface ReviewWordRowProps {
   onSkip: () => void
 }
 
+/** Compact horizontal action group. The active state is shown by the highlighted button. */
 function ReviewActions({ word, mode, onKnown, onNotKnown, onSkip }: ReviewWordRowProps) {
   const status = useWordStatus(word, mode)
 
   return (
-    <div className="flex flex-col items-center gap-4">
-      {/* Current status */}
-      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-        <span>وضعیت:</span>
-        <StatusLabel status={status} />
-      </div>
+    <div className="flex items-center gap-2">
+      <button
+        onClick={onNotKnown}
+        aria-pressed={status === 'NOT_KNOWN'}
+        className={cn(
+          'px-4 py-2 rounded-lg text-sm font-semibold border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400',
+          status === 'NOT_KNOWN'
+            ? 'bg-red-500 text-white border-red-500 shadow-sm'
+            : 'border-red-300 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40',
+        )}
+      >
+        یاد نگرفتم
+      </button>
 
-      {/* Action buttons */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={onNotKnown}
-          className={cn(
-            'px-6 py-2.5 rounded-xl text-sm font-semibold border-2 transition-all duration-150',
-            status === 'NOT_KNOWN'
-              ? 'bg-red-500 text-white border-red-500 shadow-md'
-              : 'border-red-300 text-red-700 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/30',
-          )}
-        >
-          یاد نگرفتم
-        </button>
+      <button
+        onClick={onSkip}
+        className="px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground border border-border hover:bg-accent hover:text-accent-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        رد کردن
+      </button>
 
-        <button
-          onClick={onSkip}
-          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium text-muted-foreground border border-border hover:bg-accent hover:text-accent-foreground transition-colors"
-        >
-          <SkipForward className="h-4 w-4" />
-          رد کردن
-        </button>
-
-        <button
-          onClick={onKnown}
-          className={cn(
-            'px-6 py-2.5 rounded-xl text-sm font-semibold border-2 transition-all duration-150',
-            status === 'KNOWN'
-              ? 'bg-green-500 text-white border-green-500 shadow-md'
-              : 'border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-400 dark:hover:bg-green-900/30',
-          )}
-        >
-          یاد گرفتم
-        </button>
-      </div>
+      <button
+        onClick={onKnown}
+        aria-pressed={status === 'KNOWN'}
+        className={cn(
+          'px-4 py-2 rounded-lg text-sm font-semibold border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-400',
+          status === 'KNOWN'
+            ? 'bg-green-500 text-white border-green-500 shadow-sm'
+            : 'border-green-300 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950/40',
+        )}
+      >
+        یاد گرفتم
+      </button>
     </div>
   )
 }
@@ -343,166 +328,157 @@ export function ReviewPage() {
   const progressPercent = total > 0 ? Math.round(((currentIndex + 1) / total) * 100) : 0
 
   return (
-    <div dir="rtl" className="font-persian max-w-3xl mx-auto px-4 py-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate('/vocabulary')}
-          className="flex-shrink-0"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">حالت مرور</h1>
-          <p className="text-sm text-muted-foreground">
-            ← → جابجایی، Space برگرداندن، ↑ بلدم، ↓ بلد نیستم، P تلفظ
-          </p>
-        </div>
-      </div>
-
-      {/* Controls bar */}
-      <div className="flex flex-wrap items-center gap-4">
-        {/* Mode toggle */}
-        <div className="flex items-center gap-1 bg-muted rounded-full p-1">
-          <button
-            onClick={() => handleModeChange('EN_TO_FA')}
-            className={cn(
-              'px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200',
-              mode === 'EN_TO_FA'
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground',
-            )}
+    <div dir="rtl" className="font-persian max-w-2xl mx-auto px-4 py-6 space-y-4">
+      {/* Compact toolbar — groups all session controls into one tidy card */}
+      <div className="rounded-xl border border-border bg-card shadow-sm">
+        {/* Row 1: back + title + mode toggle + sound */}
+        <div className="flex items-center gap-2 px-3 py-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/vocabulary')}
+            className="h-8 w-8 flex-shrink-0"
+            title="بازگشت"
           >
-            EN → FA
-          </button>
-          <button
-            onClick={() => handleModeChange('FA_TO_EN')}
-            className={cn(
-              'px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200',
-              mode === 'FA_TO_EN'
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground',
-            )}
-          >
-            FA → EN
-          </button>
-        </div>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-sm font-bold tracking-tight text-foreground">حالت مرور</h1>
 
-        {/* Review filter */}
-        <div className="flex items-center gap-1">
-          {(
-            [
-              { label: 'همه لغات', value: 'ALL' },
-              { label: 'نخوانده', value: 'NOT_READ' },
-              { label: 'یاد نگرفتم', value: 'NOT_KNOWN' },
-            ] as { label: string; value: ReviewFilter }[]
-          ).map((opt) => (
+          <div className="flex-1" />
+
+          <div className="flex items-center gap-2">
+            {/* Mode toggle */}
+            <div className="flex items-center gap-0.5 bg-muted rounded-full p-0.5">
+              <button
+                onClick={() => handleModeChange('EN_TO_FA')}
+                className={cn(
+                  'px-3 py-1 rounded-full text-xs font-medium transition-colors',
+                  mode === 'EN_TO_FA'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                EN→FA
+              </button>
+              <button
+                onClick={() => handleModeChange('FA_TO_EN')}
+                className={cn(
+                  'px-3 py-1 rounded-full text-xs font-medium transition-colors',
+                  mode === 'FA_TO_EN'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                FA→EN
+              </button>
+            </div>
+
+            {/* Sound toggle */}
             <button
-              key={opt.value}
-              onClick={() => setReviewFilter(opt.value)}
+              onClick={toggleMuted}
+              title={muted ? 'صدا خاموش است' : 'صدا روشن است'}
+              aria-label={muted ? 'روشن کردن صدا' : 'خاموش کردن صدا'}
               className={cn(
-                'px-3 py-1.5 rounded-md text-sm font-medium border transition-all duration-200',
-                reviewFilter === opt.value
-                  ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                  : 'bg-background text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground',
+                'flex items-center justify-center h-8 w-8 rounded-full border transition-colors',
+                muted
+                  ? 'bg-muted text-muted-foreground border-border'
+                  : 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20',
               )}
             >
-              {opt.label}
+              {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
             </button>
-          ))}
+          </div>
         </div>
 
-        {/* Sound toggle (mute/unmute pronunciation) */}
-        <button
-          onClick={toggleMuted}
-          title={muted ? 'صدا خاموش است' : 'صدا روشن است'}
-          aria-label={muted ? 'روشن کردن صدا' : 'خاموش کردن صدا'}
-          className={cn(
-            'flex items-center justify-center h-9 w-9 rounded-full border transition-all duration-200',
-            muted
-              ? 'bg-muted text-muted-foreground border-border'
-              : 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20',
+        {/* Row 2: review filter + book/volume/lesson scope */}
+        <div className="flex flex-wrap items-center gap-2 border-t border-border/60 px-3 py-2">
+          <div className="flex items-center gap-0.5 bg-muted rounded-lg p-0.5">
+            {(
+              [
+                { label: 'همه', value: 'ALL' },
+                { label: 'نخوانده', value: 'NOT_READ' },
+                { label: 'یاد نگرفتم', value: 'NOT_KNOWN' },
+              ] as { label: string; value: ReviewFilter }[]
+            ).map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setReviewFilter(opt.value)}
+                className={cn(
+                  'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
+                  reviewFilter === opt.value
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          {books && books.length > 0 && (
+            <>
+              <select
+                value={bookId ?? ''}
+                onChange={(e) => handleBookChange(e.target.value)}
+                className={SELECT_CLASS}
+                aria-label="کتاب"
+              >
+                <option value="">همه کتاب‌های لیست من</option>
+                {books.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.title}
+                  </option>
+                ))}
+              </select>
+
+              {bookId && volumes && volumes.length > 0 && (
+                <select
+                  value={volumeId ?? ''}
+                  onChange={(e) => handleVolumeChange(e.target.value)}
+                  className={SELECT_CLASS}
+                  aria-label="جلد"
+                >
+                  <option value="">همه جلدها</option>
+                  {volumes.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.title ?? `جلد ${v.volumeNumber}`}
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              {volumeId && lessons && lessons.length > 0 && (
+                <select
+                  value={lessonId ?? ''}
+                  onChange={(e) => setLessonId(e.target.value || undefined)}
+                  className={SELECT_CLASS}
+                  aria-label="درس"
+                >
+                  <option value="">همه درس‌ها</option>
+                  {lessons.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.title ?? `درس ${l.lessonNumber}`}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </>
           )}
-        >
-          {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-        </button>
+        </div>
       </div>
 
-      {/* Book → Volume → Lesson scope selectors (limited to the user's watchlist) */}
-      {books && books.length > 0 && (
-        <div className="flex flex-wrap gap-3 items-center">
-          {/* Book */}
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground whitespace-nowrap">کتاب:</label>
-            <select
-              value={bookId ?? ''}
-              onChange={(e) => handleBookChange(e.target.value)}
-              className={SELECT_CLASS}
-            >
-              <option value="">همه کتاب‌های لیست من</option>
-              {books.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.title}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Volume — only when a book is selected */}
-          {bookId && volumes && volumes.length > 0 && (
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-muted-foreground whitespace-nowrap">جلد:</label>
-              <select
-                value={volumeId ?? ''}
-                onChange={(e) => handleVolumeChange(e.target.value)}
-                className={SELECT_CLASS}
-              >
-                <option value="">همه جلدها</option>
-                {volumes.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.title ?? `جلد ${v.volumeNumber}`}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Lesson — only when a volume is selected */}
-          {volumeId && lessons && lessons.length > 0 && (
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-muted-foreground whitespace-nowrap">درس:</label>
-              <select
-                value={lessonId ?? ''}
-                onChange={(e) => setLessonId(e.target.value || undefined)}
-                className={SELECT_CLASS}
-              >
-                <option value="">همه درس‌ها</option>
-                {lessons.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.title ?? `درس ${l.lessonNumber}`}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Progress bar + counter */}
+      {/* Progress — one counter for the whole session */}
       {!isLoading && total > 0 && (
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">
-              لغت{' '}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-xs text-muted-foreground tabular-nums">
+            <span>
               <span className="font-semibold text-foreground">{currentIndex + 1}</span>
-              {' '}از{' '}
-              <span className="font-semibold text-foreground">{total}</span>
+              {' / '}
+              {total}
             </span>
-            <span className="text-muted-foreground">{progressPercent}٪</span>
+            <span>{progressPercent}٪</span>
           </div>
-          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+          <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
             <div
               className="h-full bg-primary rounded-full transition-all duration-300"
               style={{ width: `${progressPercent}%` }}
@@ -513,17 +489,13 @@ export function ReviewPage() {
 
       {/* Main content area */}
       {isLoading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="space-y-3 w-full max-w-2xl">
-            <div className="h-64 rounded-2xl bg-muted animate-pulse" />
-          </div>
-        </div>
+        <div className="h-72 rounded-2xl bg-muted animate-pulse" />
       ) : isError ? (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-6 py-12 text-center">
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-6 py-12 text-center">
           <p className="text-sm text-destructive font-medium">خطا در بارگذاری لغات.</p>
         </div>
       ) : !hasScope ? (
-        <div className="rounded-2xl border border-border bg-card px-6 py-16 text-center space-y-3">
+        <div className="rounded-2xl border border-border bg-card px-6 py-14 text-center space-y-3">
           <p className="text-lg font-semibold text-foreground">لیست یادگیری شما خالی است</p>
           <p className="text-sm text-muted-foreground">
             برای شروع مرور، ابتدا از کتابخانه یک یا چند کتاب به لیست یادگیری‌تان اضافه کنید.
@@ -533,7 +505,7 @@ export function ReviewPage() {
           </Button>
         </div>
       ) : total === 0 ? (
-        <div className="rounded-2xl border border-border bg-card px-6 py-16 text-center space-y-3">
+        <div className="rounded-2xl border border-border bg-card px-6 py-14 text-center space-y-3">
           <p className="text-lg font-semibold text-foreground">لغتی برای مرور وجود ندارد</p>
           <p className="text-sm text-muted-foreground">
             {reviewFilter === 'NOT_READ'
@@ -547,10 +519,9 @@ export function ReviewPage() {
           </Button>
         </div>
       ) : currentWord ? (
-        <>
-          {/* Review flashcard — `key` remounts it fresh (front face, no flip-back
-              animation) whenever the word or mode changes, so the next card's
-              translation is never briefly visible. */}
+        <div className="space-y-4">
+          {/* Flashcard (hero) — `key` remounts it fresh (front face) on word/mode
+              change, so the next card's translation is never briefly visible. */}
           <ReviewCard
             key={currentWord.id + mode}
             word={currentWord}
@@ -559,50 +530,19 @@ export function ReviewPage() {
             onToggle={toggleFlip}
           />
 
-          {/* Navigation + action buttons */}
-          <div className="flex flex-col items-center gap-6">
-            {/* Prev / Next navigation — in RTL: ChevronRight for previous, ChevronLeft for next */}
-            <div className="flex items-center gap-4">
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-11 w-11 rounded-full"
-                disabled={currentIndex === 0}
-                onClick={goPrev}
-                title="قبلی (←)"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </Button>
+          {/* Action row: prev · [نگرفتم][رد][گرفتم] · next */}
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-10 w-10 rounded-full flex-shrink-0"
+              disabled={currentIndex === 0}
+              onClick={goPrev}
+              title="قبلی (←)"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </Button>
 
-              <span className="text-sm text-muted-foreground min-w-[80px] text-center">
-                {currentIndex + 1} / {total}
-              </span>
-
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-11 w-11 rounded-full"
-                disabled={currentIndex === total - 1}
-                onClick={goNext}
-                title="بعدی (→)"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </Button>
-
-              {/* Manual pronunciation (English) — works in both modes */}
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-11 w-11 rounded-full"
-                disabled={muted}
-                onClick={pronounce}
-                title="پخش تلفظ (P)"
-              >
-                <Volume2 className="h-5 w-5" />
-              </Button>
-            </div>
-
-            {/* Status action buttons */}
             <ReviewActions
               word={currentWord}
               mode={mode}
@@ -611,40 +551,60 @@ export function ReviewPage() {
               onSkip={handleSkip}
             />
 
-            {/* Keyboard hint — each key+label is its own flex unit so spacing is
-                consistent and RTL-aware (gaps, not directional margins). */}
-            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
-              {(
-                [
-                  { key: '→', label: 'قبلی' },
-                  { key: '←', label: 'بعدی' },
-                  { key: 'Space', label: 'برگرداندن' },
-                  { key: '↑', label: 'بلدم' },
-                  { key: '↓', label: 'بلد نیستم' },
-                  { key: 'P', label: 'تلفظ' },
-                ] as { key: string; label: string }[]
-              ).map((s) => (
-                <span key={s.label} className="inline-flex items-center gap-1.5">
-                  <kbd className="px-1.5 py-0.5 rounded border border-border font-mono text-xs">
-                    {s.key}
-                  </kbd>
-                  {s.label}
-                </span>
-              ))}
-            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-10 w-10 rounded-full flex-shrink-0"
+              disabled={currentIndex === total - 1}
+              onClick={goNext}
+              title="بعدی (→)"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+          </div>
 
-            {/* Edit-word link — opens the word's edit page in a new tab */}
+          {/* Footer: pronounce + edit link (compact) */}
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+            <button
+              onClick={pronounce}
+              disabled={muted}
+              className="inline-flex items-center gap-1.5 hover:text-primary transition-colors disabled:opacity-40 disabled:hover:text-muted-foreground"
+            >
+              <Volume2 className="h-3.5 w-3.5" />
+              پخش تلفظ (P)
+            </button>
             <a
               href={`/admin/words/${currentWord.id}/edit`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
+              className="inline-flex items-center gap-1.5 hover:text-primary transition-colors"
             >
               <SquarePen className="h-3.5 w-3.5" />
               اصلاح این واژه
             </a>
           </div>
-        </>
+
+          {/* Keyboard hint (compact, RTL-aware) */}
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[11px] text-muted-foreground/80">
+            {(
+              [
+                { key: '→', label: 'قبلی' },
+                { key: '←', label: 'بعدی' },
+                { key: 'Space', label: 'برگرداندن' },
+                { key: '↑', label: 'بلدم' },
+                { key: '↓', label: 'بلد نیستم' },
+                { key: 'P', label: 'تلفظ' },
+              ] as { key: string; label: string }[]
+            ).map((s) => (
+              <span key={s.label} className="inline-flex items-center gap-1">
+                <kbd className="px-1.5 py-0.5 rounded border border-border font-mono text-[11px]">
+                  {s.key}
+                </kbd>
+                {s.label}
+              </span>
+            ))}
+          </div>
+        </div>
       ) : null}
     </div>
   )
