@@ -213,7 +213,37 @@ export function ReviewPage() {
     setFlipped((f) => !f)
   }, [])
 
-  // Keyboard shortcuts
+  const markStatus = useCallback(
+    (status: 'KNOWN' | 'NOT_KNOWN') => {
+      if (!currentWord) return
+      const wordId = currentWord.id
+      // Update the card's status in the frozen session list (badge updates in
+      // place) + persist to the server, then advance one step. The word stays
+      // put, so the counter moves 1→2→… instead of collapsing off the front.
+      setSession((s) => ({
+        key: s.key,
+        words: s.words.map((w) =>
+          w.id === wordId
+            ? {
+                ...w,
+                progress: [
+                  ...(w.progress ?? []).filter((p) => p.reviewMode !== mode),
+                  { id: '', userId: '', wordId, reviewMode: mode, status },
+                ],
+              }
+            : w,
+        ),
+      }))
+      updateStatus({ wordId, reviewMode: mode, status })
+      goNext()
+    },
+    [currentWord, mode, updateStatus, goNext],
+  )
+
+  const handleKnown = useCallback(() => markStatus('KNOWN'), [markStatus])
+  const handleNotKnown = useCallback(() => markStatus('NOT_KNOWN'), [markStatus])
+
+  // Keyboard shortcuts: ← → navigate, Space flips, ↑ = بلدم, ↓ = بلد نیستم.
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       // Don't interfere with inputs / form controls (e.g. the book selectors)
@@ -235,11 +265,19 @@ export function ReviewPage() {
         // and any focused-button activation.
         e.preventDefault()
         toggleFlip()
+      } else if (e.key === 'ArrowUp') {
+        // ↑ = یاد گرفتم (known)
+        e.preventDefault()
+        handleKnown()
+      } else if (e.key === 'ArrowDown') {
+        // ↓ = یاد نگرفتم (not known)
+        e.preventDefault()
+        handleNotKnown()
       }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [goNext, goPrev, toggleFlip])
+  }, [goNext, goPrev, toggleFlip, handleKnown, handleNotKnown])
 
   function handleModeChange(newMode: ReviewMode) {
     setMode(newMode)
@@ -249,41 +287,6 @@ export function ReviewPage() {
     } catch {
       // ignore
     }
-  }
-
-  /** Patch a word's status in the frozen session list so its badge updates in place. */
-  function applyLocalStatus(wordId: string, status: WordStatus) {
-    setSession((s) => ({
-      key: s.key,
-      words: s.words.map((w) =>
-        w.id === wordId
-          ? {
-              ...w,
-              progress: [
-                ...(w.progress ?? []).filter((p) => p.reviewMode !== mode),
-                { id: '', userId: '', wordId, reviewMode: mode, status },
-              ],
-            }
-          : w,
-      ),
-    }))
-  }
-
-  function markStatus(status: 'KNOWN' | 'NOT_KNOWN') {
-    if (!currentWord) return
-    // Update the card in place + persist to the server, then advance one step.
-    // The session list is frozen, so the word stays put and the counter moves 1→2→…
-    applyLocalStatus(currentWord.id, status)
-    updateStatus({ wordId: currentWord.id, reviewMode: mode, status })
-    goNext()
-  }
-
-  function handleKnown() {
-    markStatus('KNOWN')
-  }
-
-  function handleNotKnown() {
-    markStatus('NOT_KNOWN')
   }
 
   function handleSkip() {
@@ -307,7 +310,7 @@ export function ReviewPage() {
         <div>
           <h1 className="text-xl font-bold tracking-tight text-foreground">حالت مرور</h1>
           <p className="text-sm text-muted-foreground">
-            برای جابجایی از کلیدهای جهت‌نما استفاده کنید، Space برای برگرداندن کارت
+            ← → جابجایی، Space برگرداندن کارت، ↑ بلدم، ↓ بلد نیستم
           </p>
         </div>
       </div>
@@ -541,7 +544,11 @@ export function ReviewPage() {
               <kbd className="px-1.5 py-0.5 rounded border border-border font-mono text-xs ml-2">←</kbd>
               {' '}بعدی{' '}
               <kbd className="px-1.5 py-0.5 rounded border border-border font-mono text-xs ml-2">Space</kbd>
-              {' '}برگرداندن
+              {' '}برگرداندن{' '}
+              <kbd className="px-1.5 py-0.5 rounded border border-border font-mono text-xs ml-2">↑</kbd>
+              {' '}بلدم{' '}
+              <kbd className="px-1.5 py-0.5 rounded border border-border font-mono text-xs ml-2">↓</kbd>
+              {' '}بلد نیستم
             </p>
           </div>
         </>
