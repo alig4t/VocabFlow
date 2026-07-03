@@ -5,9 +5,12 @@ import { Button } from '@/components/ui/button'
 import { ReviewCard } from '@/components/vocabulary/ReviewCard'
 import { useWords } from '@/hooks/useVocabulary'
 import { useUpdateWordStatus, useWordStatus } from '@/hooks/useProgress'
+import { useBooksSimple, useVolumesSimple, useLessonsSimple } from '@/hooks/useBooks'
 import { cn } from '@/lib/utils'
 import { parseVocabParams } from '@/lib/vocabFilters'
 import type { ReviewMode, WordStatus, Word } from '@/types'
+
+const SELECT_CLASS = 'select-field w-auto min-w-[9rem] cursor-pointer'
 
 type ReviewFilter = 'ALL' | 'NOT_READ' | 'NOT_KNOWN'
 
@@ -113,6 +116,28 @@ export function ReviewPage() {
     searchParams.has('status') ? statusToReviewFilter(initial.filters.status) : 'NOT_READ',
   )
   const [currentIndex, setCurrentIndex] = useState(0)
+  // Whether the current card shows the translation (controlled here so Space can toggle it).
+  const [flipped, setFlipped] = useState(false)
+
+  // Book/volume/lesson scope — seeded from the URL, but editable in-page via the selectors.
+  const [bookId, setBookId] = useState<string | undefined>(initial.filters.bookId)
+  const [volumeId, setVolumeId] = useState<string | undefined>(initial.filters.volumeId)
+  const [lessonId, setLessonId] = useState<string | undefined>(initial.filters.lessonId)
+
+  const { data: books } = useBooksSimple()
+  const { data: volumes } = useVolumesSimple(bookId ?? '')
+  const { data: lessons } = useLessonsSimple(bookId ?? '', volumeId ?? '')
+
+  function handleBookChange(id: string) {
+    setBookId(id || undefined)
+    setVolumeId(undefined)
+    setLessonId(undefined)
+  }
+
+  function handleVolumeChange(id: string) {
+    setVolumeId(id || undefined)
+    setLessonId(undefined)
+  }
 
   const { mutate: updateStatus, isPending } = useUpdateWordStatus()
 
@@ -131,22 +156,27 @@ export function ReviewPage() {
     status: apiStatus,
     sort: 'chapter',
     order: 'asc',
-    // Scope to the same book/volume/lesson the user was filtering by, if any.
-    bookId: initial.filters.bookId,
-    volumeId: initial.filters.volumeId,
-    lessonId: initial.filters.lessonId,
-    chapter: initial.filters.chapter,
+    // Scope to the book/volume/lesson selected on this page (or carried from the URL).
+    bookId,
+    volumeId,
+    lessonId,
+    chapter: bookId ? undefined : initial.filters.chapter,
   })
 
   const words = data?.data ?? []
   const total = words.length
 
-  // Clamp index when word list changes
+  // Reset position when the word list changes (filter/mode/scope).
   useEffect(() => {
     setCurrentIndex(0)
-  }, [mode, reviewFilter])
+  }, [mode, reviewFilter, bookId, volumeId, lessonId])
 
   const currentWord = words[currentIndex] ?? null
+
+  // Hide the translation whenever the shown word (or mode) changes.
+  useEffect(() => {
+    setFlipped(false)
+  }, [currentWord?.id, mode])
 
   const goNext = useCallback(() => {
     setCurrentIndex((i) => Math.min(i + 1, total - 1))
@@ -156,11 +186,20 @@ export function ReviewPage() {
     setCurrentIndex((i) => Math.max(i - 1, 0))
   }, [])
 
+  const toggleFlip = useCallback(() => {
+    setFlipped((f) => !f)
+  }, [])
+
   // Keyboard shortcuts
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
-      // Don't interfere with inputs
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      // Don't interfere with inputs / form controls (e.g. the book selectors)
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement
+      )
+        return
 
       if (e.key === 'ArrowRight') {
         e.preventDefault()
@@ -168,11 +207,16 @@ export function ReviewPage() {
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault()
         goPrev()
+      } else if (e.key === ' ' || e.code === 'Space') {
+        // Space reveals/hides the translation. preventDefault stops page scroll
+        // and any focused-button activation.
+        e.preventDefault()
+        toggleFlip()
       }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [goNext, goPrev])
+  }, [goNext, goPrev, toggleFlip])
 
   function handleModeChange(newMode: ReviewMode) {
     setMode(newMode)
@@ -278,6 +322,66 @@ export function ReviewPage() {
         </div>
       </div>
 
+      {/* Book → Volume → Lesson scope selectors */}
+      {books && books.length > 0 && (
+        <div className="flex flex-wrap gap-3 items-center">
+          {/* Book */}
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-muted-foreground whitespace-nowrap">کتاب:</label>
+            <select
+              value={bookId ?? ''}
+              onChange={(e) => handleBookChange(e.target.value)}
+              className={SELECT_CLASS}
+            >
+              <option value="">همه کتاب‌ها</option>
+              {books.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Volume — only when a book is selected */}
+          {bookId && volumes && volumes.length > 0 && (
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-muted-foreground whitespace-nowrap">جلد:</label>
+              <select
+                value={volumeId ?? ''}
+                onChange={(e) => handleVolumeChange(e.target.value)}
+                className={SELECT_CLASS}
+              >
+                <option value="">همه جلدها</option>
+                {volumes.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.title ?? `جلد ${v.volumeNumber}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Lesson — only when a volume is selected */}
+          {volumeId && lessons && lessons.length > 0 && (
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-muted-foreground whitespace-nowrap">درس:</label>
+              <select
+                value={lessonId ?? ''}
+                onChange={(e) => setLessonId(e.target.value || undefined)}
+                className={SELECT_CLASS}
+              >
+                <option value="">همه درس‌ها</option>
+                {lessons.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.title ?? `درس ${l.lessonNumber}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Progress bar + counter */}
       {!isLoading && total > 0 && (
         <div className="space-y-1.5">
@@ -326,8 +430,8 @@ export function ReviewPage() {
         </div>
       ) : currentWord ? (
         <>
-          {/* Review flashcard — key forces remount (and flip reset) on word change */}
-          <ReviewCard key={currentWord.id + mode} word={currentWord} mode={mode} />
+          {/* Review flashcard — flip state is controlled here so Space can toggle it */}
+          <ReviewCard word={currentWord} mode={mode} flipped={flipped} onToggle={toggleFlip} />
 
           {/* Navigation + action buttons */}
           <div className="flex flex-col items-center gap-6">

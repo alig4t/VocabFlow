@@ -1,15 +1,16 @@
-import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import type { Word, ReviewMode } from '@/types'
 
 interface ReviewCardProps {
   word: Word
   mode: ReviewMode
+  /** Controlled flip state (owned by the parent so the Space key can toggle it). */
+  flipped: boolean
+  /** Toggle the flip state (show/hide the translation). */
+  onToggle: () => void
 }
 
-export function ReviewCard({ word, mode }: ReviewCardProps) {
-  const [flipped, setFlipped] = useState(false)
-
+export function ReviewCard({ word, mode, flipped, onToggle }: ReviewCardProps) {
   // Derive what shows on front vs back
   const frontContent =
     mode === 'EN_TO_FA'
@@ -21,8 +22,7 @@ export function ReviewCard({ word, mode }: ReviewCardProps) {
       ? { label: 'فارسی', text: word.per, dir: 'rtl' }
       : { label: 'انگلیسی', text: word.eng, dir: 'ltr' }
 
-  // Reset flip when word changes
-  // (caller should trigger this via key prop on ReviewCard)
+  // `flipped` is controlled by the parent (ReviewPage), which resets it on word change.
 
   return (
     <div className="w-full max-w-2xl mx-auto select-none">
@@ -61,7 +61,7 @@ export function ReviewCard({ word, mode }: ReviewCardProps) {
             </p>
 
             <button
-              onClick={() => setFlipped(true)}
+              onClick={onToggle}
               className="mt-10 px-8 py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm"
             >
               {mode === 'EN_TO_FA' ? 'نمایش فارسی' : 'نمایش انگلیسی'}
@@ -118,7 +118,7 @@ export function ReviewCard({ word, mode }: ReviewCardProps) {
             )}
 
             <button
-              onClick={() => setFlipped(false)}
+              onClick={onToggle}
               className="mt-6 px-5 py-1.5 rounded-full border border-border text-muted-foreground text-xs font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
             >
               نمایش {frontContent.label}

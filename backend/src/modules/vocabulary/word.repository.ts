@@ -63,15 +63,31 @@ export class WordRepository {
       }),
       ...(status !== undefined &&
         userId !== undefined &&
-        mode !== undefined && {
-          progress: {
-            some: {
-              userId,
-              reviewMode: mode,
-              status,
-            },
-          },
-        }),
+        mode !== undefined &&
+        (status === 'NOT_READ'
+          ? {
+              // "نخوانده" = هیچ ردیف پیشرفتی با وضعیت KNOWN/NOT_KNOWN برای این کاربر+حالت وجود ندارد.
+              // لغاتی که کاربر اصلاً با آن‌ها تعامل نداشته هیچ ردیف progress ندارند، پس یک
+              // match ساده با `some` آن‌ها را از قلم می‌اندازد؛ به‌جای آن از حالت منفی استفاده می‌کنیم.
+              NOT: {
+                progress: {
+                  some: {
+                    userId,
+                    reviewMode: mode,
+                    status: { in: ['KNOWN', 'NOT_KNOWN'] },
+                  },
+                },
+              },
+            }
+          : {
+              progress: {
+                some: {
+                  userId,
+                  reviewMode: mode,
+                  status,
+                },
+              },
+            })),
     }
 
     const orderBy: Prisma.WordOrderByWithRelationInput = {
