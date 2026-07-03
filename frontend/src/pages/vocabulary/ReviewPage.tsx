@@ -152,25 +152,34 @@ export function ReviewPage() {
         : undefined
 
   const watchlistBookIds = books?.map((b) => b.id) ?? []
+  const isWatchlistLoading = books === undefined
+  // Review is always scoped to the watchlist: a specific book, or the whole list.
+  // With no watchlist and no pinned book, there is nothing to review.
+  const hasScope = Boolean(bookId) || watchlistBookIds.length > 0
 
-  const { data, isLoading, isError } = useWords({
-    limit: 500,
-    page: 1,
-    mode,
-    status: apiStatus,
-    sort: 'chapter',
-    order: 'asc',
-    // Scope to the selected book/volume/lesson; with no single book chosen,
-    // fall back to the union of the user's whole watchlist.
-    bookId,
-    bookIds: bookId ? undefined : watchlistBookIds.length > 0 ? watchlistBookIds : undefined,
-    volumeId,
-    lessonId,
-    // Legacy chapter filter only applies when there's no book scoping at all.
-    chapter: bookId || watchlistBookIds.length > 0 ? undefined : initial.filters.chapter,
-  })
+  const { data, isLoading: wordsLoading, isError } = useWords(
+    {
+      limit: 500,
+      page: 1,
+      mode,
+      status: apiStatus,
+      sort: 'chapter',
+      order: 'asc',
+      // Scope to the selected book/volume/lesson; with no single book chosen,
+      // fall back to the union of the user's whole watchlist.
+      bookId,
+      bookIds: bookId ? undefined : watchlistBookIds.length > 0 ? watchlistBookIds : undefined,
+      volumeId,
+      lessonId,
+      // Legacy chapter filter only applies when there's a book scope.
+      chapter: undefined,
+    },
+    { enabled: hasScope },
+  )
 
-  const words = data?.data ?? []
+  const isLoading = isWatchlistLoading || (hasScope && wordsLoading)
+
+  const words = hasScope ? data?.data ?? [] : []
   const total = words.length
 
   // Reset position when the word list changes (filter/mode/scope).
@@ -348,17 +357,6 @@ export function ReviewPage() {
       </div>
 
       {/* Book → Volume → Lesson scope selectors (limited to the user's watchlist) */}
-      {books && books.length === 0 && (
-        <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground flex flex-wrap items-center gap-2">
-          <span>هنوز کتابی به لیست یادگیری‌تان اضافه نکرده‌اید.</span>
-          <button
-            onClick={() => navigate('/library')}
-            className="font-semibold text-primary hover:underline"
-          >
-            رفتن به کتابخانه
-          </button>
-        </div>
-      )}
       {books && books.length > 0 && (
         <div className="flex flex-wrap gap-3 items-center">
           {/* Book */}
@@ -449,6 +447,16 @@ export function ReviewPage() {
       ) : isError ? (
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-6 py-12 text-center">
           <p className="text-sm text-destructive font-medium">خطا در بارگذاری لغات.</p>
+        </div>
+      ) : !hasScope ? (
+        <div className="rounded-2xl border border-border bg-card px-6 py-16 text-center space-y-3">
+          <p className="text-lg font-semibold text-foreground">لیست یادگیری شما خالی است</p>
+          <p className="text-sm text-muted-foreground">
+            برای شروع مرور، ابتدا از کتابخانه یک یا چند کتاب به لیست یادگیری‌تان اضافه کنید.
+          </p>
+          <Button variant="outline" onClick={() => navigate('/library')} className="mt-2">
+            رفتن به کتابخانه
+          </Button>
         </div>
       ) : total === 0 ? (
         <div className="rounded-2xl border border-border bg-card px-6 py-16 text-center space-y-3">

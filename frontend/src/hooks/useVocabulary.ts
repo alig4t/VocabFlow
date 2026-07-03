@@ -8,10 +8,11 @@ import {
 } from '@/services/vocabulary.service'
 import type { Word, WordFilters, WordExample, LearningModule, PaginatedWords } from '@/types'
 
-export function useWords(filters: WordFilters) {
+export function useWords(filters: WordFilters, options?: { enabled?: boolean }) {
   return useQuery<PaginatedWords, Error>({
     queryKey: ['words', filters],
     queryFn: () => vocabularyService.getWords(filters),
+    enabled: options?.enabled ?? true,
   })
 }
 
