@@ -102,13 +102,19 @@ export function WordCard({ word, mode }: WordCardProps) {
         {/* Header row */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            {/* English word + audio button */}
+            {/* Primary word (bold, on top): English in EN→FA, Persian in FA→EN */}
             <div className="flex items-baseline gap-2 flex-wrap">
-              <span className="text-xl font-bold text-foreground tracking-tight">
-                {word.eng}
+              <span
+                dir={mode === 'FA_TO_EN' ? 'rtl' : 'ltr'}
+                className={cn(
+                  'text-xl font-bold text-foreground',
+                  mode === 'FA_TO_EN' ? 'rtl' : 'tracking-tight',
+                )}
+              >
+                {mode === 'FA_TO_EN' ? word.per : word.eng}
               </span>
 
-              {/* Audio pronunciation button */}
+              {/* Audio pronunciation button (English) */}
               {'speechSynthesis' in window && (
                 <button
                   onClick={handleSpeak}
@@ -132,9 +138,15 @@ export function WordCard({ word, mode }: WordCardProps) {
               )}
             </div>
 
-            {/* Persian meaning */}
-            <p dir="rtl" className="mt-1 text-base text-muted-foreground font-medium rtl">
-              {word.per}
+            {/* Secondary word (below, muted): Persian in EN→FA, English in FA→EN */}
+            <p
+              dir={mode === 'FA_TO_EN' ? 'ltr' : 'rtl'}
+              className={cn(
+                'mt-1 text-base text-muted-foreground font-medium',
+                mode === 'FA_TO_EN' ? '' : 'rtl',
+              )}
+            >
+              {mode === 'FA_TO_EN' ? word.eng : word.per}
             </p>
 
             {/* Description */}
