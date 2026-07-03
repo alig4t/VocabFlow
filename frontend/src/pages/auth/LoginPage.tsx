@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from '@/components/ui/use-toast'
+import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import { useLogin } from '@/hooks/useAuth'
 
 const loginSchema = z.object({
@@ -47,6 +48,7 @@ export function LoginPage() {
 
   return (
     <div dir="rtl" className="font-persian min-h-screen bg-gradient-to-bl from-background via-background to-muted/30 flex items-center justify-center p-4">
+      <ThemeToggle className="fixed left-4 top-4 z-20" />
       {/* Background decorative blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
         <div className="absolute -top-40 -left-40 w-80 h-80 rounded-full bg-primary/5 blur-3xl" />

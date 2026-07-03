@@ -95,14 +95,14 @@
     --card-foreground: 222 45% 12%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 45% 12%;
-    --primary: 38 92% 42%;
-    --primary-foreground: 30 45% 10%;
+    --primary: 40 94% 50%;
+    --primary-foreground: 30 50% 12%;
     --secondary: 40 24% 94%;
     --secondary-foreground: 222 40% 18%;
     --muted: 40 22% 95%;
     --muted-foreground: 220 12% 42%;
-    --accent: 42 82% 92%;
-    --accent-foreground: 34 78% 26%;
+    --accent: 42 88% 90%;
+    --accent-foreground: 34 82% 30%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
     --success: 152 60% 38%;
@@ -111,7 +111,7 @@
     --warning-foreground: 30 50% 16%;
     --border: 40 24% 87%;
     --input: 40 24% 87%;
-    --ring: 38 92% 42%;
+    --ring: 40 94% 50%;
     --radius: 0.75rem;
     /* gradient endpoints + data-viz palette (gold → navy accents) */
     --gradient-from: 40 92% 52%;
@@ -285,7 +285,7 @@
   100% { transform: translateX(-50%); }
 }
 .marquee-track {
-  animation: marquee-rtl 46s linear infinite;
+  animation: marquee-rtl 46s linear infinite reverse;
   width: max-content;
 }
 .marquee-track.slow { animation-duration: 66s; }
