@@ -46,10 +46,9 @@ interface ReviewWordRowProps {
   onKnown: () => void
   onNotKnown: () => void
   onSkip: () => void
-  isPending: boolean
 }
 
-function ReviewActions({ word, mode, onKnown, onNotKnown, onSkip, isPending }: ReviewWordRowProps) {
+function ReviewActions({ word, mode, onKnown, onNotKnown, onSkip }: ReviewWordRowProps) {
   const status = useWordStatus(word, mode)
 
   return (
@@ -64,13 +63,11 @@ function ReviewActions({ word, mode, onKnown, onNotKnown, onSkip, isPending }: R
       <div className="flex items-center gap-3">
         <button
           onClick={onNotKnown}
-          disabled={isPending}
           className={cn(
             'px-6 py-2.5 rounded-xl text-sm font-semibold border-2 transition-all duration-150',
             status === 'NOT_KNOWN'
               ? 'bg-red-500 text-white border-red-500 shadow-md'
               : 'border-red-300 text-red-700 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/30',
-            isPending && 'opacity-50 cursor-not-allowed',
           )}
         >
           یاد نگرفتم
@@ -78,7 +75,6 @@ function ReviewActions({ word, mode, onKnown, onNotKnown, onSkip, isPending }: R
 
         <button
           onClick={onSkip}
-          disabled={isPending}
           className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium text-muted-foreground border border-border hover:bg-accent hover:text-accent-foreground transition-colors"
         >
           <SkipForward className="h-4 w-4" />
@@ -87,13 +83,11 @@ function ReviewActions({ word, mode, onKnown, onNotKnown, onSkip, isPending }: R
 
         <button
           onClick={onKnown}
-          disabled={isPending}
           className={cn(
             'px-6 py-2.5 rounded-xl text-sm font-semibold border-2 transition-all duration-150',
             status === 'KNOWN'
               ? 'bg-green-500 text-white border-green-500 shadow-md'
               : 'border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-400 dark:hover:bg-green-900/30',
-            isPending && 'opacity-50 cursor-not-allowed',
           )}
         >
           یاد گرفتم
@@ -141,7 +135,7 @@ export function ReviewPage() {
     setLessonId(undefined)
   }
 
-  const { mutate: updateStatus, isPending } = useUpdateWordStatus()
+  const { mutate: updateStatus } = useUpdateWordStatus()
 
   // Fetch all words matching the filter (no pagination — review needs full list)
   const apiStatus: WordStatus | undefined =
@@ -157,7 +151,15 @@ export function ReviewPage() {
   // With no watchlist and no pinned book, there is nothing to review.
   const hasScope = Boolean(bookId) || watchlistBookIds.length > 0
 
-  const { data, isLoading: wordsLoading, isError } = useWords(
+  // A review session runs on a FROZEN snapshot of the matching words. Marking a
+  // word updates its status in place (and on the server) but never drops it from
+  // the list mid-session, so the counter advances one step per action
+  // (۱/۵۰۰ → ۲/۵۰۰ → …) instead of collapsing words off the front of the list.
+  const sessionKey = `${mode}|${reviewFilter}|${bookId ?? ''}|${volumeId ?? ''}|${lessonId ?? ''}`
+  const [session, setSession] = useState<{ key: string; words: Word[] }>({ key: '', words: [] })
+  const sessionReady = hasScope && session.key === sessionKey
+
+  const { data, isError } = useWords(
     {
       limit: 500,
       page: 1,
@@ -171,29 +173,24 @@ export function ReviewPage() {
       bookIds: bookId ? undefined : watchlistBookIds.length > 0 ? watchlistBookIds : undefined,
       volumeId,
       lessonId,
-      // Legacy chapter filter only applies when there's a book scope.
       chapter: undefined,
     },
-    { enabled: hasScope },
+    // Fetch only until the snapshot is frozen; status updates must not refetch
+    // and reshuffle the list under the user.
+    { enabled: hasScope && !sessionReady },
   )
 
-  const isLoading = isWatchlistLoading || (hasScope && wordsLoading)
-
-  const words = hasScope ? data?.data ?? [] : []
-  const total = words.length
-
-  // Reset position when the word list changes (filter/mode/scope).
+  // Freeze the fetched list as the session snapshot when a new session's data lands.
   useEffect(() => {
-    setCurrentIndex(0)
-  }, [mode, reviewFilter, bookId, volumeId, lessonId])
-
-  // If the list shrank (a marked word left a filtered list) and the index now
-  // points past the end, clamp to the last remaining item.
-  useEffect(() => {
-    if (total > 0 && currentIndex > total - 1) {
-      setCurrentIndex(total - 1)
+    if (hasScope && session.key !== sessionKey && data?.data) {
+      setSession({ key: sessionKey, words: data.data })
+      setCurrentIndex(0)
     }
-  }, [total, currentIndex])
+  }, [hasScope, sessionKey, session.key, data])
+
+  const words = sessionReady ? session.words : []
+  const total = words.length
+  const isLoading = isWatchlistLoading || (hasScope && !sessionReady)
 
   const currentWord = words[currentIndex] ?? null
 
@@ -251,22 +248,31 @@ export function ReviewPage() {
     }
   }
 
+  /** Patch a word's status in the frozen session list so its badge updates in place. */
+  function applyLocalStatus(wordId: string, status: WordStatus) {
+    setSession((s) => ({
+      key: s.key,
+      words: s.words.map((w) =>
+        w.id === wordId
+          ? {
+              ...w,
+              progress: [
+                ...(w.progress ?? []).filter((p) => p.reviewMode !== mode),
+                { id: '', userId: '', wordId, reviewMode: mode, status },
+              ],
+            }
+          : w,
+      ),
+    }))
+  }
+
   function markStatus(status: 'KNOWN' | 'NOT_KNOWN') {
-    if (!currentWord || isPending) return
-    // Marking a word invalidates the words query and refetches. Under a filtered
-    // view (نخوانده / یاد نگرفتم) the marked word drops out of the list and the
-    // next word slides into the current index automatically — so advancing here
-    // too would skip a word. Only advance manually when the word stays visible.
-    const staysVisible =
-      reviewFilter === 'ALL' || (reviewFilter === 'NOT_KNOWN' && status === 'NOT_KNOWN')
-    updateStatus(
-      { wordId: currentWord.id, reviewMode: mode, status },
-      {
-        onSuccess: () => {
-          if (staysVisible) goNext()
-        },
-      },
-    )
+    if (!currentWord) return
+    // Update the card in place + persist to the server, then advance one step.
+    // The session list is frozen, so the word stays put and the counter moves 1→2→…
+    applyLocalStatus(currentWord.id, status)
+    updateStatus({ wordId: currentWord.id, reviewMode: mode, status })
+    goNext()
   }
 
   function handleKnown() {
@@ -515,7 +521,6 @@ export function ReviewPage() {
               onKnown={handleKnown}
               onNotKnown={handleNotKnown}
               onSkip={handleSkip}
-              isPending={isPending}
             />
 
             {/* Keyboard hint */}
