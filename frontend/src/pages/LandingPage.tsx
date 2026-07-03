@@ -767,7 +767,7 @@ export default function LandingPage() {
         ))}
 
         <div className="relative z-10 mx-auto max-w-2xl px-6 text-center">
-          <div className="mb-8 inline-flex items-center justify-center">
+          <div className="mb-8 flex justify-center">
             <LogoMark size={56} />
           </div>
           <div className="mb-8 inline-flex items-center gap-1.5 rounded-full border border-slate-300/70 bg-white/60 px-4 py-1.5 dark:border-white/12 dark:bg-white/[0.06]">
