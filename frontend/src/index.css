@@ -115,7 +115,7 @@
     --radius: 0.75rem;
     /* gradient endpoints + data-viz palette (gold → navy accents) */
     --gradient-from: 47 94% 55%;
-    --gradient-to: 42 88% 49%;
+    --gradient-to: 45 86% 50%;
     --chart-1: 46 88% 52%;
     --chart-2: 220 55% 42%;
     --chart-3: 152 55% 42%;
@@ -129,14 +129,14 @@
     --card-foreground: 40 30% 92%;
     --popover: 222 40% 9%;
     --popover-foreground: 40 30% 92%;
-    --primary: 42 95% 55%;
-    --primary-foreground: 30 60% 8%;
+    --primary: 46 90% 56%;
+    --primary-foreground: 40 70% 9%;
     --secondary: 222 28% 15%;
     --secondary-foreground: 40 30% 92%;
     --muted: 222 26% 14%;
     --muted-foreground: 220 15% 64%;
-    --accent: 40 45% 18%;
-    --accent-foreground: 42 90% 72%;
+    --accent: 44 45% 18%;
+    --accent-foreground: 46 88% 74%;
     --destructive: 0 63% 50%;
     --destructive-foreground: 0 0% 100%;
     --success: 152 52% 46%;
@@ -145,10 +145,10 @@
     --warning-foreground: 30 50% 12%;
     --border: 222 26% 18%;
     --input: 222 26% 20%;
-    --ring: 42 95% 55%;
-    --gradient-from: 42 92% 56%;
-    --gradient-to: 33 88% 52%;
-    --chart-1: 42 90% 58%;
+    --ring: 46 90% 56%;
+    --gradient-from: 47 92% 57%;
+    --gradient-to: 43 86% 50%;
+    --chart-1: 46 88% 58%;
     --chart-2: 210 75% 62%;
     --chart-3: 152 55% 52%;
     --chart-4: 18 85% 60%;
