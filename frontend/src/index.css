@@ -314,15 +314,18 @@
   filter: brightness(1.15) drop-shadow(0 12px 28px rgba(228,168,36,0.5)) !important;
 }
 
-/* Faint gold pattern over the flat dark landing sections (dark mode only).
-   A fine gold dot grid + a soft diagonal sheen, so the near-black surfaces
-   gain warmth and depth without distracting. */
+/* Soft gold "blobs" over the flat dark landing sections (dark mode only).
+   Several large, low-opacity radial glows give the near-black surfaces an
+   organic, ambient-lit feel without a rigid pattern. Percent positions adapt
+   to each section's height. */
 .dark .landing-texture {
   background-image:
-    radial-gradient(circle at center, rgba(233, 184, 74, 0.16) 1.5px, transparent 1.9px),
-    linear-gradient(135deg, rgba(228, 168, 36, 0.05) 0%, transparent 40%, transparent 60%, rgba(228, 168, 36, 0.04) 100%);
-  background-size: 22px 22px, 100% 100%;
-  background-position: 0 0, 0 0;
+    radial-gradient(42% 55% at 14% 16%, rgba(230, 176, 60, 0.11), transparent 72%),
+    radial-gradient(36% 46% at 88% 26%, rgba(228, 168, 36, 0.09), transparent 72%),
+    radial-gradient(48% 54% at 74% 82%, rgba(233, 184, 74, 0.085), transparent 72%),
+    radial-gradient(32% 42% at 26% 90%, rgba(228, 168, 36, 0.07), transparent 72%);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
 }
 
 /* ── Dashboard helpers ──────────────────────────────────────── */
