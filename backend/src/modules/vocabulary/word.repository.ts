@@ -49,11 +49,11 @@ export class WordRepository {
       ...(chapter !== undefined && { chapter }),
       ...(unit !== undefined && { unit }),
       ...(lessonId !== undefined && { lessonId }),
-      ...(volumeId !== undefined && {
-        lesson: { volumeId },
-      }),
-      ...(bookId !== undefined && {
-        lesson: { volume: { bookId } },
+      ...((volumeId !== undefined || bookId !== undefined) && {
+        lesson: {
+          ...(volumeId !== undefined && { volumeId }),
+          ...(bookId !== undefined && { volume: { bookId } }),
+        },
       }),
       ...(search && {
         OR: [
