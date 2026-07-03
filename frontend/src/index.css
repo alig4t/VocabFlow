@@ -315,13 +315,13 @@
 }
 
 /* Faint gold pattern over the flat dark landing sections (dark mode only).
-   Two layers: a fine dot grid + a soft diagonal sheen, both very low-opacity,
-   so the near-black surfaces gain warmth and depth without distracting. */
+   A fine gold dot grid + a soft diagonal sheen, so the near-black surfaces
+   gain warmth and depth without distracting. */
 .dark .landing-texture {
   background-image:
-    radial-gradient(circle at 1px 1px, rgba(228, 168, 36, 0.07) 1px, transparent 1.7px),
-    linear-gradient(135deg, rgba(228, 168, 36, 0.025) 0%, transparent 38%, transparent 62%, rgba(228, 168, 36, 0.02) 100%);
-  background-size: 30px 30px, 100% 100%;
+    radial-gradient(circle at center, rgba(233, 184, 74, 0.16) 1.5px, transparent 1.9px),
+    linear-gradient(135deg, rgba(228, 168, 36, 0.05) 0%, transparent 40%, transparent 60%, rgba(228, 168, 36, 0.04) 100%);
+  background-size: 22px 22px, 100% 100%;
   background-position: 0 0, 0 0;
 }
 
