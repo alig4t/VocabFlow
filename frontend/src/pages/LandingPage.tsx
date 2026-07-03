@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   BookOpen,
@@ -277,6 +277,7 @@ export default function LandingPage() {
   const isDark = resolvedTheme === 'dark'
   const words = useFloatingWords(44)
   const marquee = [...LIBRARY, ...LIBRARY]
+  const [hoveredBook, setHoveredBook] = useState<number | null>(null)
 
   const bookShadow = isDark
     ? 'drop-shadow(0 10px 24px rgba(0,0,0,0.7))'
@@ -378,25 +379,52 @@ export default function LandingPage() {
                 />
               ))}
 
-              {HERO_BOOKS.map((book, i) => (
-                <img
-                  key={i}
-                  src={book.src}
-                  alt=""
-                  draggable={false}
-                  className="landing-book absolute"
-                  style={{
-                    bottom: i === 4 ? 10 : 0,
-                    left: book.left,
-                    width: book.w,
-                    zIndex: book.z,
-                    transformOrigin: 'bottom center',
-                    transform: `rotate(${book.rotate}deg)`,
-                    borderRadius: 6,
-                    filter: `${bookShadow}${i === 4 ? ' drop-shadow(0 0 22px rgba(228,168,36,0.4))' : ''}`,
-                  }}
-                />
-              ))}
+              {HERO_BOOKS.map((book, i) => {
+                const isHovered = hoveredBook === i
+                const anyHover = hoveredBook !== null
+                const delta = anyHover ? i - (hoveredBook as number) : 0
+                const dir = delta === 0 ? 0 : delta > 0 ? 1 : -1
+                const dist = Math.abs(delta)
+
+                // Fan-spread on hover: the hovered book straightens, lifts and
+                // grows to the front; its neighbours rotate & slide outward
+                // (more the closer they are) so its cover is fully revealed.
+                let transform = `rotate(${book.rotate}deg)`
+                let zIndex: number = book.z
+                let opacity = 1
+                if (isHovered) {
+                  transform = `rotate(${(book.rotate * 0.2).toFixed(2)}deg) translateY(-26px) scale(1.15)`
+                  zIndex = 50
+                } else if (anyHover) {
+                  const extraRot = dir * Math.max(4, 16 - (dist - 1) * 4)
+                  const pushX = dir * Math.max(8, 30 - (dist - 1) * 7)
+                  transform = `rotate(${book.rotate + extraRot}deg) translateX(${pushX}px) translateY(6px)`
+                  opacity = 0.82
+                }
+
+                return (
+                  <img
+                    key={i}
+                    src={book.src}
+                    alt=""
+                    draggable={false}
+                    onMouseEnter={() => setHoveredBook(i)}
+                    onMouseLeave={() => setHoveredBook((h) => (h === i ? null : h))}
+                    className="landing-book absolute"
+                    style={{
+                      bottom: i === 4 ? 10 : 0,
+                      left: book.left,
+                      width: book.w,
+                      zIndex,
+                      opacity,
+                      transformOrigin: 'bottom center',
+                      transform,
+                      borderRadius: 6,
+                      filter: `${bookShadow}${i === 4 ? ' drop-shadow(0 0 22px rgba(228,168,36,0.4))' : ''}`,
+                    }}
+                  />
+                )
+              })}
 
               <div className="absolute z-20 rounded-full border border-amber-400/30 bg-amber-500/90 px-3 py-1.5 text-[11px] font-bold text-[#1a1206] shadow-xl backdrop-blur-md" style={{ top: '6%', right: '4%' }}>
                 ۱۳+ کتاب مرجع

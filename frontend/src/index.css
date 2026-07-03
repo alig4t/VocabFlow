@@ -308,10 +308,14 @@
 .orb { animation: orb-pulse 6s ease-in-out infinite; }
 
 .landing-book {
-  transition: filter 0.3s ease, transform 0.3s ease;
+  transition:
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.35s ease,
+    filter 0.3s ease;
+  will-change: transform;
 }
 .landing-book:hover {
-  filter: brightness(1.15) drop-shadow(0 12px 28px rgba(228,168,36,0.5)) !important;
+  filter: brightness(1.12) drop-shadow(0 16px 32px rgba(228,168,36,0.55)) !important;
 }
 
 /* Soft gold "blobs" over the flat dark landing sections (dark mode only).
@@ -346,4 +350,5 @@
   .animate-shimmer::after { animation: none !important; }
   .marquee-track { animation: none !important; }
   .cover-float  { animation: none !important; }
+  .landing-book { transition: none !important; }
 }
