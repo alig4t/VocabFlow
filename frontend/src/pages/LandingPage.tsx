@@ -50,16 +50,27 @@ interface WordConfig {
 function useFloatingWords(count: number): WordConfig[] {
   return useMemo(() => {
     return Array.from({ length: count }, (_, i) => {
-      const topPct = 5 + pseudo(i * 3) * 85
+      const topPct = 3 + pseudo(i * 3) * 88
       const leftPct = 2 + pseudo(i * 7) * 92
-      const inContentBand = topPct > 14 && topPct < 82 && leftPct > 10 && leftPct < 90
-      const base = 0.09 + pseudo(i * 11) * 0.18
+      // Headline text sits on the right half, vertically centered — keep those
+      // faint so the copy stays readable.
+      const inTextBand = leftPct > 46 && topPct > 22 && topPct < 74
+      // Upper region (the empty space above the book stack) — make these denser,
+      // larger and bolder so the area feels alive.
+      const inUpperBand = topPct < 32
+      let maxOpacity: number
+      if (inTextBand) maxOpacity = 0.05 + pseudo(i * 11) * 0.05
+      else if (inUpperBand) maxOpacity = 0.30 + pseudo(i * 11) * 0.32
+      else maxOpacity = 0.14 + pseudo(i * 11) * 0.20
+      const fontSize = inUpperBand
+        ? 16 + pseudo(i * 5) * 22
+        : 11 + pseudo(i * 5) * 14
       return {
         word: WORD_LIST[i % WORD_LIST.length],
         top: `${topPct}%`,
         left: `${leftPct}%`,
-        fontSize: Math.round(10 + pseudo(i * 5) * 14),
-        maxOpacity: inContentBand ? 0.05 : base,
+        fontSize: Math.round(fontSize),
+        maxOpacity,
         duration: `${9 + pseudo(i * 13) * 10}s`,
         delay: `${pseudo(i * 17) * 9}s`,
       }
@@ -278,7 +289,7 @@ function CoverCard({ src, label }: { src: string; label: string }) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function LandingPage() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  const words = useFloatingWords(28)
+  const words = useFloatingWords(44)
   const marquee = [...LIBRARY, ...LIBRARY]
 
   return (
@@ -352,7 +363,7 @@ export default function LandingPage() {
         {words.map((w, i) => (
           <span
             key={i}
-            className="float-word pointer-events-none absolute select-none font-mono text-amber-100"
+            className="float-word pointer-events-none absolute select-none font-mono font-semibold tracking-tight text-amber-200"
             style={{
               top: w.top,
               left: w.left,
@@ -581,10 +592,10 @@ export default function LandingPage() {
             </p>
           </div>
 
-          {/* marquee row 1 */}
-          <div className="marquee-mask relative">
-            <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-[#0a0f1a] to-transparent" />
+          {/* marquee row 1 — forced LTR so the loop stays seamless on an RTL page */}
+          <div dir="ltr" className="marquee-mask relative overflow-hidden">
             <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-[#0a0f1a] to-transparent" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-[#0a0f1a] to-transparent" />
             <div className="marquee-track flex gap-6 px-3">
               {marquee.map((b, i) => (
                 <CoverCard key={i} src={b.src} label={b.label} />
@@ -685,7 +696,7 @@ export default function LandingPage() {
                     { icon: Trophy, v: '۸۴۰', l: 'لغت آموخته' },
                     { icon: Target, v: '۷۳٪', l: 'دقت مرور' },
                   ].map((s, i) => (
-                    <div key={i} className="rounded-xl border border-white/8 bg-white/[0.03] p-3 text-center">
+                    <div key={i} className="rounded-xl bg-white/[0.045] ring-1 ring-inset ring-white/[0.04] p-3 text-center">
                       <s.icon size={16} className="mx-auto mb-1.5 text-amber-300" />
                       <div className="text-lg font-bold text-white">{s.v}</div>
                       <div className="text-[10px] text-white/40">{s.l}</div>
@@ -700,7 +711,7 @@ export default function LandingPage() {
                     { title: 'English Phrasal Verbs', pct: 45, tint: 'from-sky-400 to-cyan-500' },
                     { title: '1000 Collocations', pct: 26, tint: 'from-emerald-400 to-teal-500' },
                   ].map((b) => (
-                    <div key={b.title} className="rounded-xl border border-white/8 bg-white/[0.03] p-3.5">
+                    <div key={b.title} className="rounded-xl bg-white/[0.045] ring-1 ring-inset ring-white/[0.04] p-3.5">
                       <div className="mb-2 flex items-center justify-between">
                         <span className="text-[11px] font-semibold text-amber-300">{b.pct}٪</span>
                         <span className="text-[13px] font-medium text-white/85" dir="ltr">{b.title}</span>
@@ -713,7 +724,7 @@ export default function LandingPage() {
                 </div>
 
                 {/* mini heatmap */}
-                <div className="mt-4 rounded-xl border border-white/8 bg-white/[0.03] p-3.5">
+                <div className="mt-4 rounded-xl bg-white/[0.045] ring-1 ring-inset ring-white/[0.04] p-3.5">
                   <div className="mb-2 text-right text-[11px] text-white/40">فعالیت ۵ هفته اخیر</div>
                   <div className="flex flex-wrap justify-end gap-1">
                     {[...Array(35)].map((_, i) => {
