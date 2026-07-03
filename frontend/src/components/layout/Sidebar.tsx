@@ -46,7 +46,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
               isActive
                 ? accent === 'admin'
-                  ? 'bg-amber-600 text-white shadow-sm'
+                  ? 'bg-slate-700 text-white shadow-sm dark:bg-slate-600'
                   : 'bg-primary text-primary-foreground shadow-sm'
                 : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
             )
@@ -71,11 +71,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       {/* Header */}
       <div className="flex h-16 shrink-0 items-center justify-between px-4">
         <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm">
-            ELP
+          <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-white ring-1 ring-border">
+            <img src="/logo/logo-192-192.png" alt="وکب" className="h-full w-full object-contain p-0.5" draggable={false} />
           </div>
           <div className="leading-tight">
-            <p className="text-sm font-semibold text-foreground">ELP</p>
+            <p className="text-sm font-bold text-foreground">وکب</p>
             <p className="text-xs text-muted-foreground">یادگیری زبان</p>
           </div>
         </div>
@@ -105,15 +105,15 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         {isAdmin && (
           <div className="mt-5">
             <div className="mb-3 border-t border-dashed border-border" />
-            <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.06] p-2.5">
+            <div className="rounded-xl border border-slate-400/30 bg-slate-500/[0.06] p-2.5">
               <div className="mb-2 flex items-center gap-2 px-1.5">
-                <ShieldCheck className="h-4 w-4 text-amber-600 dark:text-amber-500" />
-                <span className="text-xs font-bold tracking-wide text-amber-700 dark:text-amber-500">
+                <ShieldCheck className="h-4 w-4 text-slate-600 dark:text-slate-300" />
+                <span className="text-xs font-bold tracking-wide text-slate-700 dark:text-slate-300">
                   بخش مدیریت
                 </span>
                 <Badge
                   variant="secondary"
-                  className="mr-auto bg-amber-500/15 px-1.5 py-0 text-[10px] font-bold text-amber-700 dark:text-amber-500"
+                  className="mr-auto bg-slate-500/15 px-1.5 py-0 text-[10px] font-bold text-slate-700 dark:text-slate-300"
                 >
                   ADMIN
                 </Badge>

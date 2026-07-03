@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Link, useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, BookOpen, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -74,8 +74,8 @@ export function RegisterPage() {
 
           {/* Header */}
           <div className="flex flex-col items-center gap-3 mb-8">
-            <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 dark:bg-primary/20 ring-1 ring-primary/20">
-              <BookOpen className="w-7 h-7 text-primary" strokeWidth={1.75} />
+            <div className="flex items-center justify-center w-14 h-14 overflow-hidden rounded-2xl bg-white ring-1 ring-border shadow-sm">
+              <img src="/logo/logo-192-192.png" alt="وکب" className="h-full w-full object-contain p-1.5" draggable={false} />
             </div>
             <div className="text-center">
               <h1 className="text-2xl font-bold tracking-tight text-foreground">
