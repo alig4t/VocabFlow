@@ -18,6 +18,7 @@ model User {
 
   progress      UserWordProgress[]
   refreshTokens RefreshToken[]
+  watchlist     WatchlistItem[]
 
   @@map("users")
 }
@@ -61,9 +62,24 @@ model Book {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  volumes Volume[]
+  volumes   Volume[]
+  watchlist WatchlistItem[]
 
   @@map("books")
+}
+
+model WatchlistItem {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  bookId    String   @map("book_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, bookId])
+  @@index([userId])
+  @@map("watchlist_items")
 }
 
 model Volume {

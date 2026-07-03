@@ -11,6 +11,7 @@ import { wordRouter } from './modules/vocabulary/word.router'
 import { progressRouter } from './modules/progress/progress.router'
 import { synonymRouter } from './modules/synonyms/synonym.router'
 import { bookRouter } from './modules/books/book.router'
+import { watchlistRouter } from './modules/watchlist/watchlist.router'
 import { errorMiddleware } from './shared/middleware/error.middleware'
 
 const app = express()
@@ -30,6 +31,7 @@ app.use('/api/words', wordRouter)
 app.use('/api/progress', progressRouter)
 app.use('/api/synonyms', synonymRouter)
 app.use('/api/books', bookRouter)
+app.use('/api/watchlist', watchlistRouter)
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date() })

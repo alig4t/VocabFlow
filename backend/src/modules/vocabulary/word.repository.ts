@@ -36,6 +36,7 @@ export class WordRepository {
       lessonId,
       volumeId,
       bookId,
+      bookIds,
       status,
       mode,
       sort = 'chapter',
@@ -49,10 +50,16 @@ export class WordRepository {
       ...(chapter !== undefined && { chapter }),
       ...(unit !== undefined && { unit }),
       ...(lessonId !== undefined && { lessonId }),
-      ...((volumeId !== undefined || bookId !== undefined) && {
+      ...((volumeId !== undefined ||
+        bookId !== undefined ||
+        (bookIds !== undefined && bookIds.length > 0)) && {
         lesson: {
           ...(volumeId !== undefined && { volumeId }),
-          ...(bookId !== undefined && { volume: { bookId } }),
+          ...(bookId !== undefined
+            ? { volume: { bookId } }
+            : bookIds !== undefined && bookIds.length > 0
+              ? { volume: { bookId: { in: bookIds } } }
+              : {}),
         },
       }),
       ...(search && {

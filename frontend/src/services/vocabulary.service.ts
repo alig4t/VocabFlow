@@ -29,9 +29,9 @@ export const vocabularyService = {
   getWords(filters: WordFilters): Promise<PaginatedWords> {
     const params: Record<string, unknown> = {}
     for (const [key, value] of Object.entries(filters)) {
-      if (value !== undefined) {
-        params[key] = value
-      }
+      if (value === undefined) continue
+      // Arrays (e.g. bookIds) go over the wire comma-separated.
+      params[key] = Array.isArray(value) ? value.join(',') : value
     }
     return api
       .get<PaginatedWords>(API_ENDPOINTS.words.list, { params })

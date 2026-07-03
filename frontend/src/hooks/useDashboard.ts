@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { dashboardService } from '@/services/dashboard.service'
-import type { DashboardData, DiscoveryBook } from '@/types'
+import type { BookSimple, DashboardData, DiscoveryBook } from '@/types'
 
 export function useDashboard() {
   return useQuery<DashboardData, Error>({
@@ -13,6 +13,14 @@ export function useDiscoveryBooks() {
   return useQuery<DiscoveryBook[], Error>({
     queryKey: ['discovery-books'],
     queryFn: () => dashboardService.getDiscoveryBooks(),
+  })
+}
+
+/** Books in the current user's watchlist (used by the review-page selector). */
+export function useWatchlistBooks() {
+  return useQuery<BookSimple[], Error>({
+    queryKey: ['watchlist', 'books'],
+    queryFn: () => dashboardService.getWatchlistBooks(),
   })
 }
 
@@ -47,6 +55,9 @@ export function useToggleWatchlist() {
       }
     },
     onSettled: () => {
+      // Reconcile with the server: discovery flags, the watchlist selector, and dashboard.
+      queryClient.invalidateQueries({ queryKey: ['discovery-books'] })
+      queryClient.invalidateQueries({ queryKey: ['watchlist', 'books'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
     },
   })

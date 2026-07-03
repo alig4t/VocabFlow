@@ -28,6 +28,8 @@ export interface WordFilters extends PaginationQuery {
   lessonId?: string
   volumeId?: string
   bookId?: string
+  /** Restrict to any of several books (e.g. the union of a user's watchlist). */
+  bookIds?: string[]
   status?: WordStatus
   mode?: ReviewMode
   sort?: 'chapter' | 'unit' | 'eng' | 'per'

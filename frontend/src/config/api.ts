@@ -39,4 +39,10 @@ export const API_ENDPOINTS = {
   synonyms: {
     get: (wordId: string) => `/synonyms/words/${wordId}`,
   },
+  watchlist: {
+    list: '/watchlist',
+    discovery: '/watchlist/discovery',
+    add: '/watchlist',
+    remove: (bookId: string) => `/watchlist/${bookId}`,
+  },
 } as const

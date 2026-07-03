@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button'
 import { ReviewCard } from '@/components/vocabulary/ReviewCard'
 import { useWords } from '@/hooks/useVocabulary'
 import { useUpdateWordStatus, useWordStatus } from '@/hooks/useProgress'
-import { useBooksSimple, useVolumesSimple, useLessonsSimple } from '@/hooks/useBooks'
+import { useVolumesSimple, useLessonsSimple } from '@/hooks/useBooks'
+import { useWatchlistBooks } from '@/hooks/useDashboard'
 import { cn } from '@/lib/utils'
 import { parseVocabParams } from '@/lib/vocabFilters'
 import type { ReviewMode, WordStatus, Word } from '@/types'
@@ -124,7 +125,8 @@ export function ReviewPage() {
   const [volumeId, setVolumeId] = useState<string | undefined>(initial.filters.volumeId)
   const [lessonId, setLessonId] = useState<string | undefined>(initial.filters.lessonId)
 
-  const { data: books } = useBooksSimple()
+  // Only books in the user's watchlist are selectable for review.
+  const { data: books } = useWatchlistBooks()
   const { data: volumes } = useVolumesSimple(bookId ?? '')
   const { data: lessons } = useLessonsSimple(bookId ?? '', volumeId ?? '')
 
@@ -149,6 +151,8 @@ export function ReviewPage() {
         ? 'NOT_KNOWN'
         : undefined
 
+  const watchlistBookIds = books?.map((b) => b.id) ?? []
+
   const { data, isLoading, isError } = useWords({
     limit: 500,
     page: 1,
@@ -156,11 +160,14 @@ export function ReviewPage() {
     status: apiStatus,
     sort: 'chapter',
     order: 'asc',
-    // Scope to the book/volume/lesson selected on this page (or carried from the URL).
+    // Scope to the selected book/volume/lesson; with no single book chosen,
+    // fall back to the union of the user's whole watchlist.
     bookId,
+    bookIds: bookId ? undefined : watchlistBookIds.length > 0 ? watchlistBookIds : undefined,
     volumeId,
     lessonId,
-    chapter: bookId ? undefined : initial.filters.chapter,
+    // Legacy chapter filter only applies when there's no book scoping at all.
+    chapter: bookId || watchlistBookIds.length > 0 ? undefined : initial.filters.chapter,
   })
 
   const words = data?.data ?? []
@@ -170,6 +177,14 @@ export function ReviewPage() {
   useEffect(() => {
     setCurrentIndex(0)
   }, [mode, reviewFilter, bookId, volumeId, lessonId])
+
+  // If the list shrank (a marked word left a filtered list) and the index now
+  // points past the end, clamp to the last remaining item.
+  useEffect(() => {
+    if (total > 0 && currentIndex > total - 1) {
+      setCurrentIndex(total - 1)
+    }
+  }, [total, currentIndex])
 
   const currentWord = words[currentIndex] ?? null
 
@@ -227,20 +242,30 @@ export function ReviewPage() {
     }
   }
 
-  function handleKnown() {
+  function markStatus(status: 'KNOWN' | 'NOT_KNOWN') {
     if (!currentWord || isPending) return
+    // Marking a word invalidates the words query and refetches. Under a filtered
+    // view (نخوانده / یاد نگرفتم) the marked word drops out of the list and the
+    // next word slides into the current index automatically — so advancing here
+    // too would skip a word. Only advance manually when the word stays visible.
+    const staysVisible =
+      reviewFilter === 'ALL' || (reviewFilter === 'NOT_KNOWN' && status === 'NOT_KNOWN')
     updateStatus(
-      { wordId: currentWord.id, reviewMode: mode, status: 'KNOWN' },
-      { onSuccess: () => goNext() },
+      { wordId: currentWord.id, reviewMode: mode, status },
+      {
+        onSuccess: () => {
+          if (staysVisible) goNext()
+        },
+      },
     )
   }
 
+  function handleKnown() {
+    markStatus('KNOWN')
+  }
+
   function handleNotKnown() {
-    if (!currentWord || isPending) return
-    updateStatus(
-      { wordId: currentWord.id, reviewMode: mode, status: 'NOT_KNOWN' },
-      { onSuccess: () => goNext() },
-    )
+    markStatus('NOT_KNOWN')
   }
 
   function handleSkip() {
@@ -322,7 +347,18 @@ export function ReviewPage() {
         </div>
       </div>
 
-      {/* Book → Volume → Lesson scope selectors */}
+      {/* Book → Volume → Lesson scope selectors (limited to the user's watchlist) */}
+      {books && books.length === 0 && (
+        <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground flex flex-wrap items-center gap-2">
+          <span>هنوز کتابی به لیست یادگیری‌تان اضافه نکرده‌اید.</span>
+          <button
+            onClick={() => navigate('/library')}
+            className="font-semibold text-primary hover:underline"
+          >
+            رفتن به کتابخانه
+          </button>
+        </div>
+      )}
       {books && books.length > 0 && (
         <div className="flex flex-wrap gap-3 items-center">
           {/* Book */}
@@ -333,7 +369,7 @@ export function ReviewPage() {
               onChange={(e) => handleBookChange(e.target.value)}
               className={SELECT_CLASS}
             >
-              <option value="">همه کتاب‌ها</option>
+              <option value="">همه کتاب‌های لیست من</option>
               {books.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.title}

@@ -1,4 +1,7 @@
+import api from '@/lib/axios'
+import { API_ENDPOINTS } from '@/config/api'
 import type {
+  BookSimple,
   DashboardData,
   DiscoveryBook,
   HeatmapDay,
@@ -6,17 +9,13 @@ import type {
 } from '@/types'
 
 /**
- * Dashboard data layer for the personalized Watchlist feature (feature.txt).
+ * Dashboard / Watchlist data layer.
  *
- * The backend endpoints below do not exist yet, so each method resolves
- * deterministic MOCK data with the exact shape the real API should return.
- * When the backend lands, swap each `return Promise.resolve(mock…)` for the
- * commented `api.get(...)` call — no component changes required.
- *
- *   GET  /user/dashboard          → getDashboard()
- *   GET  /books                   → getDiscoveryBooks()
- *   POST /watchlist/add           → addToWatchlist(bookId)
- *   DELETE /watchlist/:bookId     → removeFromWatchlist(bookId)
+ * The watchlist (discovery list, add/remove, and the user's watchlisted books)
+ * is now backed by the real `/api/watchlist` endpoints. The dashboard summary
+ * (stats, activity heatmap, review queue) is still served from deterministic
+ * MOCK data — those metrics require per-day activity tracking that the backend
+ * does not model yet.
  */
 
 // ── Deterministic helpers (stable across renders, no Math.random) ──────────────
@@ -106,74 +105,34 @@ const mockDashboard: DashboardData = {
     .map((b) => ({ bookId: b.bookId, title: b.title, dueCount: b.dueCount })),
 }
 
-const mockDiscovery: DiscoveryBook[] = [
-  {
-    id: 'bk_oxford',
-    title: '۴۰۰۰ لغت ضروری انگلیسی',
-    description: 'مجموعه شش‌جلدی واژگان پرکاربرد برای تسلط بر زبان انگلیسی.',
-    totalWords: 4000,
-    inWatchlist: true,
-  },
-  {
-    id: 'bk_ielts',
-    title: 'واژگان آیلتس ضروری',
-    description: 'لغات کلیدی برای آمادگی آزمون آیلتس آکادمیک و جنرال.',
-    totalWords: 1200,
-    inWatchlist: true,
-  },
-  {
-    id: 'bk_idioms',
-    title: 'اصطلاحات رایج انگلیسی',
-    description: 'اصطلاحات و عبارات روزمره برای مکالمه طبیعی‌تر.',
-    totalWords: 600,
-    inWatchlist: true,
-  },
-  {
-    id: 'bk_toefl',
-    title: 'واژگان تافل',
-    description: 'واژگان دانشگاهی و علمی موردنیاز آزمون تافل.',
-    totalWords: 1500,
-    inWatchlist: false,
-  },
-  {
-    id: 'bk_business',
-    title: 'انگلیسی تجاری',
-    description: 'اصطلاحات حرفه‌ای محیط کار، جلسات و مکاتبات اداری.',
-    totalWords: 800,
-    inWatchlist: false,
-  },
-  {
-    id: 'bk_phrasal',
-    title: 'افعال عبارتی (Phrasal Verbs)',
-    description: 'پرکاربردترین افعال دوکلمه‌ای انگلیسی با مثال.',
-    totalWords: 500,
-    inWatchlist: false,
-  },
-]
-
 // Simulate network latency so loading/skeleton states are visible in dev.
 function delay<T>(value: T, ms = 350): Promise<T> {
   return new Promise((resolve) => setTimeout(() => resolve(value), ms))
 }
 
 export const dashboardService = {
+  // Still mock — dashboard metrics need per-day activity tracking (out of scope).
   getDashboard(): Promise<DashboardData> {
-    // return api.get(API_ENDPOINTS.user.dashboard).then((res) => res.data)
     return delay(mockDashboard)
   },
 
+  // ── Real watchlist endpoints ──────────────────────────────────────────────
+
+  /** All books with a per-user `inWatchlist` flag (library/discovery view). */
   getDiscoveryBooks(): Promise<DiscoveryBook[]> {
-    // return api.get(API_ENDPOINTS.books.list).then((res) => res.data)
-    return delay(mockDiscovery)
+    return api.get<DiscoveryBook[]>(API_ENDPOINTS.watchlist.discovery).then((r) => r.data)
+  },
+
+  /** Books in the current user's watchlist, as {id, title} for selectors. */
+  getWatchlistBooks(): Promise<BookSimple[]> {
+    return api.get<BookSimple[]>(API_ENDPOINTS.watchlist.list).then((r) => r.data)
   },
 
   addToWatchlist(bookId: string): Promise<{ bookId: string }> {
-    // return api.post(API_ENDPOINTS.watchlist.add, { bookId }).then((res) => res.data)
-    return delay({ bookId }, 250)
+    return api.post<{ bookId: string }>(API_ENDPOINTS.watchlist.add, { bookId }).then((r) => r.data)
   },
 
   removeFromWatchlist(bookId: string): Promise<{ bookId: string }> {
-    // return api.delete(API_ENDPOINTS.watchlist.remove(bookId)).then((res) => res.data)
-    return delay({ bookId }, 250)
+    return api.delete<{ bookId: string }>(API_ENDPOINTS.watchlist.remove(bookId)).then((r) => r.data)
   },
 }

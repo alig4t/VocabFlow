@@ -156,6 +156,8 @@ export interface WordFilters {
   lessonId?: string
   volumeId?: string
   bookId?: string
+  /** Restrict to any of several books (sent comma-separated). */
+  bookIds?: string[]
   status?: WordStatus | 'ALL'
   mode?: ReviewMode
   sort?: 'chapter' | 'unit' | 'eng' | 'per'

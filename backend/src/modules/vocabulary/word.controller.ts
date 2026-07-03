@@ -14,6 +14,11 @@ export class WordController {
     const lessonId = req.query.lessonId as string | undefined
     const volumeId = req.query.volumeId as string | undefined
     const bookId = req.query.bookId as string | undefined
+    // Accept a comma-separated list of book ids (e.g. the user's watchlist).
+    const bookIdsRaw = req.query.bookIds as string | undefined
+    const bookIds = bookIdsRaw
+      ? bookIdsRaw.split(',').map((s) => s.trim()).filter(Boolean)
+      : undefined
     const search = req.query.search as string | undefined
     const sort = req.query.sort as WordFilters['sort'] | undefined
     const order = req.query.order as WordFilters['order'] | undefined
@@ -28,6 +33,7 @@ export class WordController {
       ...(lessonId && { lessonId }),
       ...(volumeId && { volumeId }),
       ...(bookId && { bookId }),
+      ...(bookIds && bookIds.length > 0 && { bookIds }),
       ...(search && { search }),
       ...(sort && { sort }),
       ...(order && { order }),
