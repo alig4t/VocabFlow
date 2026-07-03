@@ -65,14 +65,14 @@ function useFloatingWords(count: number): WordConfig[] {
 
 // ─── Book stack configuration ─────────────────────────────────────────────────
 const BOOKS = [
-  { src: '/books/ws3.webp', rotate: -26, left: 0,   w: 100, z: 2  },
-  { src: '/books/ws2.webp', rotate: -17, left: 48,  w: 113, z: 3  },
-  { src: '/books/5.webp',   rotate: -9,  left: 98,  w: 126, z: 4  },
-  { src: '/books/4.webp',   rotate: -3,  left: 152, w: 138, z: 5  },
-  { src: '/books/3.webp',   rotate:  1,  left: 210, w: 152, z: 10 }, // hero book
-  { src: '/books/2.webp',   rotate:  7,  left: 268, w: 138, z: 5  },
-  { src: '/books/1.webp',   rotate: 14,  left: 320, w: 126, z: 4  },
-  { src: '/books/ws1.webp', rotate: 22,  left: 368, w: 113, z: 3  },
+  { src: '/books/oxford-word-skills-advanced.webp', rotate: -26, left: 0,   w: 100, z: 2  },
+  { src: '/books/oxford-word-skills-intermediate.webp', rotate: -17, left: 48,  w: 113, z: 3  },
+  { src: '/books/4000-v5.webp',   rotate: -9,  left: 98,  w: 126, z: 4  },
+  { src: '/books/4000-v4.webp',   rotate: -3,  left: 152, w: 138, z: 5  },
+  { src: '/books/4000-v3.webp',   rotate:  1,  left: 210, w: 152, z: 10 }, // hero book
+  { src: '/books/4000-v2.webp',   rotate:  7,  left: 268, w: 138, z: 5  },
+  { src: '/books/4000-v1.webp',   rotate: 14,  left: 320, w: 126, z: 4  },
+  { src: '/books/oxford-word-skills-basic.webp', rotate: 22,  left: 368, w: 113, z: 3  },
 ]
 
 // ─── Features ─────────────────────────────────────────────────────────────────
