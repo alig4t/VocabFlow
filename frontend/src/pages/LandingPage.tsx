@@ -44,6 +44,33 @@ const cx = {
     'border-amber-400/40 bg-amber-400/10 text-amber-700 dark:border-amber-400/25 dark:text-amber-300',
 }
 
+// ─── Wavy section dividers (different shapes, same idea as the hero wave) ──────
+// Each wave is filled with the page base color, so it carves the (slightly
+// tinted) bottom of a colorful section into an organic curve that flows into
+// the flat section below — no hard color seam between sections.
+const DIVIDER_WAVES = {
+  b: { h: 90, d: 'M0,45 C320,95 560,12 760,46 C1000,86 1200,22 1440,54 L1440,90 L0,90 Z' },
+  c: { h: 90, d: 'M0,58 C480,-8 960,104 1440,42 L1440,90 L0,90 Z' },
+  d: { h: 90, d: 'M0,42 C240,88 480,88 720,50 C960,14 1200,14 1440,50 L1440,90 L0,90 Z' },
+  e: { h: 80, d: 'M0,50 C360,82 1080,18 1440,50 L1440,80 L0,80 Z' },
+} as const
+
+function WaveDivider({ variant }: { variant: keyof typeof DIVIDER_WAVES }) {
+  const w = DIVIDER_WAVES[variant]
+  return (
+    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1]" aria-hidden="true">
+      <svg
+        viewBox={`0 0 1440 ${w.h}`}
+        preserveAspectRatio="none"
+        className="block h-[52px] w-full sm:h-[78px]"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path d={w.d} className="fill-[#faf7f1] dark:fill-[#0a0f1a]" />
+      </svg>
+    </div>
+  )
+}
+
 // ─── Floating English words config ───────────────────────────────────────────
 const WORD_LIST = [
   'Afraid', 'Battle', 'Century', 'Danger', 'Elegant', 'Freedom',
@@ -505,7 +532,8 @@ export default function LandingPage() {
 
       {/* ════════════════════════════════ LIBRARY ═══════════════════════════════ */}
       <section id="library" className="relative overflow-hidden py-28">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#faf7f1] via-[#f3ece0] to-[#faf7f1] dark:from-[#0a0f1a] dark:via-[#0e1830] dark:to-[#0a0f1a]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#faf7f1] via-[#f3ece0] to-[#efe5d2] dark:from-[#0a0f1a] dark:via-[#0e1830] dark:to-[#101a30]" />
+        <WaveDivider variant="b" />
         <div className="absolute left-1/2 top-1/3 h-[280px] w-[680px] -translate-x-1/2 rounded-full bg-amber-400/15 blur-[90px] dark:bg-amber-500/8" />
 
         <div className="relative z-10">
@@ -567,7 +595,8 @@ export default function LandingPage() {
 
       {/* ════════════════════════════════ DASHBOARD PREVIEW ═════════════════════ */}
       <section className="relative overflow-hidden py-28">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#faf7f1] via-[#f4eddf] to-[#faf7f1] dark:from-[#0a0f1a] dark:via-[#0d1526] dark:to-[#0a0f1a]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#faf7f1] via-[#f4eddf] to-[#efe5d2] dark:from-[#0a0f1a] dark:via-[#0d1526] dark:to-[#101a30]" />
+        <WaveDivider variant="c" />
         <div className="relative z-10 mx-auto max-w-6xl px-6 sm:px-10">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <div className="text-right">
@@ -693,7 +722,8 @@ export default function LandingPage() {
 
       {/* ════════════════════════════════ HOW IT WORKS ══════════════════════════ */}
       <section id="how" className="relative overflow-hidden py-28">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#faf7f1] via-[#f3ece0] to-[#faf7f1] dark:from-[#0a0f1a] dark:via-[#0e1830] dark:to-[#0a0f1a]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#faf7f1] via-[#f3ece0] to-[#efe5d2] dark:from-[#0a0f1a] dark:via-[#0e1830] dark:to-[#101a30]" />
+        <WaveDivider variant="d" />
         <div className="absolute left-1/2 top-1/2 h-[300px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-400/10 blur-[80px] dark:bg-amber-500/8" />
 
         <div className="relative z-10 mx-auto max-w-5xl px-6 sm:px-10">
@@ -753,7 +783,8 @@ export default function LandingPage() {
 
       {/* ════════════════════════════════ CTA ═══════════════════════════════════ */}
       <section className="relative overflow-hidden py-28">
-        <div className="absolute inset-0 bg-gradient-to-br from-amber-200/50 via-[#f5eede] to-[#faf7f1] dark:from-amber-900/25 dark:via-[#0e1830] dark:to-[#0a0f1a]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-amber-200/50 via-[#f5eede] to-[#efe5d2] dark:from-amber-900/25 dark:via-[#0e1830] dark:to-[#101a30]" />
+        <WaveDivider variant="e" />
         <div className="orb absolute left-1/2 top-0 h-[300px] w-[500px] -translate-x-1/2 rounded-full bg-amber-400/20 blur-[80px] dark:bg-amber-500/15" />
 
         {['Achieve', 'Master', 'Fluent', 'Success', 'Confident'].map((w, i) => (
