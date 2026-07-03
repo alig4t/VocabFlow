@@ -393,13 +393,13 @@ export default function LandingPage() {
                 let zIndex: number = book.z
                 let opacity = 1
                 if (isHovered) {
-                  transform = `rotate(${(book.rotate * 0.2).toFixed(2)}deg) translateY(-26px) scale(1.15)`
+                  transform = `rotate(${(book.rotate * 0.45).toFixed(2)}deg) translateY(-18px) scale(1.09)`
                   zIndex = 50
                 } else if (anyHover) {
-                  const extraRot = dir * Math.max(4, 16 - (dist - 1) * 4)
-                  const pushX = dir * Math.max(8, 30 - (dist - 1) * 7)
-                  transform = `rotate(${book.rotate + extraRot}deg) translateX(${pushX}px) translateY(6px)`
-                  opacity = 0.82
+                  const extraRot = dir * Math.max(2, 8 - (dist - 1) * 2.5)
+                  const pushX = dir * Math.max(4, 15 - (dist - 1) * 3.5)
+                  transform = `rotate(${book.rotate + extraRot}deg) translateX(${pushX}px) translateY(4px)`
+                  opacity = 0.9
                 }
 
                 return (
