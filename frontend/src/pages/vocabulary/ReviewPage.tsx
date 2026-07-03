@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, ChevronLeft, ChevronRight, SkipForward, Volume2, VolumeX } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, ChevronRight, SkipForward, Volume2, VolumeX, SquarePen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ReviewCard } from '@/components/vocabulary/ReviewCard'
 import { useWords } from '@/hooks/useVocabulary'
@@ -611,21 +611,38 @@ export function ReviewPage() {
               onSkip={handleSkip}
             />
 
-            {/* Keyboard hint */}
-            <p className="text-xs text-muted-foreground">
-              <kbd className="px-1.5 py-0.5 rounded border border-border font-mono text-xs">→</kbd>
-              {' '}قبلی{' '}
-              <kbd className="px-1.5 py-0.5 rounded border border-border font-mono text-xs ml-2">←</kbd>
-              {' '}بعدی{' '}
-              <kbd className="px-1.5 py-0.5 rounded border border-border font-mono text-xs ml-2">Space</kbd>
-              {' '}برگرداندن{' '}
-              <kbd className="px-1.5 py-0.5 rounded border border-border font-mono text-xs ml-2">↑</kbd>
-              {' '}بلدم{' '}
-              <kbd className="px-1.5 py-0.5 rounded border border-border font-mono text-xs ml-2">↓</kbd>
-              {' '}بلد نیستم{' '}
-              <kbd className="px-1.5 py-0.5 rounded border border-border font-mono text-xs ml-2">P</kbd>
-              {' '}تلفظ
-            </p>
+            {/* Keyboard hint — each key+label is its own flex unit so spacing is
+                consistent and RTL-aware (gaps, not directional margins). */}
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
+              {(
+                [
+                  { key: '→', label: 'قبلی' },
+                  { key: '←', label: 'بعدی' },
+                  { key: 'Space', label: 'برگرداندن' },
+                  { key: '↑', label: 'بلدم' },
+                  { key: '↓', label: 'بلد نیستم' },
+                  { key: 'P', label: 'تلفظ' },
+                ] as { key: string; label: string }[]
+              ).map((s) => (
+                <span key={s.label} className="inline-flex items-center gap-1.5">
+                  <kbd className="px-1.5 py-0.5 rounded border border-border font-mono text-xs">
+                    {s.key}
+                  </kbd>
+                  {s.label}
+                </span>
+              ))}
+            </div>
+
+            {/* Edit-word link — opens the word's edit page in a new tab */}
+            <a
+              href={`/admin/words/${currentWord.id}/edit`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
+            >
+              <SquarePen className="h-3.5 w-3.5" />
+              اصلاح این واژه
+            </a>
           </div>
         </>
       ) : null}
