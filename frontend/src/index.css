@@ -269,9 +269,34 @@
 }
 
 @keyframes badge-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
-  50%       { box-shadow: 0 0 16px 4px rgba(99, 102, 241, 0.3); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(228, 168, 36, 0); }
+  50%       { box-shadow: 0 0 18px 3px rgba(228, 168, 36, 0.28); }
 }
+
+/* Gold sheen sweeping across brand CTAs / headline underline */
+@keyframes gold-sheen {
+  0%   { background-position: -160% 0; }
+  60%, 100% { background-position: 260% 0; }
+}
+
+/* Horizontal marquee for the book-library showcase */
+@keyframes marquee-rtl {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.marquee-track {
+  animation: marquee-rtl 46s linear infinite;
+  width: max-content;
+}
+.marquee-track.slow { animation-duration: 66s; }
+.marquee-mask:hover .marquee-track { animation-play-state: paused; }
+
+/* Soft vertical float for showcase covers */
+@keyframes cover-float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+.cover-float { animation: cover-float 7s ease-in-out infinite; }
 
 .float-word {
   animation-name: wordFloat;
@@ -305,4 +330,6 @@
   .float-word { animation: none !important; opacity: 0.12 !important; }
   .orb        { animation: none !important; }
   .animate-shimmer::after { animation: none !important; }
+  .marquee-track { animation: none !important; }
+  .cover-float  { animation: none !important; }
 }
