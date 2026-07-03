@@ -185,6 +185,7 @@ export function ReviewPage() {
     if (hasScope && session.key !== sessionKey && data?.data) {
       setSession({ key: sessionKey, words: data.data })
       setCurrentIndex(0)
+      setFlipped(false)
     }
   }, [hasScope, sessionKey, session.key, data])
 
@@ -194,17 +195,18 @@ export function ReviewPage() {
 
   const currentWord = words[currentIndex] ?? null
 
-  // Hide the translation whenever the shown word (or mode) changes.
-  useEffect(() => {
-    setFlipped(false)
-  }, [currentWord?.id, mode])
-
+  // Move the card to another word, always landing on the front face. Resetting
+  // `flipped` synchronously (batched with the index change) — combined with the
+  // `key` remount on the card — means the next word never shows its back mid-flip,
+  // so you can't glimpse the next translation.
   const goNext = useCallback(() => {
     setCurrentIndex((i) => Math.min(i + 1, total - 1))
+    setFlipped(false)
   }, [total])
 
   const goPrev = useCallback(() => {
     setCurrentIndex((i) => Math.max(i - 1, 0))
+    setFlipped(false)
   }, [])
 
   const toggleFlip = useCallback(() => {
@@ -241,6 +243,7 @@ export function ReviewPage() {
 
   function handleModeChange(newMode: ReviewMode) {
     setMode(newMode)
+    setFlipped(false)
     try {
       localStorage.setItem('vocab_review_mode', newMode)
     } catch {
@@ -480,8 +483,16 @@ export function ReviewPage() {
         </div>
       ) : currentWord ? (
         <>
-          {/* Review flashcard — flip state is controlled here so Space can toggle it */}
-          <ReviewCard word={currentWord} mode={mode} flipped={flipped} onToggle={toggleFlip} />
+          {/* Review flashcard — `key` remounts it fresh (front face, no flip-back
+              animation) whenever the word or mode changes, so the next card's
+              translation is never briefly visible. */}
+          <ReviewCard
+            key={currentWord.id + mode}
+            word={currentWord}
+            mode={mode}
+            flipped={flipped}
+            onToggle={toggleFlip}
+          />
 
           {/* Navigation + action buttons */}
           <div className="flex flex-col items-center gap-6">
