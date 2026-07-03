@@ -25,7 +25,7 @@ export function ReviewCard({ word, mode, flipped, onToggle }: ReviewCardProps) {
   // `flipped` is controlled by the parent (ReviewPage), which resets it on word change.
 
   return (
-    <div className="w-full max-w-2xl mx-auto select-none">
+    <div className="w-full max-w-3xl mx-auto select-none">
       {/* 3D flip container */}
       <div
         className="relative w-full"

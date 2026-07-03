@@ -328,7 +328,7 @@ export function ReviewPage() {
   const progressPercent = total > 0 ? Math.round(((currentIndex + 1) / total) * 100) : 0
 
   return (
-    <div dir="rtl" className="font-persian max-w-2xl mx-auto px-4 py-6 space-y-4">
+    <div dir="rtl" className="font-persian max-w-3xl mx-auto px-4 py-6 space-y-4">
       {/* Compact toolbar — groups all session controls into one tidy card */}
       <div className="rounded-xl border border-border bg-card shadow-sm">
         {/* Row 1: back + title + mode toggle + sound */}
