@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, ChevronLeft, ChevronRight, SkipForward } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, ChevronRight, SkipForward, Volume2, VolumeX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ReviewCard } from '@/components/vocabulary/ReviewCard'
 import { useWords } from '@/hooks/useVocabulary'
@@ -9,6 +9,7 @@ import { useVolumesSimple, useLessonsSimple } from '@/hooks/useBooks'
 import { useWatchlistBooks } from '@/hooks/useDashboard'
 import { cn } from '@/lib/utils'
 import { parseVocabParams } from '@/lib/vocabFilters'
+import { playPronunciation, stopPronunciation } from '@/lib/pronounce'
 import type { ReviewMode, WordStatus, Word } from '@/types'
 
 const SELECT_CLASS = 'select-field w-auto min-w-[9rem] cursor-pointer'
@@ -23,6 +24,14 @@ function loadPersistedMode(): ReviewMode {
     // ignore
   }
   return 'EN_TO_FA'
+}
+
+function loadPersistedMuted(): boolean {
+  try {
+    return localStorage.getItem('vocab_review_muted') === '1'
+  } catch {
+    return false
+  }
 }
 
 /** Map a vocabulary status param to the review page's filter options. */
@@ -113,6 +122,8 @@ export function ReviewPage() {
   const [currentIndex, setCurrentIndex] = useState(0)
   // Whether the current card shows the translation (controlled here so Space can toggle it).
   const [flipped, setFlipped] = useState(false)
+  // Global sound switch. When muted, no pronunciation plays (auto or manual).
+  const [muted, setMuted] = useState<boolean>(loadPersistedMuted)
 
   // Book/volume/lesson scope — seeded from the URL, but editable in-page via the selectors.
   const [bookId, setBookId] = useState<string | undefined>(initial.filters.bookId)
@@ -213,6 +224,38 @@ export function ReviewPage() {
     setFlipped((f) => !f)
   }, [])
 
+  // Play the current word's English pronunciation on demand (both review modes),
+  // unless sound is muted.
+  const pronounce = useCallback(() => {
+    if (muted || !currentWord) return
+    playPronunciation(currentWord)
+  }, [muted, currentWord])
+
+  function toggleMuted() {
+    setMuted((m) => {
+      const next = !m
+      try {
+        localStorage.setItem('vocab_review_muted', next ? '1' : '0')
+      } catch {
+        // ignore
+      }
+      if (next) stopPronunciation()
+      return next
+    })
+  }
+
+  // Auto-play pronunciation when entering a new word — only in EN→FA mode and
+  // only when not muted. Triggers on word change (not on mute/mode toggles).
+  useEffect(() => {
+    if (!muted && mode === 'EN_TO_FA' && currentWord) {
+      playPronunciation(currentWord)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentWord?.id])
+
+  // Stop any audio when leaving the review page.
+  useEffect(() => () => stopPronunciation(), [])
+
   const markStatus = useCallback(
     (status: 'KNOWN' | 'NOT_KNOWN') => {
       if (!currentWord) return
@@ -273,11 +316,15 @@ export function ReviewPage() {
         // ↓ = یاد نگرفتم (not known)
         e.preventDefault()
         handleNotKnown()
+      } else if (e.key === 'p' || e.key === 'P') {
+        // P = پخش تلفظ انگلیسی (هر دو حالت)
+        e.preventDefault()
+        pronounce()
       }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [goNext, goPrev, toggleFlip, handleKnown, handleNotKnown])
+  }, [goNext, goPrev, toggleFlip, handleKnown, handleNotKnown, pronounce])
 
   function handleModeChange(newMode: ReviewMode) {
     setMode(newMode)
@@ -310,7 +357,7 @@ export function ReviewPage() {
         <div>
           <h1 className="text-xl font-bold tracking-tight text-foreground">حالت مرور</h1>
           <p className="text-sm text-muted-foreground">
-            ← → جابجایی، Space برگرداندن کارت، ↑ بلدم، ↓ بلد نیستم
+            ← → جابجایی، Space برگرداندن، ↑ بلدم، ↓ بلد نیستم، P تلفظ
           </p>
         </div>
       </div>
@@ -366,6 +413,21 @@ export function ReviewPage() {
             </button>
           ))}
         </div>
+
+        {/* Sound toggle (mute/unmute pronunciation) */}
+        <button
+          onClick={toggleMuted}
+          title={muted ? 'صدا خاموش است' : 'صدا روشن است'}
+          aria-label={muted ? 'روشن کردن صدا' : 'خاموش کردن صدا'}
+          className={cn(
+            'flex items-center justify-center h-9 w-9 rounded-full border transition-all duration-200',
+            muted
+              ? 'bg-muted text-muted-foreground border-border'
+              : 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20',
+          )}
+        >
+          {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+        </button>
       </div>
 
       {/* Book → Volume → Lesson scope selectors (limited to the user's watchlist) */}
@@ -526,6 +588,18 @@ export function ReviewPage() {
               >
                 <ChevronLeft className="h-5 w-5" />
               </Button>
+
+              {/* Manual pronunciation (English) — works in both modes */}
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-11 w-11 rounded-full"
+                disabled={muted}
+                onClick={pronounce}
+                title="پخش تلفظ (P)"
+              >
+                <Volume2 className="h-5 w-5" />
+              </Button>
             </div>
 
             {/* Status action buttons */}
@@ -548,7 +622,9 @@ export function ReviewPage() {
               <kbd className="px-1.5 py-0.5 rounded border border-border font-mono text-xs ml-2">↑</kbd>
               {' '}بلدم{' '}
               <kbd className="px-1.5 py-0.5 rounded border border-border font-mono text-xs ml-2">↓</kbd>
-              {' '}بلد نیستم
+              {' '}بلد نیستم{' '}
+              <kbd className="px-1.5 py-0.5 rounded border border-border font-mono text-xs ml-2">P</kbd>
+              {' '}تلفظ
             </p>
           </div>
         </>
