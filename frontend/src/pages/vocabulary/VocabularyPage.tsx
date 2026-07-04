@@ -153,7 +153,7 @@ export function VocabularyPage() {
   }
 
   return (
-    <div dir="rtl" className="font-persian max-w-5xl mx-auto px-4 py-8 space-y-6">
+    <div dir="rtl" className="font-persian max-w-5xl mx-auto px-2 sm:px-4 py-5 sm:py-8 space-y-6">
       {/* Page header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

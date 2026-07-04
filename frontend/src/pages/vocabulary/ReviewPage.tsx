@@ -8,6 +8,7 @@ import { useUpdateWordStatus, useWordStatus } from '@/hooks/useProgress'
 import { useVolumesSimple, useLessonsSimple } from '@/hooks/useBooks'
 import { useWatchlistBooks } from '@/hooks/useDashboard'
 import { cn } from '@/lib/utils'
+import { isNative } from '@/lib/platform'
 import { parseVocabParams } from '@/lib/vocabFilters'
 import { playPronunciation, stopPronunciation } from '@/lib/pronounce'
 import type { ReviewMode, WordStatus, Word } from '@/types'
@@ -328,7 +329,7 @@ export function ReviewPage() {
   const progressPercent = total > 0 ? Math.round(((currentIndex + 1) / total) * 100) : 0
 
   return (
-    <div dir="rtl" className="font-persian max-w-4xl mx-auto px-4 py-6 space-y-4">
+    <div dir="rtl" className="font-persian max-w-4xl mx-auto px-2 sm:px-4 py-4 sm:py-6 space-y-4">
       {/* Compact toolbar — groups all session controls into one tidy card */}
       <div className="rounded-xl border border-border bg-card shadow-sm">
         {/* Row 1: back + title + mode toggle + sound */}
@@ -573,15 +574,25 @@ export function ReviewPage() {
               <Volume2 className="h-3.5 w-3.5" />
               پخش تلفظ (P)
             </button>
-            <a
-              href={`/admin/words/${currentWord.id}/edit`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 hover:text-primary transition-colors"
-            >
-              <SquarePen className="h-3.5 w-3.5" />
-              اصلاح این واژه
-            </a>
+            {isNative() ? (
+              <button
+                onClick={() => navigate(`/admin/words/${currentWord.id}/edit`)}
+                className="inline-flex items-center gap-1.5 hover:text-primary transition-colors"
+              >
+                <SquarePen className="h-3.5 w-3.5" />
+                اصلاح این واژه
+              </button>
+            ) : (
+              <a
+                href={`/admin/words/${currentWord.id}/edit`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 hover:text-primary transition-colors"
+              >
+                <SquarePen className="h-3.5 w-3.5" />
+                اصلاح این واژه
+              </a>
+            )}
           </div>
 
           {/* Keyboard hint (compact, RTL-aware) */}

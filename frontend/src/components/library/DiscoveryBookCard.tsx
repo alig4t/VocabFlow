@@ -18,12 +18,21 @@ export function DiscoveryBookCard({ book, onToggle, isToggling }: DiscoveryBookC
   return (
     <Card className="flex flex-col gap-4 p-5 shadow-soft transition-shadow hover:shadow-md">
       <header className="flex items-start gap-3">
-        <span
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
-          aria-hidden="true"
-        >
-          <BookText className="h-6 w-6" />
-        </span>
+        {book.coverImage ? (
+          <img
+            src={book.coverImage}
+            alt={book.title}
+            loading="lazy"
+            className="h-16 w-12 shrink-0 rounded-lg object-cover ring-1 ring-border bg-muted"
+          />
+        ) : (
+          <span
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+            aria-hidden="true"
+          >
+            <BookText className="h-6 w-6" />
+          </span>
+        )}
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <h3 className="text-base font-bold leading-snug text-foreground">{book.title}</h3>

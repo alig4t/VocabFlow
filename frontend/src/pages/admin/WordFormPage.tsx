@@ -26,6 +26,7 @@ import { ExampleManager, type DraftExample } from '@/components/admin/ExampleMan
 import { PhraseManager, type DraftPhrase } from '@/components/admin/PhraseManager'
 import { vocabularyService } from '@/services/vocabulary.service'
 import { toast } from '@/components/ui/use-toast'
+import { isNative } from '@/lib/platform'
 
 const wordSchema = z.object({
   eng: z.string().min(1, 'لغت انگلیسی الزامی است'),
@@ -128,6 +129,8 @@ function TagInput({
 
 export function WordFormPage() {
   const navigate = useNavigate()
+  // On the offline app there is no /admin panel — exit back into the app.
+  const exitTo = isNative() ? '/vocabulary' : '/admin'
   const { id } = useParams<{ id?: string }>()
   const [searchParams] = useSearchParams()
   const isEditMode = Boolean(id)
@@ -191,7 +194,7 @@ export function WordFormPage() {
       })
       if (word.lesson) {
         setSelectedBookId(word.lesson.volume.book.id)
-        setSelectedVolumeId(word.lesson.volumeId ?? word.lesson.volume.id)
+        setSelectedVolumeId(word.lesson.volume.id)
         setSelectedLessonId(word.lessonId ?? '')
       }
       setDraftSynonyms(word.synonyms ?? [])
@@ -247,7 +250,7 @@ export function WordFormPage() {
       if (isEditMode && id) {
         await updateWordMutation.mutateAsync({ id, data: payload })
         toast({ title: 'لغت با موفقیت ویرایش شد', variant: 'success' })
-        navigate('/admin')
+        navigate(exitTo)
       } else {
         const created = await createWordMutation.mutateAsync(payload)
         for (let i = 0; i < draftExamples.length; i++) {
@@ -259,7 +262,7 @@ export function WordFormPage() {
           })
         }
         toast({ title: 'لغت با موفقیت اضافه شد', variant: 'success' })
-        navigate('/admin')
+        navigate(exitTo)
       }
     } catch (err: any) {
       const message = err?.response?.data?.message ?? err?.message ?? 'خطا در ذخیره لغت'
@@ -281,7 +284,7 @@ export function WordFormPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-12 font-persian" dir="rtl">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/admin')}>
+        <Button variant="ghost" size="icon" onClick={() => navigate(exitTo)}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <h1 className="text-2xl font-bold">{isEditMode ? 'ویرایش لغت' : 'افزودن لغت'}</h1>
@@ -530,7 +533,7 @@ export function WordFormPage() {
         )}
 
         <div className="flex gap-3 justify-start">
-          <Button type="button" variant="outline" onClick={() => navigate('/admin')} disabled={isSubmitting}>
+          <Button type="button" variant="outline" onClick={() => navigate(exitTo)} disabled={isSubmitting}>
             انصراف
           </Button>
           <Button type="submit" disabled={isSubmitting}>
