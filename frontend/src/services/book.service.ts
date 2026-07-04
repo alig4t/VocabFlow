@@ -1,6 +1,9 @@
 import api from '@/lib/axios'
 import { API_ENDPOINTS } from '@/config/api'
+import { isNative } from '@/lib/platform'
 import type { Book, BookSimple, Volume, VolumeSimple, Lesson, LessonSimple } from '@/types'
+
+const off = () => import('@/offline/repo')
 
 export interface CreateBookData {
   title: string
@@ -26,6 +29,7 @@ export const bookService = {
   },
 
   getBooksSimple(): Promise<BookSimple[]> {
+    if (isNative()) return off().then((o) => o.getBooksSimple())
     return api.get<BookSimple[]>(API_ENDPOINTS.books.simple).then((r) => r.data)
   },
 
@@ -52,6 +56,7 @@ export const bookService = {
   },
 
   getVolumesSimple(bookId: string): Promise<VolumeSimple[]> {
+    if (isNative()) return off().then((o) => o.getVolumesSimple(bookId))
     return api.get<VolumeSimple[]>(API_ENDPOINTS.books.volumesSimple(bookId)).then((r) => r.data)
   },
 
@@ -76,6 +81,7 @@ export const bookService = {
   },
 
   getLessonsSimple(bookId: string, volumeId: string): Promise<LessonSimple[]> {
+    if (isNative()) return off().then((o) => o.getLessonsSimple(volumeId))
     return api
       .get<LessonSimple[]>(API_ENDPOINTS.books.lessonsSimple(bookId, volumeId))
       .then((r) => r.data)

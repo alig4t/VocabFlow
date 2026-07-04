@@ -1,5 +1,16 @@
 import { create } from 'zustand'
 import { User } from '../types'
+import { isNative } from '../lib/platform'
+
+// Offline (native) build has no server/login: every install is a fully-featured
+// local ADMIN so all pages (browse, review, edit) are reachable without auth.
+const LOCAL_USER: User = {
+  id: 'local',
+  email: 'local@vocabflow.app',
+  name: 'کاربر محلی',
+  role: 'ADMIN',
+  createdAt: new Date().toISOString(),
+}
 
 const ACCESS_TOKEN_KEY = 'accessToken'
 const REFRESH_TOKEN_KEY = 'refreshToken'
@@ -41,6 +52,18 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
   },
 
   initAuth: () => {
+    // Native offline build: always authenticated as the local user.
+    if (isNative()) {
+      set({
+        user: LOCAL_USER,
+        accessToken: 'offline',
+        refreshToken: 'offline',
+        isAuthenticated: true,
+        isReady: true,
+      })
+      return
+    }
+
     const accessToken = localStorage.getItem(ACCESS_TOKEN_KEY)
     const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY)
     const userRaw = localStorage.getItem(USER_KEY)

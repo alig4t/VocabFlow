@@ -1,11 +1,14 @@
-import { Suspense, lazy, useEffect } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
 import { ThemeProvider } from './components/layout/ThemeProvider'
 import { Layout } from './components/layout/Layout'
 import { PageLoader } from './components/layout/PageLoader'
+import { SeedLoader } from './components/layout/SeedLoader'
 import { TopLoadingBar } from './components/layout/TopLoadingBar'
 import { Toaster } from './components/ui/toast'
+import { isNative } from './lib/platform'
+import { prepareNative } from './offline/bootstrap'
 import { type Role } from './types'
 
 // ── Lazy-loaded pages (code-split; PageLoader shows while chunks load) ────────
@@ -51,15 +54,38 @@ export default function App() {
   const initAuth = useAuthStore((s) => s.initAuth)
   const isReady = useAuthStore((s) => s.isReady)
 
+  // Native offline build seeds the local SQLite DB on first launch.
+  const [dbReady, setDbReady] = useState(!isNative())
+  const [seed, setSeed] = useState({ progress: 0, label: '' })
+
   useEffect(() => {
     initAuth()
   }, [initAuth])
+
+  useEffect(() => {
+    if (!isNative()) return
+    prepareNative((progress, label) => setSeed({ progress, label }))
+      .then(() => setDbReady(true))
+      .catch((e) => {
+        console.error('offline seed failed', e)
+        setDbReady(true)
+      })
+  }, [])
 
   // Block route rendering until auth is restored from localStorage.
   if (!isReady) {
     return (
       <ThemeProvider defaultTheme="light" storageKey="eng-theme">
         <PageLoader />
+      </ThemeProvider>
+    )
+  }
+
+  // Native: block until the offline DB is seeded and ready.
+  if (!dbReady) {
+    return (
+      <ThemeProvider defaultTheme="light" storageKey="eng-theme">
+        <SeedLoader progress={seed.progress} label={seed.label} />
       </ThemeProvider>
     )
   }
@@ -71,8 +97,11 @@ export default function App() {
         <Toaster />
         <Suspense fallback={<PageLoader />}>
           <Routes>
-            {/* Landing page — always accessible */}
-            <Route path="/" element={<LandingPage />} />
+            {/* Landing page (web) — native jumps straight into the app */}
+            <Route
+              path="/"
+              element={isNative() ? <Navigate to="/dashboard" replace /> : <LandingPage />}
+            />
 
             {/* Public auth routes */}
             <Route
