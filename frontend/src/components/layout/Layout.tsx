@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Navbar } from './Navbar'
 import { Sidebar } from './Sidebar'
+import { isNative } from '@/lib/platform'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -8,6 +9,8 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  const native = isNative()
 
   return (
     <div dir="rtl" className="flex h-[100dvh] overflow-hidden bg-background text-foreground">
@@ -31,7 +34,8 @@ export function Layout({ children }: LayoutProps) {
 
         <main className="flex-1 overflow-y-auto px-2 py-4 sm:p-4 md:p-6 lg:p-8">
           {children}
-          <footer className="pt-8 pb-2 text-center text-[10px] font-persian text-muted-foreground/50">
+
+          {native && <footer className="pt-8 pb-2 text-center text-[10px] font-persian text-muted-foreground/50">
             ©{' '}
             <a
               href="https://github.com/alig4t"
@@ -41,7 +45,8 @@ export function Layout({ children }: LayoutProps) {
             >
               علی قاسمی
             </a>
-          </footer>
+          </footer>}
+
         </main>
       </div>
     </div>
