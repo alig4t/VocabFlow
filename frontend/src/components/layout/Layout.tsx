@@ -32,7 +32,15 @@ export function Layout({ children }: LayoutProps) {
         <main className="flex-1 overflow-y-auto px-2 py-4 sm:p-4 md:p-6 lg:p-8">
           {children}
           <footer className="pt-8 pb-2 text-center text-[10px] font-persian text-muted-foreground/50">
-            © علی قاسمی
+            ©{' '}
+            <a
+              href="https://github.com/alig4t"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition-colors hover:text-primary hover:underline"
+            >
+              علی قاسمی
+            </a>
           </footer>
         </main>
       </div>

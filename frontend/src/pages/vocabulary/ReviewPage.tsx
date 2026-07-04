@@ -10,7 +10,7 @@ import { useWatchlistBooks } from '@/hooks/useDashboard'
 import { cn } from '@/lib/utils'
 import { isNative } from '@/lib/platform'
 import { parseVocabParams } from '@/lib/vocabFilters'
-import { playPronunciation, stopPronunciation } from '@/lib/pronounce'
+import { playPronunciation, stopPronunciation, warmUpPronunciation } from '@/lib/pronounce'
 import type { ReviewMode, WordStatus, Word } from '@/types'
 
 const SELECT_CLASS = 'select-field w-auto min-w-[9rem] cursor-pointer'
@@ -240,7 +240,10 @@ export function ReviewPage() {
   }, [currentWord?.id])
 
   // Stop any audio when leaving the review page.
-  useEffect(() => () => stopPronunciation(), [])
+  useEffect(() => {
+    warmUpPronunciation()
+    return () => stopPronunciation()
+  }, [])
 
   const markStatus = useCallback(
     (status: 'KNOWN' | 'NOT_KNOWN') => {
@@ -572,7 +575,7 @@ export function ReviewPage() {
               className="inline-flex items-center gap-1.5 hover:text-primary transition-colors disabled:opacity-40 disabled:hover:text-muted-foreground"
             >
               <Volume2 className="h-3.5 w-3.5" />
-              پخش تلفظ (P)
+              {isNative() ? 'پخش تلفظ' : 'پخش تلفظ (P)'}
             </button>
             {isNative() ? (
               <button
@@ -595,26 +598,28 @@ export function ReviewPage() {
             )}
           </div>
 
-          {/* Keyboard hint (compact, RTL-aware) */}
-          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[11px] text-muted-foreground/80">
-            {(
-              [
-                { key: '→', label: 'قبلی' },
-                { key: '←', label: 'بعدی' },
-                { key: 'Space', label: 'برگرداندن' },
-                { key: '↑', label: 'بلدم' },
-                { key: '↓', label: 'بلد نیستم' },
-                { key: 'P', label: 'تلفظ' },
-              ] as { key: string; label: string }[]
-            ).map((s) => (
-              <span key={s.label} className="inline-flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 rounded border border-border font-mono text-[11px]">
-                  {s.key}
-                </kbd>
-                {s.label}
-              </span>
-            ))}
-          </div>
+          {/* Keyboard hint — web only (no physical keyboard on the app) */}
+          {!isNative() && (
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[11px] text-muted-foreground/80">
+              {(
+                [
+                  { key: '→', label: 'قبلی' },
+                  { key: '←', label: 'بعدی' },
+                  { key: 'Space', label: 'برگرداندن' },
+                  { key: '↑', label: 'بلدم' },
+                  { key: '↓', label: 'بلد نیستم' },
+                  { key: 'P', label: 'تلفظ' },
+                ] as { key: string; label: string }[]
+              ).map((s) => (
+                <span key={s.label} className="inline-flex items-center gap-1">
+                  <kbd className="px-1.5 py-0.5 rounded border border-border font-mono text-[11px]">
+                    {s.key}
+                  </kbd>
+                  {s.label}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       ) : null}
     </div>

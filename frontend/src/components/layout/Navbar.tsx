@@ -1,6 +1,7 @@
-import { Menu, Moon, Sun, Lamp, User, LogOut } from 'lucide-react'
+import { Menu, Moon, Sun, Lamp, User, LogOut, Power } from 'lucide-react'
 import { useTheme } from './ThemeProvider'
 import { useAuthStore } from '../../store/authStore'
+import { isNative } from '../../lib/platform'
 import { Button } from '../ui/button'
 
 interface NavbarProps {
@@ -26,26 +27,38 @@ export function Navbar({ onMenuClick }: NavbarProps) {
     setTheme(THEME_CYCLE[resolvedTheme])
   }
 
+  const native = isNative()
+
   const handleLogout = () => {
+    // Offline app: no login/logout — the button simply closes the app.
+    if (native) {
+      import('@capacitor/app').then((m) => m.App.exitApp()).catch(() => {})
+      return
+    }
     clearAuth()
     window.location.href = '/login'
   }
 
   return (
     <header dir="rtl" className="font-persian flex h-16 shrink-0 items-center justify-between border-b border-border bg-background/95 backdrop-blur px-4 md:px-6">
-      {/* راست: دکمه منو (موبایل) */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="lg:hidden"
-        onClick={onMenuClick}
-        aria-label="باز کردن منو"
-      >
-        <Menu className="h-5 w-5" />
-      </Button>
-
-      {/* فاصله در دسکتاپ */}
-      <div className="hidden lg:block" />
+      {/* راست: دکمه منو + لوگو — فقط وقتی سایدبار مخفی است (موبایل/عرض کم) */}
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="lg:hidden"
+          onClick={onMenuClick}
+          aria-label="باز کردن منو"
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+        <div className="flex items-center gap-2 lg:hidden">
+          <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-white ring-1 ring-border">
+            <img src="/logo/logo-192-192.png" alt="وکب" className="h-full w-full object-contain p-0.5" draggable={false} />
+          </div>
+          <span className="text-sm font-bold text-foreground">وکب</span>
+        </div>
+      </div>
 
       {/* چپ: اطلاعات کاربر و کنترل‌ها */}
       <div className="flex items-center gap-2 md:gap-4">
@@ -73,15 +86,16 @@ export function Navbar({ onMenuClick }: NavbarProps) {
           <ThemeIcon className="h-5 w-5" />
         </Button>
 
-        {/* خروج */}
+        {/* خروج (وب) / بستن برنامه (اندروید) */}
         <Button
           variant="ghost"
           size="icon"
           onClick={handleLogout}
-          aria-label="خروج از حساب"
+          aria-label={native ? 'بستن برنامه' : 'خروج از حساب'}
+          title={native ? 'بستن برنامه' : 'خروج از حساب'}
           className="text-muted-foreground hover:text-destructive"
         >
-          <LogOut className="h-5 w-5" />
+          {native ? <Power className="h-5 w-5" /> : <LogOut className="h-5 w-5" />}
         </Button>
       </div>
     </header>

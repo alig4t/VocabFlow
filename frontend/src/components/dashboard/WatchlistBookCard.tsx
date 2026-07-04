@@ -39,14 +39,23 @@ export function WatchlistBookCard({ book }: WatchlistBookCardProps) {
 
   return (
     <Card className="flex flex-col gap-4 p-5 shadow-soft transition-shadow hover:shadow-md">
-      {/* Header: title + motivation */}
+      {/* Header: cover/title + motivation */}
       <header className="flex items-start gap-3">
-        <span
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
-          aria-hidden="true"
-        >
-          <BookOpen className="h-5 w-5" />
-        </span>
+        {book.coverImage ? (
+          <img
+            src={book.coverImage}
+            alt={book.title}
+            loading="lazy"
+            className="h-14 w-11 shrink-0 rounded-lg object-cover ring-1 ring-border bg-muted"
+          />
+        ) : (
+          <span
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+            aria-hidden="true"
+          >
+            <BookOpen className="h-5 w-5" />
+          </span>
+        )}
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-base font-bold text-foreground">{book.title}</h3>
           <p className={cn('text-xs font-medium', mood.tone)}>{mood.label}</p>
