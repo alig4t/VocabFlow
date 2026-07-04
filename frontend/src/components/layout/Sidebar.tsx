@@ -1,5 +1,5 @@
 import { X, Book, Play, Settings, Library, LayoutDashboard, Compass, ShieldCheck, Users, FilePlus2 } from 'lucide-react'
-import { NavLink } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { cn } from '../../lib/utils'
 import { Badge } from '../ui/badge'
@@ -70,15 +70,17 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     >
       {/* Header */}
       <div className="flex h-16 shrink-0 items-center justify-between px-4">
+          <Link to={'/'}>
         <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-white ring-1 ring-border">
-            <img src="/logo/logo-192-192.png" alt="وکب" className="h-full w-full object-contain p-0.5" draggable={false} />
-          </div>
-          <div className="leading-tight">
-            <p className="text-sm font-bold text-foreground">وکب</p>
-            <p className="text-xs text-muted-foreground">یادگیری زبان</p>
-          </div>
+            <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-white ring-1 ring-border">
+              <img src="/logo/logo-192-192.png" alt="وکب" className="h-full w-full object-contain p-0.5" draggable={false} />
+            </div>
+            <div className="leading-tight">
+              <p className="text-sm font-bold text-foreground">وکب</p>
+              <p className="text-xs text-muted-foreground">یادگیری زبان</p>
+            </div>
         </div>
+          </Link>
 
         {/* Close button (mobile only) */}
         <Button
