@@ -10,7 +10,7 @@ export function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div dir="rtl" className="flex h-screen overflow-hidden bg-background text-foreground">
+    <div dir="rtl" className="flex h-[100dvh] overflow-hidden bg-background text-foreground">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div

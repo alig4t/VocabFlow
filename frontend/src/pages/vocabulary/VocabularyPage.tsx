@@ -181,29 +181,29 @@ export function VocabularyPage() {
       {/* Stats bar */}
       {currentStats && (
         <div className="grid grid-cols-3 gap-3">
-          <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
+          <div className="flex items-center gap-2.5 rounded-lg border border-border bg-card px-3 py-3 min-w-0 overflow-hidden">
             <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
-            <div>
-              <p className="text-xs text-muted-foreground">یاد گرفتم</p>
-              <p className="text-xl font-bold text-foreground">
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground truncate">یاد گرفتم</p>
+              <p className="text-base sm:text-xl font-bold text-foreground tabular-nums truncate">
                 {currentStats.KNOWN.toLocaleString()}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
+          <div className="flex items-center gap-2.5 rounded-lg border border-border bg-card px-3 py-3 min-w-0 overflow-hidden">
             <XCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
-            <div>
-              <p className="text-xs text-muted-foreground">یاد نگرفتم</p>
-              <p className="text-xl font-bold text-foreground">
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground truncate">یاد نگرفتم</p>
+              <p className="text-base sm:text-xl font-bold text-foreground tabular-nums truncate">
                 {currentStats.NOT_KNOWN.toLocaleString()}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
+          <div className="flex items-center gap-2.5 rounded-lg border border-border bg-card px-3 py-3 min-w-0 overflow-hidden">
             <Eye className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-            <div>
-              <p className="text-xs text-muted-foreground">نخوانده</p>
-              <p className="text-xl font-bold text-foreground">
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground truncate">نخوانده</p>
+              <p className="text-base sm:text-xl font-bold text-foreground tabular-nums truncate">
                 {currentStats.NOT_READ.toLocaleString()}
               </p>
             </div>

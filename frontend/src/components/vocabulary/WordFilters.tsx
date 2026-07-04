@@ -30,7 +30,8 @@ const SORT_OPTIONS: { label: string; value: 'chapter' | 'eng' | 'per' }[] = [
 
 const CHAPTERS = Array.from({ length: 30 }, (_, i) => i + 1)
 
-const SELECT_CLASS = 'select-field w-auto min-w-[9rem] cursor-pointer'
+// Cap the width so long book titles truncate instead of overflowing the card.
+const SELECT_CLASS = 'select-field w-auto min-w-[9rem] max-w-[13rem] cursor-pointer'
 
 export function WordFilters({ filters, onChange, className }: WordFiltersProps) {
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
