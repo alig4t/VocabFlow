@@ -12,10 +12,28 @@ import type {
   WordStatus,
   WordExample,
   SynonymResult,
+  DashboardData,
+  WatchlistBook,
+  HeatmapDay,
+  ReviewQueueItem,
+  DashboardGlobalStats,
 } from '@/types'
 
 const MODULE_ID = 'offline-vocabulary'
 const now = () => new Date().toISOString()
+
+// Book cover images shipped in public/books/, keyed by the seeded book title.
+const COVER_BY_TITLE: Record<string, string> = {
+  '4000 Essential English Words': '/books/Pakage-4000.png',
+  'Oxford Word Skills': '/books/Oxford-Word-Skills-Book-Series.png',
+  '1000 English Collocations': '/books/1000-collocation.png',
+  'English Phrasal Verbs in Use': '/books/english-phrasal-verbs-in-use.png',
+  "Barron's Essential Words for the GRE": '/books/Essentaial-words-for-the-GRE-1.png',
+  "Barron's Essential Words for the IELTS": '/books/Essentaial-words-for-the-ielts.png',
+  "Barron's Essential Words for the TOEFL": '/books/Essentaial-words-for-the-toefl.png',
+  'Street Talk 1': '/books/street-talk.png',
+}
+const coverFor = (title: string): string | undefined => COVER_BY_TITLE[title]
 
 // ── Word row → Word object ────────────────────────────────────────────────────
 interface WordRow {
@@ -325,7 +343,7 @@ export async function getDiscovery(): Promise<DiscoveryBook[]> {
     id: r.id,
     title: r.title,
     description: r.description ?? undefined,
-    coverImage: r.cover_image ?? undefined,
+    coverImage: coverFor(r.title) ?? r.cover_image ?? undefined,
     totalWords: r.total_words,
     inWatchlist: r.in_watchlist > 0,
   }))
@@ -435,4 +453,115 @@ export async function getModules() {
 export async function getSynonyms(wordId: string): Promise<SynonymResult[]> {
   const rows = await query<{ synonyms: string | null }>('SELECT synonyms FROM words WHERE id = ?', [wordId])
   return parseArr(rows[0]?.synonyms ?? null).map((w) => ({ word: w, similarity: 1, source: 'local' }))
+}
+
+// ── Dashboard (real, computed from local progress) ────────────────────────────
+const dayOf = (iso: string | null | undefined) => (iso ? iso.slice(0, 10) : null)
+
+export async function getDashboard(): Promise<DashboardData> {
+  const today = new Date().toISOString().slice(0, 10)
+
+  const wl = await query<{ id: string; title: string }>(
+    'SELECT b.id, b.title FROM watchlist w JOIN books b ON w.book_id = b.id ORDER BY b.title ASC',
+    [],
+  )
+
+  const watchlist: WatchlistBook[] = []
+  for (const b of wl) {
+    const totalRow = await query<{ c: number }>(
+      'SELECT COUNT(*) AS c FROM words wo JOIN lessons l ON wo.lesson_id=l.id JOIN volumes v ON l.volume_id=v.id WHERE v.book_id = ?',
+      [b.id],
+    )
+    const total = totalRow[0]?.c ?? 0
+    const prog = await query<{ word_id: string; status: WordStatus; updated_at: string | null }>(
+      `SELECT p.word_id, p.status, p.updated_at FROM progress p
+       JOIN words wo ON p.word_id=wo.id JOIN lessons l ON wo.lesson_id=l.id JOIN volumes v ON l.volume_id=v.id
+       WHERE v.book_id = ?`,
+      [b.id],
+    )
+    const byWord = new Map<string, Set<WordStatus>>()
+    let reviewedToday = 0
+    let lastStudied: string | null = null
+    for (const r of prog) {
+      const set = byWord.get(r.word_id) ?? new Set<WordStatus>()
+      set.add(r.status)
+      byWord.set(r.word_id, set)
+      if (dayOf(r.updated_at) === today) reviewedToday++
+      if (r.updated_at && (!lastStudied || r.updated_at > lastStudied)) lastStudied = r.updated_at
+    }
+    let known = 0
+    let notKnown = 0
+    for (const set of byWord.values()) {
+      if (set.has('KNOWN')) known++
+      else if (set.has('NOT_KNOWN')) notKnown++
+    }
+    const notRead = Math.max(0, total - known - notKnown)
+    const dueCount = notRead + notKnown
+    watchlist.push({
+      id: b.id,
+      bookId: b.id,
+      title: b.title,
+      coverImage: coverFor(b.title),
+      totalWords: total,
+      knownWords: known,
+      unknownWords: notKnown,
+      notReadWords: notRead,
+      reviewedToday,
+      lastStudiedAt: dayOf(lastStudied),
+      dueCount,
+      estimatedDays: dueCount > 0 ? Math.ceil(dueCount / 20) : 0,
+    })
+  }
+
+  const allProg = await query<{ word_id: string; status: WordStatus; updated_at: string | null }>(
+    'SELECT word_id, status, updated_at FROM progress',
+    [],
+  )
+  const knownSet = new Set(allProg.filter((r) => r.status === 'KNOWN').map((r) => r.word_id))
+  const notKnownSet = new Set(
+    allProg.filter((r) => r.status === 'NOT_KNOWN' && !knownSet.has(r.word_id)).map((r) => r.word_id),
+  )
+  const denom = knownSet.size + notKnownSet.size
+  const reviewsToday = allProg.filter((r) => dayOf(r.updated_at) === today).length
+
+  // Study streak: consecutive days (ending today) with any progress update.
+  const activeDates = new Set(allProg.map((r) => dayOf(r.updated_at)).filter(Boolean) as string[])
+  let currentStreak = 0
+  const cursor = new Date()
+  cursor.setHours(0, 0, 0, 0)
+  while (activeDates.has(cursor.toISOString().slice(0, 10))) {
+    currentStreak++
+    cursor.setDate(cursor.getDate() - 1)
+  }
+
+  const stats: DashboardGlobalStats = {
+    watchlistCount: watchlist.length,
+    totalWordsLearned: knownSet.size,
+    reviewsToday,
+    currentStreak,
+    avgStudyMinutes: 0,
+    accuracyRate: denom > 0 ? Math.round((knownSet.size / denom) * 100) : 0,
+  }
+
+  const queue: ReviewQueueItem[] = watchlist
+    .filter((b) => b.dueCount > 0)
+    .map((b) => ({ bookId: b.bookId, title: b.title, dueCount: b.dueCount }))
+
+  // Activity heatmap: last 126 days, count of progress updates per day.
+  const counts = new Map<string, number>()
+  for (const r of allProg) {
+    const d = dayOf(r.updated_at)
+    if (d) counts.set(d, (counts.get(d) ?? 0) + 1)
+  }
+  const heatmap: HeatmapDay[] = []
+  const base = new Date()
+  base.setHours(0, 0, 0, 0)
+  for (let i = 125; i >= 0; i--) {
+    const d = new Date(base)
+    d.setDate(base.getDate() - i)
+    const iso = d.toISOString().slice(0, 10)
+    heatmap.push({ date: iso, count: counts.get(iso) ?? 0 })
+  }
+
+  return { stats, watchlist, heatmap, queue }
 }

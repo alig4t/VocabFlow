@@ -190,6 +190,9 @@
 
   * { @apply border-border; }
   body { @apply bg-background text-foreground font-sans; }
+  /* Contain the off-canvas mobile sidebar (position:fixed, parked off the right
+     edge) so it can't add a phantom scrollable area on the app/mobile view. */
+  html, body { overflow-x: hidden; }
   .rtl { direction: rtl; font-family: 'Anjoman', system-ui, sans-serif; }
   .font-persian { font-family: 'Anjoman', system-ui, sans-serif; }
 

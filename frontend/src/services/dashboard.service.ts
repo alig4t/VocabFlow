@@ -114,8 +114,9 @@ function delay<T>(value: T, ms = 350): Promise<T> {
 }
 
 export const dashboardService = {
-  // Still mock — dashboard metrics need per-day activity tracking (out of scope).
+  // Native: real data computed from local SQLite progress. Web: still mock.
   getDashboard(): Promise<DashboardData> {
+    if (isNative()) return off().then((o) => o.getDashboard())
     return delay(mockDashboard)
   },
 

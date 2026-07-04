@@ -1,6 +1,7 @@
 import { X, Book, Play, Settings, Library, LayoutDashboard, Compass, ShieldCheck, Users, FilePlus2 } from 'lucide-react'
 import { Link, NavLink } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
+import { isNative } from '../../lib/platform'
 import { cn } from '../../lib/utils'
 import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
@@ -33,6 +34,13 @@ const adminItems: NavItem[] = [
 export function Sidebar({ open, onClose }: SidebarProps) {
   const { user } = useAuthStore()
   const isAdmin = user?.role === 'ADMIN'
+  const native = isNative()
+
+  // On the offline app there is no server/admin: only word editing is offered,
+  // and the server-only management pages (users/books/admin panel) are hidden.
+  const primaryItems: NavItem[] = native
+    ? [...mainItems, { to: '/admin/words/new', icon: <FilePlus2 className="h-5 w-5" />, label: 'افزودن لغت' }]
+    : mainItems
 
   function renderLink(item: NavItem, accent: 'primary' | 'admin') {
     return (
@@ -100,11 +108,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           عمومی
         </p>
         <ul className="space-y-1">
-          {mainItems.map((item) => renderLink(item, 'primary'))}
+          {primaryItems.map((item) => renderLink(item, 'primary'))}
         </ul>
 
-        {/* Admin-only management area — clearly separated from the shared items */}
-        {isAdmin && (
+        {/* Admin-only management area — web only; the offline app has no server */}
+        {!native && isAdmin && (
           <div className="mt-5">
             <div className="mb-3 border-t border-dashed border-border" />
             <div className="rounded-xl border border-slate-400/30 bg-slate-500/[0.06] p-2.5">
@@ -135,9 +143,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             <div className="flex-1 overflow-hidden">
               <p className="truncate text-sm font-medium text-foreground">{user.name}</p>
             </div>
-            <Badge variant={isAdmin ? 'default' : 'secondary'} className="shrink-0 text-xs">
-              {user.role}
-            </Badge>
+            {!native && (
+              <Badge variant={isAdmin ? 'default' : 'secondary'} className="shrink-0 text-xs">
+                {user.role}
+              </Badge>
+            )}
           </div>
         </div>
       )}
