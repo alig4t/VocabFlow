@@ -227,7 +227,10 @@ export function WordFormPage() {
 
   async function onSubmit(raw: WordFormInput) {
     setSubmitError(null)
-    const parsed = wordSchema.parse(raw)
+    // `raw` is already validated AND transformed by the zodResolver (chapter/unit
+    // are numbers here). Re-parsing with the schema would double-transform and
+    // throw "invalid type" — so use the resolved values directly.
+    const parsed = raw as unknown as z.output<typeof wordSchema>
 
     const payload = {
       ...parsed,

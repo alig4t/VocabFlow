@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { useUpdateWordStatus, useWordStatus } from '@/hooks/useProgress'
 import { synonymService } from '@/services/synonym.service'
+import { playPronunciation } from '@/lib/pronounce'
 import type { Word, ReviewMode, SynonymResult } from '@/types'
 
 interface WordCardProps {
@@ -34,21 +35,11 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-function speak(text: string) {
-  if (!('speechSynthesis' in window)) return
-  window.speechSynthesis.cancel()
-  const utterance = new SpeechSynthesisUtterance(text)
-  utterance.lang = 'en-US'
-  utterance.rate = 0.9
-  window.speechSynthesis.speak(utterance)
-}
-
 export function WordCard({ word, mode }: WordCardProps) {
   const [expanded, setExpanded] = useState(false)
   const [synonymsOpen, setSynonymsOpen] = useState(false)
   const [synonyms, setSynonyms] = useState<SynonymResult[] | null>(null)
   const [loadingSynonyms, setLoadingSynonyms] = useState(false)
-  const [isSpeaking, setIsSpeaking] = useState(false)
 
   const status = useWordStatus(word, mode)
   const { mutate: updateStatus, isPending } = useUpdateWordStatus()
@@ -59,16 +50,8 @@ export function WordCard({ word, mode }: WordCardProps) {
   }
 
   const handleSpeak = useCallback(() => {
-    if (!('speechSynthesis' in window)) return
-    setIsSpeaking(true)
-    window.speechSynthesis.cancel()
-    const utterance = new SpeechSynthesisUtterance(word.eng)
-    utterance.lang = 'en-US'
-    utterance.rate = 0.9
-    utterance.onend = () => setIsSpeaking(false)
-    utterance.onerror = () => setIsSpeaking(false)
-    window.speechSynthesis.speak(utterance)
-  }, [word.eng])
+    playPronunciation({ eng: word.eng, pronunciationAudio: word.pronunciationAudio })
+  }, [word.eng, word.pronunciationAudio])
 
   async function handleSynonymsToggle() {
     if (synonymsOpen) {
@@ -88,6 +71,10 @@ export function WordCard({ word, mode }: WordCardProps) {
       }
     }
   }
+
+  const phonetic = word.pronunciation
+  const pos = word.partOfSpeech
+  const engIsPrimary = mode === 'EN_TO_FA'
 
   const lessonInfo = word.lesson
   const locationBadge = lessonInfo
@@ -114,21 +101,28 @@ export function WordCard({ word, mode }: WordCardProps) {
                 {mode === 'FA_TO_EN' ? word.per : word.eng}
               </span>
 
-              {/* Audio pronunciation button (English) */}
-              {'speechSynthesis' in window && (
-                <button
-                  onClick={handleSpeak}
-                  className={cn(
-                    'inline-flex items-center justify-center w-6 h-6 rounded-full transition-colors',
-                    isSpeaking
-                      ? 'text-primary bg-primary/10'
-                      : 'text-muted-foreground hover:text-primary hover:bg-primary/10',
-                  )}
-                  title="تلفظ"
-                >
-                  <Volume2 className="h-3.5 w-3.5" />
-                </button>
+              {/* Phonetic (IPA) — shown next to the English word, tiny & faint */}
+              {engIsPrimary && phonetic && (
+                <span dir="ltr" className="font-mono text-xs text-muted-foreground/60">
+                  {phonetic}
+                </span>
               )}
+
+              {/* Part of speech (noun/verb/…) from the data */}
+              {pos && (
+                <span className="rounded-full border border-border px-1.5 py-0 text-[10px] font-medium text-muted-foreground/70">
+                  {pos}
+                </span>
+              )}
+
+              {/* Audio pronunciation button (English) */}
+              <button
+                onClick={handleSpeak}
+                className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                title="تلفظ"
+              >
+                <Volume2 className="h-3.5 w-3.5" />
+              </button>
 
               {/* Location badge */}
               {locationBadge && (
@@ -147,6 +141,11 @@ export function WordCard({ word, mode }: WordCardProps) {
               )}
             >
               {mode === 'FA_TO_EN' ? word.eng : word.per}
+              {!engIsPrimary && phonetic && (
+                <span dir="ltr" className="ms-2 font-mono text-xs text-muted-foreground/50">
+                  {phonetic}
+                </span>
+              )}
             </p>
 
             {/* Description */}
@@ -280,7 +279,7 @@ export function WordCard({ word, mode }: WordCardProps) {
                       "{word.primaryExample}"
                     </p>
                     <button
-                      onClick={() => speak(word.primaryExample!)}
+                      onClick={() => playPronunciation({ eng: word.primaryExample! })}
                       className="mt-0.5 text-muted-foreground hover:text-primary transition-colors flex-shrink-0"
                       title="تلفظ"
                     >
@@ -305,7 +304,7 @@ export function WordCard({ word, mode }: WordCardProps) {
                           "{ex.engSentence}"
                         </p>
                         <button
-                          onClick={() => speak(ex.engSentence)}
+                          onClick={() => playPronunciation({ eng: ex.engSentence })}
                           className="mt-0.5 text-muted-foreground hover:text-primary transition-colors flex-shrink-0"
                           title="تلفظ"
                         >

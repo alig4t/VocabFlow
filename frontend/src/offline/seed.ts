@@ -161,8 +161,16 @@ function collectFile(filename: string, data: BookFile, bookIdByTitle: Map<string
  * One-time seed of the bundled book JSON into SQLite. Idempotent via meta flag.
  * `onProgress` reports 0..1 for a loading screen.
  */
+// Bump this whenever the bundled book data changes so existing installs wipe
+// their local data and re-seed with the corrected content.
+const SEED_VERSION = '2'
+const WIPE_TABLES = [
+  'word_phrase_examples', 'word_phrases', 'word_examples', 'words',
+  'lessons', 'volumes', 'books', 'progress', 'watchlist',
+]
+
 export async function seedIfNeeded(onProgress?: (p: number, label: string) => void): Promise<void> {
-  if ((await getMeta('seeded')) === '1') return
+  if ((await getMeta('seed_version')) === SEED_VERSION) return
 
   const base = import.meta.env.BASE_URL || '/'
   const manifestRes = await fetch(`${base}seed/manifest.json`)
@@ -185,6 +193,10 @@ export async function seedIfNeeded(onProgress?: (p: number, label: string) => vo
   const db = await getDb()
   await db.beginTransaction()
   try {
+    // Clean slate — remove any previous seed (word/book ids change per seed).
+    for (const t of WIPE_TABLES) {
+      await db.run(`DELETE FROM ${t}`, [], false)
+    }
     await bulkInsert(db, 'books', ['id', 'title', 'description', 'cover_image'], rows.books)
     await bulkInsert(db, 'volumes', ['id', 'book_id', 'volume_number', 'title'], rows.volumes)
     await bulkInsert(db, 'lessons', ['id', 'volume_id', 'lesson_number', 'title'], rows.lessons)
@@ -205,6 +217,6 @@ export async function seedIfNeeded(onProgress?: (p: number, label: string) => vo
     throw e
   }
 
-  await setMeta('seeded', '1')
+  await setMeta('seed_version', SEED_VERSION)
   onProgress?.(1, 'آماده شد')
 }

@@ -11,26 +11,46 @@ interface ReviewCardProps {
 }
 
 export function ReviewCard({ word, mode, flipped, onToggle }: ReviewCardProps) {
-  // Derive what shows on front vs back
   const frontContent =
     mode === 'EN_TO_FA'
-      ? { label: 'انگلیسی', text: word.eng, dir: 'ltr' }
-      : { label: 'فارسی', text: word.per, dir: 'rtl' }
+      ? { label: 'انگلیسی', text: word.eng, dir: 'ltr' as const, isEnglish: true }
+      : { label: 'فارسی', text: word.per, dir: 'rtl' as const, isEnglish: false }
 
   const backContent =
     mode === 'EN_TO_FA'
-      ? { label: 'فارسی', text: word.per, dir: 'rtl' }
-      : { label: 'انگلیسی', text: word.eng, dir: 'ltr' }
+      ? { label: 'فارسی', text: word.per, dir: 'rtl' as const, isEnglish: false }
+      : { label: 'انگلیسی', text: word.eng, dir: 'ltr' as const, isEnglish: true }
 
-  // `flipped` is controlled by the parent (ReviewPage), which resets it on word change.
+  const phonetic = word.pronunciation
+  const pos = word.partOfSpeech
+
+  // Primary example + a couple of extras — enough context without clutter.
+  const examples = [
+    ...(word.primaryExample ? [{ eng: word.primaryExample, per: word.primaryExampleTrs }] : []),
+    ...(word.examples ?? []).slice(0, 2).map((e) => ({ eng: e.engSentence, per: e.perTranslation })),
+  ]
+
+  const Label = ({ text }: { text: string }) => (
+    <div className="mb-3 flex items-center justify-center gap-2">
+      <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{text}</span>
+      {pos && (
+        <span className="rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground/70">
+          {pos}
+        </span>
+      )}
+    </div>
+  )
+
+  const Phonetic = ({ show }: { show: boolean }) =>
+    show && phonetic ? (
+      <p dir="ltr" className="mt-2 font-mono text-sm tracking-wide text-muted-foreground/60">
+        {phonetic}
+      </p>
+    ) : null
 
   return (
     <div className="w-full max-w-4xl mx-auto select-none">
-      {/* 3D flip container */}
-      <div
-        className="relative w-full"
-        style={{ perspective: '1200px', height: '340px' }}
-      >
+      <div className="relative w-full" style={{ perspective: '1200px', height: '420px' }}>
         <div
           className="relative w-full h-full"
           style={{
@@ -41,28 +61,24 @@ export function ReviewCard({ word, mode, flipped, onToggle }: ReviewCardProps) {
         >
           {/* FRONT face */}
           <div
-            className="absolute inset-0 rounded-2xl border border-border bg-card shadow-lg flex flex-col items-center justify-center p-8"
+            className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-lg"
             style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
           >
-            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-6">
-              {frontContent.label}
-            </span>
-
+            <Label text={frontContent.label} />
             <p
               dir={frontContent.dir}
               className={cn(
-                'text-center font-bold leading-tight break-words max-w-full',
-                frontContent.dir === 'rtl'
-                  ? 'text-4xl sm:text-5xl rtl'
-                  : 'text-4xl sm:text-5xl tracking-tight',
+                'max-w-full break-words text-center font-bold leading-tight',
+                frontContent.dir === 'rtl' ? 'rtl text-4xl sm:text-5xl' : 'text-4xl tracking-tight sm:text-5xl',
               )}
             >
               {frontContent.text}
             </p>
+            <Phonetic show={frontContent.isEnglish} />
 
             <button
               onClick={onToggle}
-              className="mt-10 px-8 py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm"
+              className="mt-8 rounded-full bg-primary px-8 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
             >
               {mode === 'EN_TO_FA' ? 'نمایش فارسی' : 'نمایش انگلیسی'}
             </button>
@@ -70,69 +86,51 @@ export function ReviewCard({ word, mode, flipped, onToggle }: ReviewCardProps) {
 
           {/* BACK face */}
           <div
-            className="absolute inset-0 rounded-2xl border border-border bg-card shadow-lg flex flex-col items-center justify-center p-8"
-            style={{
-              backfaceVisibility: 'hidden',
-              WebkitBackfaceVisibility: 'hidden',
-              transform: 'rotateY(180deg)',
-            }}
+            className="absolute inset-0 flex flex-col items-center overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-lg"
+            style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
           >
-            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">
-              {backContent.label}
-            </span>
-
-            <p
-              dir={backContent.dir}
-              className={cn(
-                'text-center font-bold leading-tight break-words max-w-full',
-                backContent.dir === 'rtl'
-                  ? 'text-4xl sm:text-5xl rtl'
-                  : 'text-4xl sm:text-5xl tracking-tight',
-              )}
-            >
-              {backContent.text}
-            </p>
-
-            {/* Description */}
-            {word.description && (
-              <p className="mt-4 text-sm text-muted-foreground text-center max-w-md leading-relaxed">
-                {word.description}
-              </p>
-            )}
-
-            {/* Primary example */}
-            {word.primaryExample && (
-              <div className="mt-4 max-w-md text-center space-y-1">
-                <p className="text-sm text-foreground italic leading-relaxed">
-                  "{word.primaryExample}"
-                </p>
-                {word.primaryExampleTrs && (
-                  <p
-                    dir="rtl"
-                    className="text-sm text-muted-foreground rtl leading-relaxed"
-                  >
-                    {word.primaryExampleTrs}
-                  </p>
+            <div className="flex shrink-0 flex-col items-center pt-2">
+              <Label text={backContent.label} />
+              <p
+                dir={backContent.dir}
+                className={cn(
+                  'max-w-full break-words text-center font-bold leading-tight',
+                  backContent.dir === 'rtl' ? 'rtl text-3xl sm:text-4xl' : 'text-3xl tracking-tight sm:text-4xl',
                 )}
-              </div>
-            )}
+              >
+                {backContent.text}
+              </p>
+              <Phonetic show={backContent.isEnglish} />
+            </div>
+
+            {/* Scrollable detail area — description + examples, no clutter/overflow */}
+            <div className="mt-3 w-full max-w-md flex-1 space-y-3 overflow-y-auto px-1">
+              {word.description && (
+                <p className="text-center text-sm leading-relaxed text-muted-foreground">{word.description}</p>
+              )}
+              {examples.map((ex, i) => (
+                <div key={i} className="rounded-lg bg-muted/40 px-3 py-2 text-center">
+                  <p dir="ltr" className="text-sm italic leading-relaxed text-foreground/90">
+                    “{ex.eng}”
+                  </p>
+                  {ex.per && (
+                    <p dir="rtl" className="rtl mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                      {ex.per}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
 
             <button
               onClick={onToggle}
-              className="mt-6 px-5 py-1.5 rounded-full border border-border text-muted-foreground text-xs font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+              className="mt-3 shrink-0 rounded-full border border-border px-5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
             >
               نمایش {frontContent.label}
             </button>
           </div>
         </div>
       </div>
-
-      {/* Tap hint when not flipped */}
-      {!flipped && (
-        <p className="text-center text-xs text-muted-foreground mt-3">
-          کلید <kbd className="px-1.5 py-0.5 rounded border border-border font-mono text-xs">Space</kbd> را فشار دهید تا نمایش داده شود
-        </p>
-      )}
     </div>
   )
 }

@@ -1,95 +1,79 @@
 /**
- * English pronunciation playback for review cards.
+ * English pronunciation playback.
  *
- * Prefers a recorded audio file (`word.pronunciationAudio`) when available.
- * Otherwise: on native (Android) it uses the native Text-to-Speech engine;
- * on web it uses the browser's Speech Synthesis (Web Speech API).
+ * Primary method: play a real pronunciation audio clip through an <audio>
+ * element — either a server-provided file (`pronunciationAudio`) or, when none
+ * exists, the Google Translate TTS audio endpoint for the word. This works the
+ * same on web and inside the Android WebView and does NOT depend on a device
+ * TTS engine (which proved unreliable).
  *
- * Native gotcha: the TTS engine initialises asynchronously after app start, so
- * an early `speak` is rejected with ERROR_UNSUPPORTED_LANGUAGE (the language
- * check reads `false` until the engine is ready). We warm the engine up and
- * retry a few times so the first taps/auto-plays aren't silently dropped.
+ * Fallback (only if the audio can't load, e.g. offline): the native TTS engine
+ * on Android, or the browser's speechSynthesis on the web.
  */
 import { isNative } from './platform'
 
 let currentAudio: HTMLAudioElement | null = null
-let warmedUp = false
+
+/** Google Translate TTS audio (MP3) for a short English text. */
+function ttsAudioUrl(text: string): string {
+  const q = encodeURIComponent(text.slice(0, 200))
+  return `https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=${q}`
+}
 
 function nativeTts() {
   return import('@capacitor-community/text-to-speech').then((m) => m.TextToSpeech)
 }
 
-const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
-
-/** Kick off native TTS engine initialisation early (idempotent). */
-export function warmUpPronunciation(): void {
-  if (!isNative() || warmedUp) return
-  warmedUp = true
-  nativeTts()
-    .then((tts) => tts.getSupportedLanguages())
-    .catch(() => {})
-}
-
-async function nativeSpeak(text: string): Promise<void> {
-  const tts = await nativeTts()
-  // Retry across the engine's async init window (~1s on a cold start).
-  for (let attempt = 0; attempt < 5; attempt++) {
-    try {
-      await tts.speak({ text, lang: 'en-US', rate: 1.0 })
-      return
-    } catch {
-      await wait(300)
-    }
-  }
-}
+/** Kept for backwards-compat (used to warm the native engine); now a no-op. */
+export function warmUpPronunciation(): void {}
 
 export function stopPronunciation(): void {
   if (currentAudio) {
     currentAudio.pause()
     currentAudio = null
   }
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    window.speechSynthesis.cancel()
+  }
   if (isNative()) {
     nativeTts()
       .then((tts) => tts.stop())
       .catch(() => {})
-    return
-  }
-  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-    window.speechSynthesis.cancel()
   }
 }
 
-function speak(text: string): void {
+/** Last-resort speech when the audio clip can't be fetched/played. */
+function fallbackSpeak(text: string): void {
   if (!text) return
-
   if (isNative()) {
-    // speak() itself flushes the queue natively, so no explicit stop needed.
-    void nativeSpeak(text)
+    nativeTts()
+      .then((tts) => tts.speak({ text, lang: 'en-US', rate: 1.0 }))
+      .catch(() => {})
     return
   }
-
-  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
-  const utterance = new SpeechSynthesisUtterance(text)
-  utterance.lang = 'en-US'
-  utterance.rate = 0.9
-  window.speechSynthesis.speak(utterance)
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    const u = new SpeechSynthesisUtterance(text)
+    u.lang = 'en-US'
+    u.rate = 0.9
+    window.speechSynthesis.speak(u)
+  }
 }
 
 export function playPronunciation(word: {
   eng: string
   pronunciationAudio?: string | null
 }): void {
-  if (word.pronunciationAudio) {
-    stopPronunciation()
-    const audio = new Audio(word.pronunciationAudio)
-    currentAudio = audio
-    audio.play().catch(() => {
-      // Audio file couldn't play (missing/blocked) — fall back to TTS.
-      if (currentAudio === audio) currentAudio = null
-      speak(word.eng)
-    })
-    return
-  }
+  stopPronunciation()
+  if (!word.eng) return
 
-  speak(word.eng)
+  const src = word.pronunciationAudio || ttsAudioUrl(word.eng)
+  const audio = new Audio(src)
+  currentAudio = audio
+
+  const onFail = () => {
+    if (currentAudio === audio) currentAudio = null
+    fallbackSpeak(word.eng)
+  }
+  audio.onerror = onFail
+  audio.play().catch(onFail)
 }
