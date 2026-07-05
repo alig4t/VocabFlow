@@ -1,82 +1,98 @@
 /**
- * English pronunciation playback.
+ * English pronunciation — fully offline (uses the on-device speech engine).
  *
- * Primary: the `easy-speech` package — a robust wrapper around the Web Speech
- * API that properly waits for the (async-loaded) voices and works around the
- * Android WebView init quirks that made raw speechSynthesis / the native plugin
- * stay silent. Runs on the device engine, offline.
+ * Native (Android): talk DIRECTLY to the device Text-to-Speech engine via the
+ * Capacitor plugin (the WebView's speechSynthesis often exposes no voices, which
+ * is why easy-speech/speechSynthesis stayed silent). The engine initialises
+ * asynchronously, so we retry across its init window. Language is `en` (not
+ * `en-US`) — many engines report the country variant as unsupported.
  *
- * Fallbacks: a server-provided audio file, or the Google Translate TTS audio
- * clip played through <audio> (needs internet) if no voices are available.
+ * Web: use the browser voices through easy-speech (falls back to raw
+ * speechSynthesis). No network / Google services involved.
  */
-import EasySpeech from 'easy-speech'
+import { isNative } from './platform'
 
 let currentAudio: HTMLAudioElement | null = null
-let initPromise: Promise<boolean> | null = null
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
-function ensureInit(): Promise<boolean> {
-  if (!initPromise) {
-    initPromise = EasySpeech.init({ maxTimeout: 5000, interval: 250 })
-      .then(() => true)
-      .catch(() => false)
+// ── Native (device engine) ────────────────────────────────────────────────────
+function nativeTts() {
+  return import('@capacitor-community/text-to-speech').then((m) => m.TextToSpeech)
+}
+
+async function nativeSpeak(text: string): Promise<void> {
+  const tts = await nativeTts()
+  // The engine may not be ready on the first calls (it rejects until init done).
+  for (let attempt = 0; attempt < 6; attempt++) {
+    try {
+      await tts.speak({ text, lang: 'en', rate: 1.0 })
+      return
+    } catch {
+      await wait(300)
+    }
   }
-  return initPromise
 }
 
-/** Warm up the speech engine (load voices) ahead of the first play. */
-export function warmUpPronunciation(): void {
-  void ensureInit()
-}
+// ── Web (browser voices) ──────────────────────────────────────────────────────
+let webInit: Promise<boolean> | null = null
 
-function englishVoice(): SpeechSynthesisVoice | undefined {
+async function webSpeak(text: string): Promise<void> {
   try {
-    const vs = EasySpeech.voices() || []
-    return vs.find((v) => /en[-_]us/i.test(v.lang)) || vs.find((v) => /^en/i.test(v.lang)) || undefined
+    const EasySpeech = (await import('easy-speech')).default
+    if (!webInit) {
+      webInit = EasySpeech.init({ maxTimeout: 5000, interval: 250 })
+        .then(() => true)
+        .catch(() => false)
+    }
+    if (await webInit) {
+      const voices = EasySpeech.voices() || []
+      const voice = voices.find((v) => /^en/i.test(v.lang))
+      await EasySpeech.speak({ text, voice, rate: 0.9, pitch: 1, volume: 1 })
+      return
+    }
   } catch {
-    return undefined
+    /* fall through to raw speechSynthesis */
+  }
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    const u = new SpeechSynthesisUtterance(text)
+    u.lang = 'en'
+    u.rate = 0.9
+    window.speechSynthesis.speak(u)
   }
 }
 
-function ttsAudioUrl(text: string): string {
-  const q = encodeURIComponent(text.slice(0, 200))
-  return `https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=${q}`
-}
-
-function playUrl(src: string, onFail?: () => void): void {
-  const audio = new Audio(src)
-  currentAudio = audio
-  const fail = () => {
-    if (currentAudio === audio) currentAudio = null
-    onFail?.()
+// ── Public API ────────────────────────────────────────────────────────────────
+/** Warm up the speech engine so the first play isn't dropped/delayed. */
+export function warmUpPronunciation(): void {
+  if (isNative()) {
+    nativeTts()
+      .then((tts) => tts.getSupportedLanguages())
+      .catch(() => {})
+  } else {
+    void webSpeak('') // triggers easy-speech init without speaking
   }
-  audio.onerror = fail
-  audio.play().catch(fail)
 }
 
 export function stopPronunciation(): void {
-  try {
-    EasySpeech.cancel()
-  } catch {
-    /* not initialised yet */
-  }
   if (currentAudio) {
     currentAudio.pause()
     currentAudio = null
   }
+  if (isNative()) {
+    nativeTts()
+      .then((tts) => tts.stop())
+      .catch(() => {})
+    return
+  }
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    window.speechSynthesis.cancel()
+  }
 }
 
-async function speak(text: string): Promise<void> {
+function speak(text: string): void {
   if (!text) return
-  const ready = await ensureInit()
-  if (ready) {
-    try {
-      await EasySpeech.speak({ text, voice: englishVoice(), rate: 0.9, pitch: 1, volume: 1 })
-      return
-    } catch {
-      /* engine present but failed — fall back to an online clip */
-    }
-  }
-  playUrl(ttsAudioUrl(text))
+  if (isNative()) void nativeSpeak(text)
+  else void webSpeak(text)
 }
 
 export function playPronunciation(word: {
@@ -87,8 +103,13 @@ export function playPronunciation(word: {
   if (!word.eng) return
 
   if (word.pronunciationAudio) {
-    playUrl(word.pronunciationAudio, () => void speak(word.eng))
+    const audio = new Audio(word.pronunciationAudio)
+    currentAudio = audio
+    audio.play().catch(() => {
+      if (currentAudio === audio) currentAudio = null
+      speak(word.eng)
+    })
     return
   }
-  void speak(word.eng)
+  speak(word.eng)
 }
