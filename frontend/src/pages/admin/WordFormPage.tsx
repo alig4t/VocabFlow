@@ -129,8 +129,12 @@ function TagInput({
 
 export function WordFormPage() {
   const navigate = useNavigate()
-  // On the offline app there is no /admin panel — exit back into the app.
-  const exitTo = isNative() ? '/vocabulary' : '/admin'
+  // Return to wherever the editor was opened from, preserving that page's
+  // filters/scroll/position (vocabulary list or review session).
+  const goBack = () => {
+    if (window.history.length > 1) navigate(-1)
+    else navigate(isNative() ? '/vocabulary' : '/admin')
+  }
   const { id } = useParams<{ id?: string }>()
   const [searchParams] = useSearchParams()
   const isEditMode = Boolean(id)
@@ -253,7 +257,7 @@ export function WordFormPage() {
       if (isEditMode && id) {
         await updateWordMutation.mutateAsync({ id, data: payload })
         toast({ title: 'لغت با موفقیت ویرایش شد', variant: 'success' })
-        navigate(exitTo)
+        goBack()
       } else {
         const created = await createWordMutation.mutateAsync(payload)
         for (let i = 0; i < draftExamples.length; i++) {
@@ -265,7 +269,7 @@ export function WordFormPage() {
           })
         }
         toast({ title: 'لغت با موفقیت اضافه شد', variant: 'success' })
-        navigate(exitTo)
+        goBack()
       }
     } catch (err: any) {
       const message = err?.response?.data?.message ?? err?.message ?? 'خطا در ذخیره لغت'
@@ -287,7 +291,7 @@ export function WordFormPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-12 font-persian" dir="rtl">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate(exitTo)}>
+        <Button variant="ghost" size="icon" onClick={() => goBack()}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <h1 className="text-2xl font-bold">{isEditMode ? 'ویرایش لغت' : 'افزودن لغت'}</h1>
@@ -536,7 +540,7 @@ export function WordFormPage() {
         )}
 
         <div className="flex gap-3 justify-start">
-          <Button type="button" variant="outline" onClick={() => navigate(exitTo)} disabled={isSubmitting}>
+          <Button type="button" variant="outline" onClick={() => goBack()} disabled={isSubmitting}>
             انصراف
           </Button>
           <Button type="submit" disabled={isSubmitting}>

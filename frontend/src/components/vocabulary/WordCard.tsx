@@ -1,9 +1,11 @@
 import { useState, useCallback } from 'react'
-import { ChevronDown, ChevronUp, BookOpen, Sparkles, Volume2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { ChevronDown, ChevronUp, BookOpen, Sparkles, Volume2, SquarePen } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { useUpdateWordStatus, useWordStatus } from '@/hooks/useProgress'
+import { useAuthStore } from '@/store/authStore'
 import { synonymService } from '@/services/synonym.service'
 import { playPronunciation } from '@/lib/pronounce'
 import type { Word, ReviewMode, SynonymResult } from '@/types'
@@ -40,6 +42,9 @@ export function WordCard({ word, mode }: WordCardProps) {
   const [synonymsOpen, setSynonymsOpen] = useState(false)
   const [synonyms, setSynonyms] = useState<SynonymResult[] | null>(null)
   const [loadingSynonyms, setLoadingSynonyms] = useState(false)
+
+  const navigate = useNavigate()
+  const isAdmin = useAuthStore((s) => s.user?.role === 'ADMIN')
 
   const status = useWordStatus(word, mode)
   const { mutate: updateStatus, isPending } = useUpdateWordStatus()
@@ -193,6 +198,17 @@ export function WordCard({ word, mode }: WordCardProps) {
           </button>
 
           <div className="flex-1" />
+
+          {/* Edit word (admins / offline app) */}
+          {isAdmin && (
+            <button
+              onClick={() => navigate(`/admin/words/${word.id}/edit`)}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            >
+              <SquarePen className="h-3.5 w-3.5" />
+              ویرایش
+            </button>
+          )}
 
           {/* Synonyms button */}
           <button

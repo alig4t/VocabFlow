@@ -1,62 +1,82 @@
 /**
  * English pronunciation playback.
  *
- * Primary method: play a real pronunciation audio clip through an <audio>
- * element — either a server-provided file (`pronunciationAudio`) or, when none
- * exists, the Google Translate TTS audio endpoint for the word. This works the
- * same on web and inside the Android WebView and does NOT depend on a device
- * TTS engine (which proved unreliable).
+ * Primary: the `easy-speech` package — a robust wrapper around the Web Speech
+ * API that properly waits for the (async-loaded) voices and works around the
+ * Android WebView init quirks that made raw speechSynthesis / the native plugin
+ * stay silent. Runs on the device engine, offline.
  *
- * Fallback (only if the audio can't load, e.g. offline): the native TTS engine
- * on Android, or the browser's speechSynthesis on the web.
+ * Fallbacks: a server-provided audio file, or the Google Translate TTS audio
+ * clip played through <audio> (needs internet) if no voices are available.
  */
-import { isNative } from './platform'
+import EasySpeech from 'easy-speech'
 
 let currentAudio: HTMLAudioElement | null = null
+let initPromise: Promise<boolean> | null = null
 
-/** Google Translate TTS audio (MP3) for a short English text. */
+function ensureInit(): Promise<boolean> {
+  if (!initPromise) {
+    initPromise = EasySpeech.init({ maxTimeout: 5000, interval: 250 })
+      .then(() => true)
+      .catch(() => false)
+  }
+  return initPromise
+}
+
+/** Warm up the speech engine (load voices) ahead of the first play. */
+export function warmUpPronunciation(): void {
+  void ensureInit()
+}
+
+function englishVoice(): SpeechSynthesisVoice | undefined {
+  try {
+    const vs = EasySpeech.voices() || []
+    return vs.find((v) => /en[-_]us/i.test(v.lang)) || vs.find((v) => /^en/i.test(v.lang)) || undefined
+  } catch {
+    return undefined
+  }
+}
+
 function ttsAudioUrl(text: string): string {
   const q = encodeURIComponent(text.slice(0, 200))
   return `https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=${q}`
 }
 
-function nativeTts() {
-  return import('@capacitor-community/text-to-speech').then((m) => m.TextToSpeech)
+function playUrl(src: string, onFail?: () => void): void {
+  const audio = new Audio(src)
+  currentAudio = audio
+  const fail = () => {
+    if (currentAudio === audio) currentAudio = null
+    onFail?.()
+  }
+  audio.onerror = fail
+  audio.play().catch(fail)
 }
 
-/** Kept for backwards-compat (used to warm the native engine); now a no-op. */
-export function warmUpPronunciation(): void {}
-
 export function stopPronunciation(): void {
+  try {
+    EasySpeech.cancel()
+  } catch {
+    /* not initialised yet */
+  }
   if (currentAudio) {
     currentAudio.pause()
     currentAudio = null
   }
-  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-    window.speechSynthesis.cancel()
-  }
-  if (isNative()) {
-    nativeTts()
-      .then((tts) => tts.stop())
-      .catch(() => {})
-  }
 }
 
-/** Last-resort speech when the audio clip can't be fetched/played. */
-function fallbackSpeak(text: string): void {
+async function speak(text: string): Promise<void> {
   if (!text) return
-  if (isNative()) {
-    nativeTts()
-      .then((tts) => tts.speak({ text, lang: 'en-US', rate: 1.0 }))
-      .catch(() => {})
-    return
+  const ready = await ensureInit()
+  if (ready) {
+    try {
+      await EasySpeech.speak({ text, voice: englishVoice(), rate: 0.9, pitch: 1, volume: 1 })
+      return
+    } catch {
+      /* engine present but failed — fall back to an online clip */
+    }
   }
-  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-    const u = new SpeechSynthesisUtterance(text)
-    u.lang = 'en-US'
-    u.rate = 0.9
-    window.speechSynthesis.speak(u)
-  }
+  playUrl(ttsAudioUrl(text))
 }
 
 export function playPronunciation(word: {
@@ -66,14 +86,9 @@ export function playPronunciation(word: {
   stopPronunciation()
   if (!word.eng) return
 
-  const src = word.pronunciationAudio || ttsAudioUrl(word.eng)
-  const audio = new Audio(src)
-  currentAudio = audio
-
-  const onFail = () => {
-    if (currentAudio === audio) currentAudio = null
-    fallbackSpeak(word.eng)
+  if (word.pronunciationAudio) {
+    playUrl(word.pronunciationAudio, () => void speak(word.eng))
+    return
   }
-  audio.onerror = onFail
-  audio.play().catch(onFail)
+  void speak(word.eng)
 }

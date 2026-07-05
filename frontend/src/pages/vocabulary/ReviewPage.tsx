@@ -92,6 +92,10 @@ function ReviewActions({ word, mode, onKnown, onNotKnown, onSkip }: ReviewWordRo
   )
 }
 
+// Remembers the last review position (per filter scope) so returning to the
+// page — after editing a word or visiting another page — resumes where you were.
+let lastReviewPos: { key: string; index: number } | null = null
+
 export function ReviewPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -156,7 +160,7 @@ export function ReviewPage() {
   const [session, setSession] = useState<{ key: string; words: Word[] }>({ key: '', words: [] })
   const sessionReady = hasScope && session.key === sessionKey
 
-  const { data, isError } = useWords(
+  const { data, isError, isFetching } = useWords(
     {
       limit: 500,
       page: 1,
@@ -177,14 +181,22 @@ export function ReviewPage() {
     { enabled: hasScope && !sessionReady },
   )
 
-  // Freeze the fetched list as the session snapshot when a new session's data lands.
+  // Freeze the fetched list as the session snapshot when a new session's data
+  // lands. Wait until the query is no longer fetching so we never freeze STALE
+  // cached data (which would show outdated known/not-known statuses on return).
   useEffect(() => {
-    if (hasScope && session.key !== sessionKey && data?.data) {
+    if (hasScope && session.key !== sessionKey && data?.data && !isFetching) {
       setSession({ key: sessionKey, words: data.data })
-      setCurrentIndex(0)
+      const saved = lastReviewPos?.key === sessionKey ? lastReviewPos.index : 0
+      setCurrentIndex(Math.min(Math.max(0, saved), Math.max(0, data.data.length - 1)))
       setFlipped(false)
     }
-  }, [hasScope, sessionKey, session.key, data])
+  }, [hasScope, sessionKey, session.key, data, isFetching])
+
+  // Remember the current position so we can resume it when the page remounts.
+  useEffect(() => {
+    if (sessionReady) lastReviewPos = { key: sessionKey, index: currentIndex }
+  }, [sessionReady, sessionKey, currentIndex])
 
   const words = sessionReady ? session.words : []
   const total = words.length
@@ -577,25 +589,13 @@ export function ReviewPage() {
               <Volume2 className="h-3.5 w-3.5" />
               {isNative() ? 'پخش تلفظ' : 'پخش تلفظ (P)'}
             </button>
-            {isNative() ? (
-              <button
-                onClick={() => navigate(`/admin/words/${currentWord.id}/edit`)}
-                className="inline-flex items-center gap-1.5 hover:text-primary transition-colors"
-              >
-                <SquarePen className="h-3.5 w-3.5" />
-                اصلاح این واژه
-              </button>
-            ) : (
-              <a
-                href={`/admin/words/${currentWord.id}/edit`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 hover:text-primary transition-colors"
-              >
-                <SquarePen className="h-3.5 w-3.5" />
-                اصلاح این واژه
-              </a>
-            )}
+            <button
+              onClick={() => navigate(`/admin/words/${currentWord.id}/edit`)}
+              className="inline-flex items-center gap-1.5 hover:text-primary transition-colors"
+            >
+              <SquarePen className="h-3.5 w-3.5" />
+              اصلاح این واژه
+            </button>
           </div>
 
           {/* Keyboard hint — web only (no physical keyboard on the app) */}

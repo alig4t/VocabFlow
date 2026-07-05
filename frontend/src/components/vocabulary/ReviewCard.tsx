@@ -13,13 +13,13 @@ interface ReviewCardProps {
 export function ReviewCard({ word, mode, flipped, onToggle }: ReviewCardProps) {
   const frontContent =
     mode === 'EN_TO_FA'
-      ? { label: 'انگلیسی', text: word.eng, dir: 'ltr' as const, isEnglish: true }
-      : { label: 'فارسی', text: word.per, dir: 'rtl' as const, isEnglish: false }
+      ? { text: word.eng, dir: 'ltr' as const, isEnglish: true }
+      : { text: word.per, dir: 'rtl' as const, isEnglish: false }
 
   const backContent =
     mode === 'EN_TO_FA'
-      ? { label: 'فارسی', text: word.per, dir: 'rtl' as const, isEnglish: false }
-      : { label: 'انگلیسی', text: word.eng, dir: 'ltr' as const, isEnglish: true }
+      ? { text: word.per, dir: 'rtl' as const, isEnglish: false }
+      : { text: word.eng, dir: 'ltr' as const, isEnglish: true }
 
   const phonetic = word.pronunciation
   const pos = word.partOfSpeech
@@ -30,16 +30,12 @@ export function ReviewCard({ word, mode, flipped, onToggle }: ReviewCardProps) {
     ...(word.examples ?? []).slice(0, 2).map((e) => ({ eng: e.engSentence, per: e.perTranslation })),
   ]
 
-  const Label = ({ text }: { text: string }) => (
-    <div className="mb-3 flex items-center justify-center gap-2">
-      <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{text}</span>
-      {pos && (
-        <span className="rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground/70">
-          {pos}
-        </span>
-      )}
-    </div>
-  )
+  const Pos = () =>
+    pos ? (
+      <span className="mb-3 rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground/70">
+        {pos}
+      </span>
+    ) : null
 
   const Phonetic = ({ show }: { show: boolean }) =>
     show && phonetic ? (
@@ -64,7 +60,7 @@ export function ReviewCard({ word, mode, flipped, onToggle }: ReviewCardProps) {
             className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-lg"
             style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
           >
-            <Label text={frontContent.label} />
+            <Pos />
             <p
               dir={frontContent.dir}
               className={cn(
@@ -84,13 +80,13 @@ export function ReviewCard({ word, mode, flipped, onToggle }: ReviewCardProps) {
             </button>
           </div>
 
-          {/* BACK face */}
+          {/* BACK face — content centred; grows upward & scrolls as examples increase */}
           <div
-            className="absolute inset-0 flex flex-col items-center overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-lg"
+            className="absolute inset-0 flex flex-col overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-lg"
             style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
           >
-            <div className="flex shrink-0 flex-col items-center pt-2">
-              <Label text={backContent.label} />
+            <div className="my-auto flex w-full flex-col items-center">
+              <Pos />
               <p
                 dir={backContent.dir}
                 className={cn(
@@ -101,33 +97,37 @@ export function ReviewCard({ word, mode, flipped, onToggle }: ReviewCardProps) {
                 {backContent.text}
               </p>
               <Phonetic show={backContent.isEnglish} />
-            </div>
 
-            {/* Scrollable detail area — description + examples, no clutter/overflow */}
-            <div className="mt-3 w-full max-w-md flex-1 space-y-3 overflow-y-auto px-1">
               {word.description && (
-                <p className="text-center text-sm leading-relaxed text-muted-foreground">{word.description}</p>
+                <p className="mt-3 max-w-md text-center text-sm leading-relaxed text-muted-foreground">
+                  {word.description}
+                </p>
               )}
-              {examples.map((ex, i) => (
-                <div key={i} className="rounded-lg bg-muted/40 px-3 py-2 text-center">
-                  <p dir="ltr" className="text-sm italic leading-relaxed text-foreground/90">
-                    “{ex.eng}”
-                  </p>
-                  {ex.per && (
-                    <p dir="rtl" className="rtl mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                      {ex.per}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
 
-            <button
-              onClick={onToggle}
-              className="mt-3 shrink-0 rounded-full border border-border px-5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-            >
-              نمایش {frontContent.label}
-            </button>
+              {examples.length > 0 && (
+                <div className="mt-4 w-full max-w-md space-y-2">
+                  {examples.map((ex, i) => (
+                    <div key={i} className="rounded-lg bg-muted/40 px-3 py-2 text-center">
+                      <p dir="ltr" className="text-sm italic leading-relaxed text-foreground/90">
+                        “{ex.eng}”
+                      </p>
+                      {ex.per && (
+                        <p dir="rtl" className="rtl mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                          {ex.per}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <button
+                onClick={onToggle}
+                className="mt-5 rounded-full border border-border px-5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                {mode === 'EN_TO_FA' ? 'نمایش انگلیسی' : 'نمایش فارسی'}
+              </button>
+            </div>
           </div>
         </div>
       </div>
