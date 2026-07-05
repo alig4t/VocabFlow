@@ -14,6 +14,7 @@ export interface CreateBookData {
 export interface CreateVolumeData {
   volumeNumber: number
   title?: string
+  coverImage?: string
 }
 
 export interface CreateLessonData {
