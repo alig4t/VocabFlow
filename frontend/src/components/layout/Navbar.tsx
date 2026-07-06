@@ -3,6 +3,7 @@ import { useTheme } from './ThemeProvider'
 import { useAuthStore } from '../../store/authStore'
 import { isNative } from '../../lib/platform'
 import { Button } from '../ui/button'
+import { Link } from 'react-router-dom'
 
 interface NavbarProps {
   onMenuClick: () => void
@@ -32,7 +33,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
   const handleLogout = () => {
     // Offline app: no login/logout — the button simply closes the app.
     if (native) {
-      import('@capacitor/app').then((m) => m.App.exitApp()).catch(() => {})
+      import('@capacitor/app').then((m) => m.App.exitApp()).catch(() => { })
       return
     }
     clearAuth()
@@ -52,12 +53,23 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <div className="flex items-center gap-2 lg:hidden">
+        <Link to={'/'}>
+          <div className="flex items-center gap-2 lg:hidden">
+            <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-white ring-1 ring-border">
+              <img src="/logo/logo-192-192.png" alt="وکب" className="h-full w-full object-contain p-0.5" draggable={false} />
+            </div>
+            <div className="leading-tight">
+              <p className="text-sm font-bold text-foreground">وکب </p>
+              <p className="text-xs text-muted-foreground">یادگیری زبان</p>
+            </div>
+          </div>
+        </Link>
+        {/* <div className="flex items-center gap-2 lg:hidden">
           <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-white ring-1 ring-border">
             <img src="/logo/logo-192-192.png" alt="وکب" className="h-full w-full object-contain p-0.5" draggable={false} />
           </div>
           <span className="text-sm font-bold text-foreground">وکب</span>
-        </div>
+        </div> */}
       </div>
 
       {/* چپ: اطلاعات کاربر و کنترل‌ها */}
