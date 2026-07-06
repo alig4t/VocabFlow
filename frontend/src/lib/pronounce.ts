@@ -16,20 +16,33 @@ let currentAudio: HTMLAudioElement | null = null
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 // ── Native (device engine) ────────────────────────────────────────────────────
-function nativeTts() {
-  return import('@capacitor-community/text-to-speech').then((m) => m.TextToSpeech)
-}
-
 async function nativeSpeak(text: string): Promise<void> {
-  const tts = await nativeTts()
-  // The engine may not be ready on the first calls (it rejects until init done).
-  for (let attempt = 0; attempt < 6; attempt++) {
-    try {
-      await tts.speak({ text, lang: 'en', rate: 1.0 })
-      return
-    } catch {
-      await wait(300)
+  try {
+    // ایمپورت داینامیک پلاگین
+    const { TextToSpeech } = await import('@capacitor-community/text-to-speech')
+    
+    // موتور TTS ممکن است در اولین فراخوانی‌ها آماده نباشد
+    for (let attempt = 0; attempt < 6; attempt++) {
+      try {
+        // مستقیماً متد speak را فراخوانی می‌کنیم
+        await TextToSpeech.speak({
+          text,
+          lang: 'en',
+          rate: 1.0,
+          volume: 1.0,
+          pitch: 1.0,
+        })
+        return // موفقیت‌آمیز بود، خارج می‌شویم
+      } catch (error) {
+        console.warn(`TTS attempt ${attempt + 1} failed:`, error)
+        // اگر خطا مربوط به عدم آمادگی موتور باشد، صبر می‌کنیم و دوباره تلاش می‌کنیم
+        await wait(300)
+      }
     }
+    throw new Error('Failed to initialize TextToSpeech after multiple attempts')
+  } catch (error) {
+    console.error('TextToSpeech error:', error)
+    // در صورت شکست کامل، می‌توانید fallback داشته باشید یا فقط لاگ کنید
   }
 }
 
@@ -65,9 +78,20 @@ async function webSpeak(text: string): Promise<void> {
 /** Warm up the speech engine so the first play isn't dropped/delayed. */
 export function warmUpPronunciation(): void {
   if (isNative()) {
-    nativeTts()
-      .then((tts) => tts.getSupportedLanguages())
-      .catch(() => {})
+    // لود کردن پلاگین و بررسی زبان‌های پشتیبانی شده
+    import('@capacitor-community/text-to-speech')
+      .then(({ TextToSpeech }) => {
+        TextToSpeech.getSupportedLanguages()
+          .then((languages) => {
+            console.log('Supported TTS languages:', languages)
+          })
+          .catch((err) => {
+            console.warn('Could not get supported languages:', err)
+          })
+      })
+      .catch((err) => {
+        console.error('Failed to load TTS plugin:', err)
+      })
   } else {
     void webSpeak('') // triggers easy-speech init without speaking
   }
@@ -79,8 +103,8 @@ export function stopPronunciation(): void {
     currentAudio = null
   }
   if (isNative()) {
-    nativeTts()
-      .then((tts) => tts.stop())
+    import('@capacitor-community/text-to-speech')
+      .then(({ TextToSpeech }) => TextToSpeech.stop())
       .catch(() => {})
     return
   }
