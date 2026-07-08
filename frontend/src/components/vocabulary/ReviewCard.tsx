@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils'
+import { SpeakButton } from './SpeakButton'
 import type { Word, ReviewMode } from '@/types'
 
 interface ReviewCardProps {
@@ -107,12 +108,25 @@ export function ReviewCard({ word, mode, flipped, onToggle }: ReviewCardProps) {
               {examples.length > 0 && (
                 <div className="mt-4 w-full max-w-md space-y-2">
                   {examples.map((ex, i) => (
-                    <div key={i} className="rounded-lg bg-muted/40 px-3 py-2 text-center">
-                      <p dir="ltr" className="text-sm italic leading-relaxed text-foreground/90">
-                        “{ex.eng}”
-                      </p>
+                    <div key={i} className="rounded-lg bg-muted/40 px-3 py-2">
+                      <div dir="ltr" className="flex items-start gap-2">
+                        <SpeakButton
+                          text={ex.eng}
+                          label="پخش تلفظ مثال"
+                          className="mt-0.5"
+                        />
+                        <p
+                          dir="ltr"
+                          className="flex-1 text-start text-sm italic leading-relaxed text-foreground/90"
+                        >
+                          “{ex.eng}”
+                        </p>
+                      </div>
                       {ex.per && (
-                        <p dir="rtl" className="rtl mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                        <p
+                          dir="rtl"
+                          className="rtl mt-1 text-start text-xs leading-relaxed text-muted-foreground"
+                        >
                           {ex.per}
                         </p>
                       )}

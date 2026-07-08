@@ -8,6 +8,7 @@ import { useUpdateWordStatus, useWordStatus } from '@/hooks/useProgress'
 import { useAuthStore } from '@/store/authStore'
 import { synonymService } from '@/services/synonym.service'
 import { playPronunciation } from '@/lib/pronounce'
+import { SpeakButton } from './SpeakButton'
 import type { Word, ReviewMode, SynonymResult } from '@/types'
 
 interface WordCardProps {
@@ -290,20 +291,18 @@ export function WordCard({ word, mode }: WordCardProps) {
               {/* Primary example */}
               {word.primaryExample && (
                 <div className="space-y-1">
-                  <div className="flex items-start gap-2">
-                    <p className="text-sm text-foreground leading-relaxed italic flex-1">
+                  <div dir="ltr" className="flex items-start gap-2">
+                    <SpeakButton
+                      text={word.primaryExample}
+                      label="پخش تلفظ مثال"
+                      className="mt-0.5"
+                    />
+                    <p className="flex-1 text-start text-sm text-foreground leading-relaxed italic">
                       "{word.primaryExample}"
                     </p>
-                    <button
-                      onClick={() => playPronunciation({ eng: word.primaryExample! })}
-                      className="mt-0.5 text-muted-foreground hover:text-primary transition-colors flex-shrink-0"
-                      title="تلفظ"
-                    >
-                      <Volume2 className="h-3.5 w-3.5" />
-                    </button>
                   </div>
                   {word.primaryExampleTrs && (
-                    <p dir="rtl" className="text-sm text-muted-foreground leading-relaxed rtl">
+                    <p dir="rtl" className="text-start text-sm text-muted-foreground leading-relaxed rtl">
                       {word.primaryExampleTrs}
                     </p>
                   )}
@@ -315,20 +314,18 @@ export function WordCard({ word, mode }: WordCardProps) {
                 <div className="space-y-2">
                   {word.examples.map((ex, i) => (
                     <div key={ex.id ?? i} className="space-y-0.5">
-                      <div className="flex items-start gap-2">
-                        <p className="text-sm text-foreground leading-relaxed italic flex-1">
+                      <div dir="ltr" className="flex items-start gap-2">
+                        <SpeakButton
+                          text={ex.engSentence}
+                          label="پخش تلفظ مثال"
+                          className="mt-0.5"
+                        />
+                        <p className="flex-1 text-start text-sm text-foreground leading-relaxed italic">
                           "{ex.engSentence}"
                         </p>
-                        <button
-                          onClick={() => playPronunciation({ eng: ex.engSentence })}
-                          className="mt-0.5 text-muted-foreground hover:text-primary transition-colors flex-shrink-0"
-                          title="تلفظ"
-                        >
-                          <Volume2 className="h-3.5 w-3.5" />
-                        </button>
                       </div>
                       {ex.perTranslation && (
-                        <p dir="rtl" className="text-sm text-muted-foreground leading-relaxed rtl">
+                        <p dir="rtl" className="text-start text-sm text-muted-foreground leading-relaxed rtl">
                           {ex.perTranslation}
                         </p>
                       )}

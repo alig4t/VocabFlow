@@ -67,10 +67,14 @@ async function webSpeak(text: string): Promise<void> {
     /* fall through to raw speechSynthesis */
   }
   if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-    const u = new SpeechSynthesisUtterance(text)
-    u.lang = 'en'
-    u.rate = 0.9
-    window.speechSynthesis.speak(u)
+    await new Promise<void>((resolve) => {
+      const u = new SpeechSynthesisUtterance(text)
+      u.lang = 'en'
+      u.rate = 0.9
+      u.onend = () => resolve()
+      u.onerror = () => resolve()
+      window.speechSynthesis.speak(u)
+    })
   }
 }
 
@@ -113,27 +117,62 @@ export function stopPronunciation(): void {
   }
 }
 
-function speak(text: string): void {
-  if (!text) return
-  if (isNative()) void nativeSpeak(text)
-  else void webSpeak(text)
+function speak(text: string): Promise<void> {
+  if (!text) return Promise.resolve()
+  return isNative() ? nativeSpeak(text) : webSpeak(text)
 }
 
+// ── Playback tracking ──────────────────────────────────────────────────────────
+// Every new playback bumps a token and notifies listeners, so UI controls (the
+// per-sentence speak buttons) can reflect a "playing" state and reset themselves
+// the moment another sentence — or the word audio — takes over.
+let playToken = 0
+type StartListener = (token: number) => void
+const startListeners = new Set<StartListener>()
+
+/** The token of the most recent playback (identity of the current utterance). */
+export function currentPlayToken(): number {
+  return playToken
+}
+
+/** Subscribe to playback starts. The callback receives the new playback's token. */
+export function subscribePronunciation(cb: StartListener): () => void {
+  startListeners.add(cb)
+  return () => {
+    startListeners.delete(cb)
+  }
+}
+
+/**
+ * Play English pronunciation. Resolves when speech finishes (so callers can
+ * reflect a playing state). Prefers a server audio URL, else the device engine.
+ */
 export function playPronunciation(word: {
   eng: string
   pronunciationAudio?: string | null
-}): void {
+}): Promise<void> {
   stopPronunciation()
-  if (!word.eng) return
+  if (!word.eng) return Promise.resolve()
+
+  const token = ++playToken
+  // Notify AFTER the current call stack unwinds, so the initiator can record its
+  // own token first and not reset itself.
+  queueMicrotask(() => startListeners.forEach((cb) => cb(token)))
 
   if (word.pronunciationAudio) {
-    const audio = new Audio(word.pronunciationAudio)
-    currentAudio = audio
-    audio.play().catch(() => {
-      if (currentAudio === audio) currentAudio = null
-      speak(word.eng)
+    return new Promise<void>((resolve) => {
+      const audio = new Audio(word.pronunciationAudio!)
+      currentAudio = audio
+      const done = () => {
+        if (currentAudio === audio) currentAudio = null
+        resolve()
+      }
+      audio.onended = done
+      audio.play().catch(() => {
+        if (currentAudio === audio) currentAudio = null
+        speak(word.eng).then(resolve, resolve)
+      })
     })
-    return
   }
-  speak(word.eng)
+  return speak(word.eng)
 }
