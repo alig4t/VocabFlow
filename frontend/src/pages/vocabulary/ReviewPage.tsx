@@ -35,6 +35,34 @@ function loadPersistedMuted(): boolean {
   }
 }
 
+function loadPersistedFilter(): ReviewFilter {
+  try {
+    const val = localStorage.getItem('vocab_review_filter')
+    if (val === 'ALL' || val === 'NOT_READ' || val === 'NOT_KNOWN') return val
+  } catch {
+    // ignore
+  }
+  return 'NOT_READ'
+}
+
+/** The last book/volume/lesson scope the user reviewed, remembered across visits. */
+function loadPersistedScope(): { bookId?: string; volumeId?: string; lessonId?: string } {
+  try {
+    const raw = localStorage.getItem('vocab_review_scope')
+    if (raw) {
+      const p = JSON.parse(raw) as { bookId?: string; volumeId?: string; lessonId?: string }
+      return {
+        bookId: p.bookId || undefined,
+        volumeId: p.volumeId || undefined,
+        lessonId: p.lessonId || undefined,
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return {}
+}
+
 /** Map a vocabulary status param to the review page's filter options. */
 function statusToReviewFilter(status: WordStatus | 'ALL'): ReviewFilter {
   if (status === 'NOT_READ') return 'NOT_READ'
@@ -107,7 +135,7 @@ export function ReviewPage() {
     searchParams.get('mode') ? initial.filters.mode : loadPersistedMode(),
   )
   const [reviewFilter, setReviewFilter] = useState<ReviewFilter>(() =>
-    searchParams.has('status') ? statusToReviewFilter(initial.filters.status) : 'NOT_READ',
+    searchParams.has('status') ? statusToReviewFilter(initial.filters.status) : loadPersistedFilter(),
   )
   const [currentIndex, setCurrentIndex] = useState(0)
   // Whether the current card shows the translation (controlled here so Space can toggle it).
@@ -115,10 +143,20 @@ export function ReviewPage() {
   // Global sound switch. When muted, no pronunciation plays (auto or manual).
   const [muted, setMuted] = useState<boolean>(loadPersistedMuted)
 
-  // Book/volume/lesson scope — seeded from the URL, but editable in-page via the selectors.
-  const [bookId, setBookId] = useState<string | undefined>(initial.filters.bookId)
-  const [volumeId, setVolumeId] = useState<string | undefined>(initial.filters.volumeId)
-  const [lessonId, setLessonId] = useState<string | undefined>(initial.filters.lessonId)
+  // Book/volume/lesson scope — editable in-page via the selectors. Seeded from
+  // the URL when arriving via "continue review" (authoritative); otherwise
+  // restored from the last scope the user reviewed (persisted in localStorage).
+  const persistedScope = useMemo(() => loadPersistedScope(), [])
+  const urlHasScope = searchParams.has('bookId')
+  const [bookId, setBookId] = useState<string | undefined>(
+    urlHasScope ? initial.filters.bookId : persistedScope.bookId,
+  )
+  const [volumeId, setVolumeId] = useState<string | undefined>(
+    urlHasScope ? initial.filters.volumeId : persistedScope.volumeId,
+  )
+  const [lessonId, setLessonId] = useState<string | undefined>(
+    urlHasScope ? initial.filters.lessonId : persistedScope.lessonId,
+  )
 
   // Only books in the user's watchlist are selectable for review.
   const { data: books } = useWatchlistBooks()
@@ -197,6 +235,24 @@ export function ReviewPage() {
   useEffect(() => {
     if (sessionReady) lastReviewPos = { key: sessionKey, index: currentIndex }
   }, [sessionReady, sessionKey, currentIndex])
+
+  // Persist the review filter + book/volume/lesson scope so the next visit to
+  // this page restores the same filters the user last set.
+  useEffect(() => {
+    try {
+      localStorage.setItem('vocab_review_filter', reviewFilter)
+    } catch {
+      // ignore
+    }
+  }, [reviewFilter])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('vocab_review_scope', JSON.stringify({ bookId, volumeId, lessonId }))
+    } catch {
+      // ignore
+    }
+  }, [bookId, volumeId, lessonId])
 
   const words = sessionReady ? session.words : []
   const total = words.length
