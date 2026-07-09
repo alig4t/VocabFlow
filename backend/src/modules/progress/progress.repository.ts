@@ -10,6 +10,11 @@ export interface ProgressStats {
 }
 
 export class ProgressRepository {
+  /**
+   * Manual free-review mark. Writes `manualStatus` only — a track entirely
+   * separate from the SM-2 daily program (`status` + scheduling fields), so
+   * marking a word here never affects "Study Today".
+   */
   async upsertProgress(
     userId: string,
     wordId: string,
@@ -20,8 +25,8 @@ export class ProgressRepository {
       where: {
         userId_wordId_reviewMode: { userId, wordId, reviewMode },
       },
-      update: { status },
-      create: { userId, wordId, reviewMode, status },
+      update: { manualStatus: status },
+      create: { userId, wordId, reviewMode, manualStatus: status },
     })
   }
 
@@ -37,9 +42,9 @@ export class ProgressRepository {
 
   async getProgressStats(userId: string): Promise<ProgressStats[]> {
     const rows = await prisma.userWordProgress.groupBy({
-      by: ['reviewMode', 'status'],
+      by: ['reviewMode', 'manualStatus'],
       where: { userId },
-      _count: { status: true },
+      _count: { manualStatus: true },
     })
 
     const modes = Object.values(ReviewMode)
@@ -53,18 +58,23 @@ export class ProgressRepository {
     }
 
     for (const row of rows) {
-      statsMap[row.reviewMode][row.status] = row._count.status
+      statsMap[row.reviewMode][row.manualStatus] = row._count.manualStatus
     }
 
     return Object.values(statsMap)
   }
 
+  /**
+   * Reset the MANUAL marks only. Rows also carry SM-2 program data, so we clear
+   * `manualStatus` back to NOT_READ rather than deleting the rows.
+   */
   async resetProgress(userId: string, reviewMode?: ReviewMode) {
-    return prisma.userWordProgress.deleteMany({
+    return prisma.userWordProgress.updateMany({
       where: {
         userId,
         ...(reviewMode ? { reviewMode } : {}),
       },
+      data: { manualStatus: WordStatus.NOT_READ },
     })
   }
 }

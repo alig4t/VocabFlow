@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS progress (
   word_id TEXT NOT NULL,
   review_mode TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'NOT_READ',
+  manual_status TEXT NOT NULL DEFAULT 'NOT_READ',
   updated_at TEXT,
   repetitions INTEGER NOT NULL DEFAULT 0,
   interval_days INTEGER NOT NULL DEFAULT 0,
@@ -142,6 +143,7 @@ CREATE TABLE IF NOT EXISTS meta (
 // installs created the table without them, so ADD COLUMN any that are missing
 // (CREATE TABLE IF NOT EXISTS never alters an existing table).
 const PROGRESS_ADDED_COLUMNS: { name: string; ddl: string }[] = [
+  { name: 'manual_status', ddl: "manual_status TEXT NOT NULL DEFAULT 'NOT_READ'" },
   { name: 'repetitions', ddl: 'repetitions INTEGER NOT NULL DEFAULT 0' },
   { name: 'interval_days', ddl: 'interval_days INTEGER NOT NULL DEFAULT 0' },
   { name: 'ease_factor', ddl: 'ease_factor REAL NOT NULL DEFAULT 2.5' },
@@ -156,10 +158,16 @@ const PROGRESS_ADDED_COLUMNS: { name: string; ddl: string }[] = [
 async function migrateSchema(db: SQLiteDBConnection): Promise<void> {
   const cols = (await db.query('PRAGMA table_info(progress)')).values ?? []
   const existing = new Set((cols as { name: string }[]).map((c) => c.name))
+  let addedManualStatus = false
   for (const col of PROGRESS_ADDED_COLUMNS) {
     if (!existing.has(col.name)) {
       await db.execute(`ALTER TABLE progress ADD COLUMN ${col.ddl};`)
+      if (col.name === 'manual_status') addedManualStatus = true
     }
+  }
+  // Manual marks were previously stored in `status` (pre-SM-2); carry them over.
+  if (addedManualStatus) {
+    await db.execute('UPDATE progress SET manual_status = status;')
   }
 }
 

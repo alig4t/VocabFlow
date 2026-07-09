@@ -193,7 +193,11 @@ model UserWordProgress {
   userId     String     @map("user_id")
   wordId     String     @map("word_id")
   reviewMode ReviewMode @map("review_mode")
-  status     WordStatus @default(NOT_READ)
+  // SM-2 daily-program state (written by the "Study Today" flow).
+  status WordStatus @default(NOT_READ)
+  // Manual free-review mark (written by the /vocabulary/review page). A fully
+  // SEPARATE learning track from SM-2 — never touched by the daily program.
+  manualStatus WordStatus @default(NOT_READ) @map("manual_status")
 
   // ─── SM-2 spaced-repetition scheduling ───────────────────────────────────────
   repetitions    Int       @default(0)

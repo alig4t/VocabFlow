@@ -1,9 +1,19 @@
-import { SlidersHorizontal, Volume2, Eye, BookOpen, Shuffle, ArrowLeftRight, Trash2, Loader2 } from 'lucide-react'
+import { useState } from 'react'
+import { SlidersHorizontal, Volume2, Eye, BookOpen, Shuffle, ArrowLeftRight, Trash2, Loader2, AlertTriangle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tooltip } from '@/components/ui/tooltip'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import { useSettings, useUpdateSettings } from '@/hooks/useSettings'
 import { usePlans, useUpdatePlan, useDeletePlan } from '@/hooks/usePlans'
 import { useToast } from '@/components/ui/use-toast'
@@ -72,6 +82,17 @@ function PlanCard({ plan }: { plan: LearningPlan }) {
   const updatePlan = useUpdatePlan()
   const deletePlan = useDeletePlan()
   const { toast } = useToast()
+  const [confirmOpen, setConfirmOpen] = useState(false)
+
+  function handleDelete() {
+    deletePlan.mutate(plan.id, {
+      onSuccess: () => {
+        toast({ title: 'برنامه حذف شد', description: plan.volumeTitle, variant: 'default' })
+        setConfirmOpen(false)
+      },
+      onError: () => toast({ title: 'خطا', description: 'حذف ناموفق بود.', variant: 'destructive' }),
+    })
+  }
 
   return (
     <div className="rounded-xl border border-border p-4">
@@ -82,25 +103,49 @@ function PlanCard({ plan }: { plan: LearningPlan }) {
           </p>
           <p className="text-xs text-muted-foreground">{faNum(plan.totalWords)} لغت</p>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0 text-destructive hover:bg-destructive/10"
-          title="حذف از برنامه"
-          disabled={deletePlan.isPending}
-          onClick={() =>
-            deletePlan.mutate(plan.id, {
-              onSuccess: () => toast({ title: 'برنامه حذف شد', variant: 'default' }),
-            })
-          }
-        >
-          {deletePlan.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
+        <Tooltip label="حذف برنامه یادگیری" side="top">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0 text-destructive hover:bg-destructive/10"
+            aria-label="حذف برنامه یادگیری"
+            onClick={() => setConfirmOpen(true)}
+          >
             <Trash2 className="h-4 w-4" />
-          )}
-        </Button>
+          </Button>
+        </Tooltip>
       </div>
+
+      {/* Delete confirmation */}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent dir="rtl" className="font-persian max-w-md">
+          <DialogHeader className="text-right sm:text-right">
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              حذف برنامه یادگیری؟
+            </DialogTitle>
+            <DialogDescription className="leading-relaxed">
+              برنامه‌ی <span className="font-semibold text-foreground">{plan.bookTitle} — {plan.volumeTitle}</span>{' '}
+              حذف می‌شود و <span className="font-semibold text-foreground">پیشرفت مرور و زمان‌بندی SM-2</span> شما
+              برای لغات این جلد نیز پاک خواهد شد. این عمل قابل بازگشت نیست.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={deletePlan.isPending}>
+              انصراف
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deletePlan.isPending}
+              className="gap-2"
+            >
+              {deletePlan.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              حذف کن
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="mt-3 space-y-1">
         <p className="text-xs font-medium text-muted-foreground">لغات جدید در روز</p>

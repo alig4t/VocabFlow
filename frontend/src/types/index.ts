@@ -136,7 +136,10 @@ export interface UserWordProgress {
   userId: string
   wordId: string
   reviewMode: ReviewMode
+  /** SM-2 daily-program state (set by "Study Today"). */
   status: WordStatus
+  /** Manual free-review mark (set on the Review page) — a separate track. */
+  manualStatus?: WordStatus
 }
 
 export interface LearningModule {

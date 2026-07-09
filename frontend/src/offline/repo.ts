@@ -151,15 +151,16 @@ function buildWhere(f: WordFilters): { clause: string; params: unknown[] } {
     parts.push('(w.eng LIKE ? OR w.per LIKE ?)')
     params.push(`%${f.search}%`, `%${f.search}%`)
   }
+  // Words/Review pages filter by the MANUAL mark (separate from the SM-2 program).
   if (f.status !== undefined && f.status !== 'ALL' && f.mode !== undefined) {
     if (f.status === 'NOT_READ') {
       parts.push(
-        `NOT EXISTS (SELECT 1 FROM progress p WHERE p.word_id = w.id AND p.review_mode = ? AND p.status IN ('KNOWN','NOT_KNOWN'))`,
+        `NOT EXISTS (SELECT 1 FROM progress p WHERE p.word_id = w.id AND p.review_mode = ? AND p.manual_status IN ('KNOWN','NOT_KNOWN'))`,
       )
       params.push(f.mode)
     } else {
       parts.push(
-        `EXISTS (SELECT 1 FROM progress p WHERE p.word_id = w.id AND p.review_mode = ? AND p.status = ?)`,
+        `EXISTS (SELECT 1 FROM progress p WHERE p.word_id = w.id AND p.review_mode = ? AND p.manual_status = ?)`,
       )
       params.push(f.mode, f.status)
     }
@@ -227,13 +228,25 @@ async function loadPhrases(wordIds: string[]): Promise<Map<string, Word['phrases
 async function loadProgress(wordIds: string[]): Promise<Map<string, Word['progress']>> {
   const map = new Map<string, NonNullable<Word['progress']>>()
   if (wordIds.length === 0) return map
-  const rows = await query<{ word_id: string; review_mode: ReviewMode; status: WordStatus }>(
-    `SELECT word_id, review_mode, status FROM progress WHERE word_id IN (${wordIds.map(() => '?').join(',')})`,
+  const rows = await query<{
+    word_id: string
+    review_mode: ReviewMode
+    status: WordStatus
+    manual_status: WordStatus
+  }>(
+    `SELECT word_id, review_mode, status, manual_status FROM progress WHERE word_id IN (${wordIds.map(() => '?').join(',')})`,
     wordIds,
   )
   for (const r of rows) {
     const list = map.get(r.word_id) ?? []
-    list.push({ id: '', userId: '', wordId: r.word_id, reviewMode: r.review_mode, status: r.status })
+    list.push({
+      id: '',
+      userId: '',
+      wordId: r.word_id,
+      reviewMode: r.review_mode,
+      status: r.status,
+      manualStatus: r.manual_status,
+    })
     map.set(r.word_id, list)
   }
   return map
@@ -280,33 +293,37 @@ export async function getWord(id: string): Promise<Word> {
   return mapWord(r, examples.get(id) ?? [], phrases.get(id) ?? [], progress.get(id) ?? [])
 }
 
+/** Manual free-review mark — writes `manual_status` only (SM-2 fields untouched). */
 export async function updateWordStatus(
   wordId: string,
   reviewMode: ReviewMode,
   status: WordStatus,
 ): Promise<void> {
   await run(
-    `INSERT INTO progress (word_id, review_mode, status, updated_at) VALUES (?, ?, ?, ?)
-     ON CONFLICT(word_id, review_mode) DO UPDATE SET status = excluded.status, updated_at = excluded.updated_at`,
+    `INSERT INTO progress (word_id, review_mode, manual_status, updated_at) VALUES (?, ?, ?, ?)
+     ON CONFLICT(word_id, review_mode) DO UPDATE SET manual_status = excluded.manual_status, updated_at = excluded.updated_at`,
     [wordId, reviewMode, status, now()],
   )
 }
 
+/** Reset MANUAL marks only (keep SM-2 rows/scheduling intact). */
 export async function resetProgress(reviewMode?: ReviewMode): Promise<void> {
-  if (reviewMode) await run('DELETE FROM progress WHERE review_mode = ?', [reviewMode])
-  else await run('DELETE FROM progress', [])
+  if (reviewMode)
+    await run(`UPDATE progress SET manual_status = 'NOT_READ' WHERE review_mode = ?`, [reviewMode])
+  else await run(`UPDATE progress SET manual_status = 'NOT_READ'`, [])
 }
 
 export async function getStats(): Promise<ProgressStats> {
   const totalRow = await query<{ c: number }>('SELECT COUNT(*) AS c FROM words', [])
   const total = totalRow[0]?.c ?? 0
-  const counts = await query<{ review_mode: ReviewMode; status: WordStatus; c: number }>(
-    'SELECT review_mode, status, COUNT(*) AS c FROM progress GROUP BY review_mode, status',
+  const counts = await query<{ review_mode: ReviewMode; manual_status: WordStatus; c: number }>(
+    'SELECT review_mode, manual_status, COUNT(*) AS c FROM progress GROUP BY review_mode, manual_status',
     [],
   )
   const mk = (mode: ReviewMode) => {
-    const known = counts.find((x) => x.review_mode === mode && x.status === 'KNOWN')?.c ?? 0
-    const notKnown = counts.find((x) => x.review_mode === mode && x.status === 'NOT_KNOWN')?.c ?? 0
+    const known = counts.find((x) => x.review_mode === mode && x.manual_status === 'KNOWN')?.c ?? 0
+    const notKnown =
+      counts.find((x) => x.review_mode === mode && x.manual_status === 'NOT_KNOWN')?.c ?? 0
     return { KNOWN: known, NOT_KNOWN: notKnown, NOT_READ: total - known - notKnown, total }
   }
   return { EN_TO_FA: mk('EN_TO_FA'), FA_TO_EN: mk('FA_TO_EN') }
@@ -903,6 +920,18 @@ export async function updatePlan(
 }
 
 export async function deletePlan(id: string): Promise<{ id: string }> {
+  const row = (
+    await query<{ volume_id: string }>('SELECT volume_id FROM learning_plans WHERE id=?', [id])
+  )[0]
+  if (row) {
+    // Clear SM-2 program data for the volume's words; keep manual_status intact.
+    await run(
+      `UPDATE progress SET status='NOT_READ', repetitions=0, interval_days=0, ease_factor=2.5,
+         review_count=0, correct_count=0, wrong_count=0, last_reviewed_at=NULL, next_review_at=NULL, introduced_at=NULL
+       WHERE word_id IN (SELECT w.id FROM words w JOIN lessons l ON w.lesson_id=l.id WHERE l.volume_id=?)`,
+      [row.volume_id],
+    )
+  }
   await run('DELETE FROM learning_plans WHERE id=?', [id])
   return { id }
 }

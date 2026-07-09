@@ -46,8 +46,8 @@ export function useResetProgress() {
 }
 
 /**
- * Helper hook that extracts the progress status for a given word and review mode.
- * Returns undefined if no progress entry exists (implicitly NOT_READ).
+ * The MANUAL free-review mark for a word + review mode (a track separate from
+ * the SM-2 daily program). Returns NOT_READ if no entry exists.
  */
 export function useWordStatus(
   word: Word,
@@ -59,5 +59,5 @@ export function useWordStatus(
   const entry: UserWordProgress | undefined = word.progress.find(
     (p) => p.reviewMode === mode,
   )
-  return entry?.status ?? 'NOT_READ'
+  return entry?.manualStatus ?? 'NOT_READ'
 }

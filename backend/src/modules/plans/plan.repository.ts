@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, WordStatus } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
@@ -55,6 +55,29 @@ export class PlanRepository {
 
   async remove(id: string) {
     return prisma.learningPlan.delete({ where: { id } })
+  }
+
+  /**
+   * Clear the SM-2 daily-program state for every word in a volume (so re-adding
+   * the plan starts fresh). The separate MANUAL mark (`manualStatus`) is left
+   * intact — it's an independent track.
+   */
+  async resetVolumeSm2(userId: string, volumeId: string) {
+    return prisma.userWordProgress.updateMany({
+      where: { userId, word: { lesson: { volumeId } } },
+      data: {
+        status: WordStatus.NOT_READ,
+        repetitions: 0,
+        intervalDays: 0,
+        easeFactor: 2.5,
+        reviewCount: 0,
+        correctCount: 0,
+        wrongCount: 0,
+        lastReviewedAt: null,
+        nextReviewAt: null,
+        introducedAt: null,
+      },
+    })
   }
 
   /** Total words in a volume. */

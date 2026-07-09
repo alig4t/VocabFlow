@@ -174,7 +174,7 @@ export function StartPlanDialog({ book, open, onOpenChange }: StartPlanDialogPro
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-2 sm:gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             انصراف
           </Button>

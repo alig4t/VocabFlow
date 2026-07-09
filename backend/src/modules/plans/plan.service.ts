@@ -64,7 +64,9 @@ export class PlanService {
   }
 
   async remove(userId: string, id: string) {
-    await this.assertOwned(userId, id)
+    const plan = await this.assertOwned(userId, id)
+    // Clear the SM-2 program data for this volume (manual marks are preserved).
+    await this.repo.resetVolumeSm2(userId, plan.volumeId)
     await this.repo.remove(id)
     return { id }
   }

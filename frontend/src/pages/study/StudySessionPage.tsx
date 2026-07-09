@@ -41,7 +41,7 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
           'border-red-300 text-red-700 hover:bg-red-50 focus-visible:ring-red-400 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40',
         )}
       >
-        دوباره
+        بلد نیستم
       </button>
       <button
         onClick={() => onAnswer('HARD')}
@@ -59,13 +59,14 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
           'border-green-300 text-green-700 hover:bg-green-50 focus-visible:ring-green-400 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950/40',
         )}
       >
-        آسان
+        بلدم
       </button>
       <button
         onClick={() => onAnswer('SKIP')}
+        title="فعلاً رد کن (بدون تغییر زمان‌بندی)"
         className={cn(
           btn,
-          'border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring',
+          'max-w-[4.5rem] border-dashed border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring',
         )}
       >
         رد
@@ -167,8 +168,9 @@ export function StudySessionPage() {
       else counters.current.skip += 1
       if (a !== 'SKIP' && cur.isNew) introducedNew.current.add(cur.word.id)
 
-      // Again/Skip → requeue to the end so the card comes back this session.
-      const willRequeue = a === 'AGAIN' || a === 'SKIP'
+      // "بلد نیستم" (Again) → requeue so the card returns later this session.
+      // "رد" (Skip) → just move on; no reschedule, no requeue (distinct behavior).
+      const willRequeue = a === 'AGAIN'
       if (willRequeue) setQueue((prev) => (prev ? [...prev, cur] : prev))
 
       const nextLen = queue.length + (willRequeue ? 1 : 0)
@@ -419,9 +421,9 @@ export function StudySessionPage() {
           {!isNative() && flipped && (
             <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[11px] text-muted-foreground/80">
               {[
-                { key: '1', label: 'دوباره' },
+                { key: '1', label: 'بلد نیستم' },
                 { key: '2', label: 'سخت' },
-                { key: '3', label: 'آسان' },
+                { key: '3', label: 'بلدم' },
                 { key: 'S', label: 'رد' },
                 { key: 'P', label: 'تلفظ' },
               ].map((s) => (

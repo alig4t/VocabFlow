@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, ChevronLeft, ChevronRight, Volume2, VolumeX, SquarePen } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, ChevronRight, Volume2, VolumeX, SquarePen, BookMarked } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ReviewCard } from '@/components/vocabulary/ReviewCard'
 import { useWords } from '@/hooks/useVocabulary'
@@ -328,7 +328,8 @@ export function ReviewPage() {
                 ...w,
                 progress: [
                   ...(w.progress ?? []).filter((p) => p.reviewMode !== mode),
-                  { id: '', userId: '', wordId, reviewMode: mode, status },
+                  // Manual free-review mark (separate from the SM-2 program).
+                  { id: '', userId: '', wordId, reviewMode: mode, status: 'NOT_READ', manualStatus: status },
                 ],
               }
             : w,
@@ -537,6 +538,16 @@ export function ReviewPage() {
             </>
           )}
         </div>
+      </div>
+
+      {/* This is a SEPARATE manual track from "Study Today" (SM-2). */}
+      <div className="flex items-start gap-2 rounded-xl border border-blue-200 bg-blue-50/60 px-3 py-2 text-xs leading-relaxed text-blue-800 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300">
+        <BookMarked className="mt-0.5 h-4 w-4 flex-shrink-0" />
+        <span>
+          این یک <span className="font-semibold">مسیر مرور آزاد</span> است: فقط لغت‌ها را «بلدم/بلد
+          نیستم» علامت می‌زنید و روی برنامه‌ی «مطالعه امروز» تأثیری ندارد. مناسب کسانی که می‌خواهند
+          سریع‌تر و بدون زمان‌بندی پیش بروند.
+        </span>
       </div>
 
       {/* Progress — one counter for the whole session */}

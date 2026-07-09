@@ -4,7 +4,7 @@ import { ChevronDown, ChevronUp, BookOpen, Sparkles, Volume2, SquarePen } from '
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { useUpdateWordStatus, useWordStatus } from '@/hooks/useProgress'
+import { useWordStatus } from '@/hooks/useProgress'
 import { useAuthStore } from '@/store/authStore'
 import { synonymService } from '@/services/synonym.service'
 import { playPronunciation } from '@/lib/pronounce'
@@ -48,12 +48,6 @@ export function WordCard({ word, mode }: WordCardProps) {
   const isAdmin = useAuthStore((s) => s.user?.role === 'ADMIN')
 
   const status = useWordStatus(word, mode)
-  const { mutate: updateStatus, isPending } = useUpdateWordStatus()
-
-  function handleStatus(newStatus: 'KNOWN' | 'NOT_KNOWN') {
-    if (isPending) return
-    updateStatus({ wordId: word.id, reviewMode: mode, status: newStatus })
-  }
 
   const handleSpeak = useCallback(() => {
     playPronunciation({ eng: word.eng, pronunciationAudio: word.pronunciationAudio })
@@ -168,36 +162,8 @@ export function WordCard({ word, mode }: WordCardProps) {
           </div>
         </div>
 
-        {/* Action row */}
+        {/* Action row (browse-only: marking happens on the Review page) */}
         <div className="mt-3 flex items-center gap-2 flex-wrap">
-          {/* Status change buttons */}
-          <button
-            onClick={() => handleStatus('KNOWN')}
-            disabled={isPending}
-            className={cn(
-              'px-3 py-1 rounded-md text-xs font-semibold border transition-all duration-150',
-              status === 'KNOWN'
-                ? 'bg-green-500 text-white border-green-500'
-                : 'border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-400 dark:hover:bg-green-900/30',
-              isPending && 'opacity-50 cursor-not-allowed',
-            )}
-          >
-            یاد گرفتم
-          </button>
-          <button
-            onClick={() => handleStatus('NOT_KNOWN')}
-            disabled={isPending}
-            className={cn(
-              'px-3 py-1 rounded-md text-xs font-semibold border transition-all duration-150',
-              status === 'NOT_KNOWN'
-                ? 'bg-red-500 text-white border-red-500'
-                : 'border-red-300 text-red-700 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/30',
-              isPending && 'opacity-50 cursor-not-allowed',
-            )}
-          >
-            یاد نگرفتم
-          </button>
-
           <div className="flex-1" />
 
           {/* Edit word (admins / offline app) */}

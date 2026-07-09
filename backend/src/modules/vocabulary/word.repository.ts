@@ -71,9 +71,11 @@ export class WordRepository {
       ...(status !== undefined &&
         userId !== undefined &&
         mode !== undefined &&
+        // The Words/Review pages filter by the MANUAL mark (manualStatus), which
+        // is the separate free-review track — not the SM-2 program `status`.
         (status === 'NOT_READ'
           ? {
-              // "نخوانده" = هیچ ردیف پیشرفتی با وضعیت KNOWN/NOT_KNOWN برای این کاربر+حالت وجود ندارد.
+              // "نخوانده" = هیچ ردیف پیشرفتی با manualStatus برابر KNOWN/NOT_KNOWN وجود ندارد.
               // لغاتی که کاربر اصلاً با آن‌ها تعامل نداشته هیچ ردیف progress ندارند، پس یک
               // match ساده با `some` آن‌ها را از قلم می‌اندازد؛ به‌جای آن از حالت منفی استفاده می‌کنیم.
               NOT: {
@@ -81,7 +83,7 @@ export class WordRepository {
                   some: {
                     userId,
                     reviewMode: mode,
-                    status: { in: ['KNOWN', 'NOT_KNOWN'] },
+                    manualStatus: { in: ['KNOWN', 'NOT_KNOWN'] },
                   },
                 },
               },
@@ -91,7 +93,7 @@ export class WordRepository {
                 some: {
                   userId,
                   reviewMode: mode,
-                  status,
+                  manualStatus: status,
                 },
               },
             })),
@@ -115,7 +117,7 @@ export class WordRepository {
             userId !== undefined && mode !== undefined
               ? {
                   where: { userId, reviewMode: mode },
-                  select: { status: true, reviewMode: true },
+                  select: { status: true, manualStatus: true, reviewMode: true },
                 }
               : false,
           module: { select: { id: true, name: true, slug: true } },
