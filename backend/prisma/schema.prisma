@@ -19,6 +19,9 @@ model User {
   progress      UserWordProgress[]
   refreshTokens RefreshToken[]
   watchlist     WatchlistItem[]
+  plans         LearningPlan[]
+  sessions      StudySession[]
+  settings      UserSettings?
 
   @@map("users")
 }
@@ -90,8 +93,9 @@ model Volume {
   coverImage   String?  @map("cover_image")
   createdAt    DateTime @default(now()) @map("created_at")
 
-  book    Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  book    Book           @relation(fields: [bookId], references: [id], onDelete: Cascade)
   lessons Lesson[]
+  plans   LearningPlan[]
 
   @@unique([bookId, volumeNumber])
   @@map("volumes")
@@ -190,14 +194,93 @@ model UserWordProgress {
   wordId     String     @map("word_id")
   reviewMode ReviewMode @map("review_mode")
   status     WordStatus @default(NOT_READ)
-  updatedAt  DateTime   @updatedAt @map("updated_at")
+
+  // ─── SM-2 spaced-repetition scheduling ───────────────────────────────────────
+  repetitions    Int       @default(0)
+  intervalDays   Int       @default(0) @map("interval_days")
+  easeFactor     Float     @default(2.5) @map("ease_factor")
+  reviewCount    Int       @default(0) @map("review_count")
+  correctCount   Int       @default(0) @map("correct_count")
+  wrongCount     Int       @default(0) @map("wrong_count")
+  lastReviewedAt DateTime? @map("last_reviewed_at")
+  nextReviewAt   DateTime? @map("next_review_at")
+  // Timestamp the word first entered the learning cycle (null = never introduced,
+  // i.e. still a "new word" candidate for the daily quota).
+  introducedAt DateTime? @map("introduced_at")
+
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   word Word @relation(fields: [wordId], references: [id], onDelete: Cascade)
 
   @@unique([userId, wordId, reviewMode])
   @@index([userId, reviewMode])
+  @@index([userId, reviewMode, nextReviewAt])
   @@map("user_word_progress")
+}
+
+/// A user's learning plan for a single volume: the source of truth for the
+/// "my learning list". Replaces the book-level watchlist as the driver of the
+/// daily study system (new-word introduction + review scheduling).
+model LearningPlan {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  volumeId      String   @map("volume_id")
+  dailyNewWords Int      @default(10) @map("daily_new_words")
+  dailyGoal     Int      @default(30) @map("daily_goal")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  volume Volume @relation(fields: [volumeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, volumeId])
+  @@index([userId])
+  @@map("learning_plans")
+}
+
+/// One completed daily study session — powers the end-of-session summary,
+/// the study streak, the activity heatmap, and accuracy statistics.
+model StudySession {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  startedAt     DateTime  @map("started_at")
+  endedAt       DateTime? @map("ended_at")
+  durationSec   Int       @default(0) @map("duration_sec")
+  reviewedCount Int       @default(0) @map("reviewed_count")
+  correctCount  Int       @default(0) @map("correct_count")
+  wrongCount    Int       @default(0) @map("wrong_count")
+  hardCount     Int       @default(0) @map("hard_count")
+  skippedCount  Int       @default(0) @map("skipped_count")
+  newCount      Int       @default(0) @map("new_count")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startedAt])
+  @@map("study_sessions")
+}
+
+/// Per-user global preferences. `dailyNewWords`/`dailyGoal` live on
+/// `LearningPlan` (per volume); these are the app-wide study settings.
+model UserSettings {
+  userId         String     @id @map("user_id")
+  studyDirection ReviewMode @default(EN_TO_FA) @map("study_direction")
+  autoPlayAudio  Boolean    @default(true) @map("auto_play_audio")
+  showPhonetics  Boolean    @default(true) @map("show_phonetics")
+  showExamples   Boolean    @default(true) @map("show_examples")
+  cardOrder      CardOrder  @default(SEQUENTIAL) @map("card_order")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+enum CardOrder {
+  SEQUENTIAL
+  RANDOM
 }
 
 enum ReviewMode {

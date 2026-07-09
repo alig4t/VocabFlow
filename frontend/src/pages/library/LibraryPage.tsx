@@ -3,38 +3,18 @@ import { Compass, BookOpen } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { DiscoveryBookCard } from '@/components/library/DiscoveryBookCard'
-import { useDiscoveryBooks, useToggleWatchlist } from '@/hooks/useDashboard'
-import { useToast } from '@/components/ui/use-toast'
+import { StartPlanDialog } from '@/components/library/StartPlanDialog'
+import { useDiscoveryBooks } from '@/hooks/useDashboard'
 import type { DiscoveryBook } from '@/types'
 
 export function LibraryPage() {
   const { data: books, isLoading, isError } = useDiscoveryBooks()
-  const toggle = useToggleWatchlist()
-  const { toast } = useToast()
-  const [pendingId, setPendingId] = useState<string | null>(null)
+  const [dialogBook, setDialogBook] = useState<DiscoveryBook | null>(null)
+  const [dialogOpen, setDialogOpen] = useState(false)
 
-  function handleToggle(book: DiscoveryBook) {
-    setPendingId(book.id)
-    toggle.mutate(
-      { bookId: book.id, inWatchlist: book.inWatchlist },
-      {
-        onSuccess: () => {
-          toast({
-            title: book.inWatchlist ? 'از لیست حذف شد' : 'به لیست یادگیری اضافه شد',
-            description: book.title,
-            variant: book.inWatchlist ? 'default' : 'success',
-          })
-        },
-        onError: () => {
-          toast({
-            title: 'خطا',
-            description: 'عملیات ناموفق بود. دوباره تلاش کنید.',
-            variant: 'destructive',
-          })
-        },
-        onSettled: () => setPendingId(null),
-      },
-    )
+  function handleStartPlan(book: DiscoveryBook) {
+    setDialogBook(book)
+    setDialogOpen(true)
   }
 
   return (
@@ -68,15 +48,12 @@ export function LibraryPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {books.map((book) => (
-            <DiscoveryBookCard
-              key={book.id}
-              book={book}
-              isToggling={pendingId === book.id}
-              onToggle={handleToggle}
-            />
+            <DiscoveryBookCard key={book.id} book={book} onStartPlan={handleStartPlan} />
           ))}
         </div>
       )}
+
+      <StartPlanDialog book={dialogBook} open={dialogOpen} onOpenChange={setDialogOpen} />
     </div>
   )
 }

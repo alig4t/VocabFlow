@@ -9,9 +9,20 @@ interface ReviewCardProps {
   flipped: boolean
   /** Toggle the flip state (show/hide the translation). */
   onToggle: () => void
+  /** Show the IPA phonetic transcription (user setting; default true). */
+  showPhonetics?: boolean
+  /** Show example sentences on the back face (user setting; default true). */
+  showExamples?: boolean
 }
 
-export function ReviewCard({ word, mode, flipped, onToggle }: ReviewCardProps) {
+export function ReviewCard({
+  word,
+  mode,
+  flipped,
+  onToggle,
+  showPhonetics = true,
+  showExamples = true,
+}: ReviewCardProps) {
   const frontContent =
     mode === 'EN_TO_FA'
       ? { text: word.eng, dir: 'ltr' as const, isEnglish: true }
@@ -39,7 +50,7 @@ export function ReviewCard({ word, mode, flipped, onToggle }: ReviewCardProps) {
     ) : null
 
   const Phonetic = ({ show }: { show: boolean }) =>
-    show && phonetic ? (
+    show && showPhonetics && phonetic ? (
       <p dir="ltr" className="mt-2 font-mono text-sm tracking-wide text-muted-foreground/60">
         {phonetic}
       </p>
@@ -105,7 +116,7 @@ export function ReviewCard({ word, mode, flipped, onToggle }: ReviewCardProps) {
                 </p>
               )}
 
-              {examples.length > 0 && (
+              {showExamples && examples.length > 0 && (
                 <div className="mt-4 w-full max-w-md space-y-2">
                   {examples.map((ex, i) => (
                     <div key={i} className="rounded-lg bg-muted/40 px-3 py-2">

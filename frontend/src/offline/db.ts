@@ -82,18 +82,86 @@ CREATE TABLE IF NOT EXISTS progress (
   review_mode TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'NOT_READ',
   updated_at TEXT,
+  repetitions INTEGER NOT NULL DEFAULT 0,
+  interval_days INTEGER NOT NULL DEFAULT 0,
+  ease_factor REAL NOT NULL DEFAULT 2.5,
+  review_count INTEGER NOT NULL DEFAULT 0,
+  correct_count INTEGER NOT NULL DEFAULT 0,
+  wrong_count INTEGER NOT NULL DEFAULT 0,
+  last_reviewed_at TEXT,
+  next_review_at TEXT,
+  introduced_at TEXT,
   PRIMARY KEY (word_id, review_mode)
 );
 CREATE INDEX IF NOT EXISTS idx_progress_status ON progress(status);
+CREATE INDEX IF NOT EXISTS idx_progress_due ON progress(review_mode, next_review_at);
 CREATE TABLE IF NOT EXISTS watchlist (
   book_id TEXT PRIMARY KEY NOT NULL,
   created_at TEXT
+);
+-- Per-volume learning plans (source of truth for the daily learning system).
+CREATE TABLE IF NOT EXISTS learning_plans (
+  id TEXT PRIMARY KEY NOT NULL,
+  volume_id TEXT NOT NULL UNIQUE,
+  daily_new_words INTEGER NOT NULL DEFAULT 10,
+  daily_goal INTEGER NOT NULL DEFAULT 30,
+  is_active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT
+);
+-- One row per completed daily study session (streak / heatmap / accuracy).
+CREATE TABLE IF NOT EXISTS study_sessions (
+  id TEXT PRIMARY KEY NOT NULL,
+  started_at TEXT,
+  ended_at TEXT,
+  duration_sec INTEGER NOT NULL DEFAULT 0,
+  reviewed_count INTEGER NOT NULL DEFAULT 0,
+  correct_count INTEGER NOT NULL DEFAULT 0,
+  wrong_count INTEGER NOT NULL DEFAULT 0,
+  hard_count INTEGER NOT NULL DEFAULT 0,
+  skipped_count INTEGER NOT NULL DEFAULT 0,
+  new_count INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_started ON study_sessions(started_at);
+-- Single-row (local user) settings.
+CREATE TABLE IF NOT EXISTS user_settings (
+  id TEXT PRIMARY KEY NOT NULL,
+  study_direction TEXT NOT NULL DEFAULT 'EN_TO_FA',
+  auto_play_audio INTEGER NOT NULL DEFAULT 1,
+  show_phonetics INTEGER NOT NULL DEFAULT 1,
+  show_examples INTEGER NOT NULL DEFAULT 1,
+  card_order TEXT NOT NULL DEFAULT 'SEQUENTIAL'
 );
 CREATE TABLE IF NOT EXISTS meta (
   key TEXT PRIMARY KEY NOT NULL,
   value TEXT
 );
 `
+
+// Columns added to the `progress` table after its first release. Existing
+// installs created the table without them, so ADD COLUMN any that are missing
+// (CREATE TABLE IF NOT EXISTS never alters an existing table).
+const PROGRESS_ADDED_COLUMNS: { name: string; ddl: string }[] = [
+  { name: 'repetitions', ddl: 'repetitions INTEGER NOT NULL DEFAULT 0' },
+  { name: 'interval_days', ddl: 'interval_days INTEGER NOT NULL DEFAULT 0' },
+  { name: 'ease_factor', ddl: 'ease_factor REAL NOT NULL DEFAULT 2.5' },
+  { name: 'review_count', ddl: 'review_count INTEGER NOT NULL DEFAULT 0' },
+  { name: 'correct_count', ddl: 'correct_count INTEGER NOT NULL DEFAULT 0' },
+  { name: 'wrong_count', ddl: 'wrong_count INTEGER NOT NULL DEFAULT 0' },
+  { name: 'last_reviewed_at', ddl: 'last_reviewed_at TEXT' },
+  { name: 'next_review_at', ddl: 'next_review_at TEXT' },
+  { name: 'introduced_at', ddl: 'introduced_at TEXT' },
+]
+
+async function migrateSchema(db: SQLiteDBConnection): Promise<void> {
+  const cols = (await db.query('PRAGMA table_info(progress)')).values ?? []
+  const existing = new Set((cols as { name: string }[]).map((c) => c.name))
+  for (const col of PROGRESS_ADDED_COLUMNS) {
+    if (!existing.has(col.name)) {
+      await db.execute(`ALTER TABLE progress ADD COLUMN ${col.ddl};`)
+    }
+  }
+}
 
 /** Open (or reuse) the single app database connection and ensure the schema. */
 export async function getDb(): Promise<SQLiteDBConnection> {
@@ -107,6 +175,7 @@ export async function getDb(): Promise<SQLiteDBConnection> {
       await db.open()
     }
     await db.execute(SCHEMA)
+    await migrateSchema(db)
     return db
   })()
   return dbPromise

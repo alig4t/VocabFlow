@@ -1,4 +1,4 @@
-import { X, Book, Play, Settings, Library, LayoutDashboard, Compass, ShieldCheck, Users, FilePlus2 } from 'lucide-react'
+import { X, Book, Play, Settings, Library, LayoutDashboard, Compass, ShieldCheck, Users, FilePlus2, GraduationCap, SlidersHorizontal } from 'lucide-react'
 import { Link, NavLink } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { isNative } from '../../lib/platform'
@@ -19,9 +19,11 @@ interface NavItem {
 
 const mainItems: NavItem[] = [
   { to: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, label: 'داشبورد' },
+  { to: '/study', icon: <GraduationCap className="h-5 w-5" />, label: 'مطالعه امروز' },
   { to: '/library', icon: <Compass className="h-5 w-5" />, label: 'کتابخانه' },
   { to: '/vocabulary', icon: <Book className="h-5 w-5" />, label: 'لغات' },
   { to: '/vocabulary/review', icon: <Play className="h-5 w-5" />, label: 'حالت مرور' },
+  { to: '/settings', icon: <SlidersHorizontal className="h-5 w-5" />, label: 'تنظیمات' },
 ]
 
 const adminItems: NavItem[] = [

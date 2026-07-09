@@ -45,4 +45,22 @@ export const API_ENDPOINTS = {
     add: '/watchlist',
     remove: (bookId: string) => `/watchlist/${bookId}`,
   },
+  study: {
+    today: '/study/today',
+    answer: '/study/answer',
+    session: '/study/session',
+  },
+  plans: {
+    list: '/plans',
+    create: '/plans',
+    update: (id: string) => `/plans/${id}`,
+    remove: (id: string) => `/plans/${id}`,
+  },
+  settings: {
+    get: '/settings',
+    update: '/settings',
+  },
+  dashboard: {
+    get: '/dashboard',
+  },
 } as const

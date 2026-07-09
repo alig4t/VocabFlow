@@ -3,23 +3,28 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 export class WatchlistRepository {
-  /** Book ids the user has in their watchlist. */
+  /**
+   * Book ids the user is actively learning — i.e. books that have at least one
+   * active LearningPlan. The learning list is now driven by volume-level plans
+   * (the legacy book-level watchlist table is retained but no longer the source
+   * of truth for "in my list").
+   */
   async findBookIdsByUser(userId: string): Promise<string[]> {
-    const items = await prisma.watchlistItem.findMany({
-      where: { userId },
-      select: { bookId: true },
+    const plans = await prisma.learningPlan.findMany({
+      where: { userId, isActive: true },
+      select: { volume: { select: { bookId: true } } },
     })
-    return items.map((i) => i.bookId)
+    return [...new Set(plans.map((p) => p.volume.bookId))]
   }
 
-  /** Watchlisted books as simple {id, title} pairs, ordered by title. */
+  /** Books with an active plan, as simple {id, title} pairs, ordered by title. */
   async findWatchlistBooks(userId: string) {
-    const items = await prisma.watchlistItem.findMany({
-      where: { userId },
-      include: { book: { select: { id: true, title: true } } },
-      orderBy: { book: { title: 'asc' } },
+    const books = await prisma.book.findMany({
+      where: { volumes: { some: { plans: { some: { userId, isActive: true } } } } },
+      select: { id: true, title: true },
+      orderBy: { title: 'asc' },
     })
-    return items.map((i) => i.book)
+    return books
   }
 
   /** All books ordered by title (for the discovery/library view). */

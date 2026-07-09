@@ -1,0 +1,274 @@
+import { SlidersHorizontal, Volume2, Eye, BookOpen, Shuffle, ArrowLeftRight, Trash2, Loader2 } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Switch } from '@/components/ui/switch'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useSettings, useUpdateSettings } from '@/hooks/useSettings'
+import { usePlans, useUpdatePlan, useDeletePlan } from '@/hooks/usePlans'
+import { useToast } from '@/components/ui/use-toast'
+import { cn } from '@/lib/utils'
+import { faNum } from '@/lib/format'
+import type { CardOrder, LearningPlan, ReviewMode, UserSettings } from '@/types'
+
+const DAILY_OPTIONS = [10, 20, 30, 50]
+
+function SettingRow({
+  icon,
+  title,
+  description,
+  children,
+}: {
+  icon: React.ReactNode
+  title: string
+  description: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-3">
+      <div className="flex min-w-0 items-start gap-3">
+        <span className="mt-0.5 text-primary">{icon}</span>
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-foreground">{title}</p>
+          <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
+      </div>
+      <div className="shrink-0">{children}</div>
+    </div>
+  )
+}
+
+/** A two-option segmented toggle. */
+function Segmented<T extends string>({
+  value,
+  options,
+  onChange,
+}: {
+  value: T
+  options: { value: T; label: string }[]
+  onChange: (v: T) => void
+}) {
+  return (
+    <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5">
+      {options.map((o) => (
+        <button
+          key={o.value}
+          onClick={() => onChange(o.value)}
+          className={cn(
+            'rounded-md px-3 py-1 text-xs font-medium transition-colors',
+            value === o.value
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function PlanCard({ plan }: { plan: LearningPlan }) {
+  const updatePlan = useUpdatePlan()
+  const deletePlan = useDeletePlan()
+  const { toast } = useToast()
+
+  return (
+    <div className="rounded-xl border border-border p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-bold text-foreground">
+            {plan.bookTitle} — {plan.volumeTitle}
+          </p>
+          <p className="text-xs text-muted-foreground">{faNum(plan.totalWords)} لغت</p>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0 text-destructive hover:bg-destructive/10"
+          title="حذف از برنامه"
+          disabled={deletePlan.isPending}
+          onClick={() =>
+            deletePlan.mutate(plan.id, {
+              onSuccess: () => toast({ title: 'برنامه حذف شد', variant: 'default' }),
+            })
+          }
+        >
+          {deletePlan.isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Trash2 className="h-4 w-4" />
+          )}
+        </Button>
+      </div>
+
+      <div className="mt-3 space-y-1">
+        <p className="text-xs font-medium text-muted-foreground">لغات جدید در روز</p>
+        <div className="flex flex-wrap gap-1.5">
+          {DAILY_OPTIONS.map((n) => (
+            <button
+              key={n}
+              onClick={() =>
+                updatePlan.mutate({
+                  id: plan.id,
+                  input: { dailyNewWords: n, dailyGoal: Math.max(plan.dailyGoal, n) },
+                })
+              }
+              className={cn(
+                'min-w-[3rem] rounded-lg border px-3 py-1.5 text-sm font-semibold tabular-nums transition-colors',
+                plan.dailyNewWords === n
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border text-foreground hover:bg-accent',
+              )}
+            >
+              {faNum(n)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-3 space-y-1">
+        <p className="text-xs font-medium text-muted-foreground">هدف روزانه (مرور)</p>
+        <Input
+          type="number"
+          min={plan.dailyNewWords}
+          defaultValue={plan.dailyGoal}
+          onBlur={(e) => {
+            const v = Number(e.target.value)
+            if (v >= plan.dailyNewWords && v !== plan.dailyGoal) {
+              updatePlan.mutate({ id: plan.id, input: { dailyGoal: v } })
+            }
+          }}
+          className="w-24 tabular-nums"
+        />
+      </div>
+    </div>
+  )
+}
+
+export function SettingsPage() {
+  const { data: settings, isLoading } = useSettings()
+  const { data: plans } = usePlans()
+  const updateSettings = useUpdateSettings()
+
+  const set = (patch: Partial<UserSettings>) => updateSettings.mutate(patch)
+
+  return (
+    <div dir="rtl" className="font-persian mx-auto max-w-3xl space-y-6">
+      <header>
+        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-foreground">
+          <SlidersHorizontal className="h-6 w-6 text-primary" aria-hidden="true" />
+          تنظیمات
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">مطالعه و برنامه‌ی یادگیری خود را شخصی‌سازی کنید.</p>
+      </header>
+
+      {/* Study preferences */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">مطالعه</CardTitle>
+        </CardHeader>
+        <CardContent className="divide-y divide-border">
+          {isLoading || !settings ? (
+            <div className="space-y-3 py-2">
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="h-10 rounded-lg" />
+              ))}
+            </div>
+          ) : (
+            <>
+              <SettingRow
+                icon={<ArrowLeftRight className="h-5 w-5" />}
+                title="جهت مطالعه"
+                description="لغات به کدام جهت مرور و زمان‌بندی شوند."
+              >
+                <Segmented<ReviewMode>
+                  value={settings.studyDirection}
+                  onChange={(v) => set({ studyDirection: v })}
+                  options={[
+                    { value: 'EN_TO_FA', label: 'انگلیسی → فارسی' },
+                    { value: 'FA_TO_EN', label: 'فارسی → انگلیسی' },
+                  ]}
+                />
+              </SettingRow>
+
+              <SettingRow
+                icon={<Volume2 className="h-5 w-5" />}
+                title="پخش خودکار تلفظ"
+                description="هنگام نمایش هر لغت، تلفظ به‌طور خودکار پخش شود."
+              >
+                <Switch
+                  checked={settings.autoPlayAudio}
+                  onCheckedChange={(v) => set({ autoPlayAudio: v })}
+                />
+              </SettingRow>
+
+              <SettingRow
+                icon={<Eye className="h-5 w-5" />}
+                title="نمایش تلفظ آوایی"
+                description="نمایش آوانگاری (IPA) روی کارت‌ها."
+              >
+                <Switch
+                  checked={settings.showPhonetics}
+                  onCheckedChange={(v) => set({ showPhonetics: v })}
+                />
+              </SettingRow>
+
+              <SettingRow
+                icon={<BookOpen className="h-5 w-5" />}
+                title="نمایش مثال‌ها"
+                description="نمایش جملات نمونه هنگام مرور."
+              >
+                <Switch
+                  checked={settings.showExamples}
+                  onCheckedChange={(v) => set({ showExamples: v })}
+                />
+              </SettingRow>
+
+              <SettingRow
+                icon={<Shuffle className="h-5 w-5" />}
+                title="ترتیب کارت‌ها"
+                description="ترتیب نمایش لغات جدید."
+              >
+                <Segmented<CardOrder>
+                  value={settings.cardOrder}
+                  onChange={(v) => set({ cardOrder: v })}
+                  options={[
+                    { value: 'SEQUENTIAL', label: 'ترتیبی' },
+                    { value: 'RANDOM', label: 'تصادفی' },
+                  ]}
+                />
+              </SettingRow>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Per-volume learning plans */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">برنامه‌های یادگیری</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!plans ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[...Array(2)].map((_, i) => (
+                <Skeleton key={i} className="h-40 rounded-xl" />
+              ))}
+            </div>
+          ) : plans.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              هنوز برنامه‌ی یادگیری ندارید. از کتابخانه یک جلد اضافه کنید.
+            </p>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {plans.map((p) => (
+                <PlanCard key={p.id} plan={p} />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

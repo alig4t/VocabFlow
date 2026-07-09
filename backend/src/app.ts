@@ -12,6 +12,10 @@ import { progressRouter } from './modules/progress/progress.router'
 import { synonymRouter } from './modules/synonyms/synonym.router'
 import { bookRouter } from './modules/books/book.router'
 import { watchlistRouter } from './modules/watchlist/watchlist.router'
+import { studyRouter } from './modules/study/study.router'
+import { planRouter } from './modules/plans/plan.router'
+import { settingsRouter } from './modules/settings/settings.router'
+import { dashboardRouter } from './modules/dashboard/dashboard.router'
 import { errorMiddleware } from './shared/middleware/error.middleware'
 
 const app = express()
@@ -32,6 +36,10 @@ app.use('/api/progress', progressRouter)
 app.use('/api/synonyms', synonymRouter)
 app.use('/api/books', bookRouter)
 app.use('/api/watchlist', watchlistRouter)
+app.use('/api/study', studyRouter)
+app.use('/api/plans', planRouter)
+app.use('/api/settings', settingsRouter)
+app.use('/api/dashboard', dashboardRouter)
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date() })

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { GlobalStats } from '@/components/dashboard/GlobalStats'
+import { StudyTodayHero } from '@/components/dashboard/StudyTodayHero'
 import { WatchlistBookCard } from '@/components/dashboard/WatchlistBookCard'
 import { ContinueLearning } from '@/components/dashboard/ContinueLearning'
 import { ActivityHeatmap } from '@/components/dashboard/ActivityHeatmap'
@@ -62,6 +63,9 @@ export function DashboardPage() {
         </Card>
       ) : (
         <>
+          {/* Today's study — the primary call to action */}
+          <StudyTodayHero />
+
           {/* Global stats */}
           <GlobalStats stats={data.stats} />
 

@@ -1,4 +1,5 @@
 import { query, run, uid } from './db'
+import { schedule, startOfDay, endOfDay } from './srs'
 import type {
   Word,
   WordFilters,
@@ -17,6 +18,14 @@ import type {
   HeatmapDay,
   ReviewQueueItem,
   DashboardGlobalStats,
+  StudyToday,
+  StudyAnswer,
+  StudyAnswerResult,
+  StudyPlanMeta,
+  SessionSummary,
+  LearningPlan,
+  UserSettings,
+  CardOrder,
 } from '@/types'
 
 const MODULE_ID = 'offline-vocabulary'
@@ -324,8 +333,12 @@ export async function getLessonsSimple(volumeId: string): Promise<LessonSimple[]
 
 // ── Watchlist ────────────────────────────────────────────────────────────────
 export async function getWatchlistBooks(): Promise<BookSimple[]> {
+  // Books with at least one active learning plan (source of truth = plans).
   return query<BookSimple>(
-    'SELECT b.id, b.title FROM watchlist w JOIN books b ON w.book_id = b.id ORDER BY b.title ASC',
+    `SELECT DISTINCT b.id, b.title FROM books b
+     JOIN volumes v ON v.book_id = b.id
+     JOIN learning_plans lp ON lp.volume_id = v.id AND lp.is_active = 1
+     ORDER BY b.title ASC`,
     [],
   )
 }
@@ -335,7 +348,7 @@ export async function getDiscovery(): Promise<DiscoveryBook[]> {
   }>(
     `SELECT b.id, b.title, b.description, b.cover_image,
        (SELECT COUNT(*) FROM words wo JOIN lessons l ON wo.lesson_id=l.id JOIN volumes v ON l.volume_id=v.id WHERE v.book_id=b.id) AS total_words,
-       (SELECT COUNT(*) FROM watchlist wl WHERE wl.book_id=b.id) AS in_watchlist
+       (SELECT COUNT(*) FROM volumes v JOIN learning_plans lp ON lp.volume_id=v.id AND lp.is_active=1 WHERE v.book_id=b.id) AS in_watchlist
      FROM books b ORDER BY b.title ASC`,
     [],
   )
@@ -459,99 +472,136 @@ export async function getSynonyms(wordId: string): Promise<SynonymResult[]> {
 const dayOf = (iso: string | null | undefined) => (iso ? iso.slice(0, 10) : null)
 
 export async function getDashboard(): Promise<DashboardData> {
-  const today = new Date().toISOString().slice(0, 10)
+  const now = new Date()
+  const today = now.toISOString().slice(0, 10)
+  const dayStartIso = startOfDay(now).toISOString()
+  const dayEndIso = endOfDay(now).toISOString()
 
-  const wl = await query<{ id: string; title: string }>(
-    'SELECT b.id, b.title FROM watchlist w JOIN books b ON w.book_id = b.id ORDER BY b.title ASC',
-    [],
-  )
+  const settings = await getSettings()
+  const mode = settings.studyDirection
 
+  const plans = await activePlanRows()
+
+  // Per-volume watchlist rows.
   const watchlist: WatchlistBook[] = []
-  for (const b of wl) {
-    const totalRow = await query<{ c: number }>(
-      'SELECT COUNT(*) AS c FROM words wo JOIN lessons l ON wo.lesson_id=l.id JOIN volumes v ON l.volume_id=v.id WHERE v.book_id = ?',
-      [b.id],
-    )
+  for (const p of plans) {
+    const inVolume = 'l.volume_id = ?'
+    const [totalRow, knownRow, notKnownRow, introRow, reviewedRow, dueRow, lastRow] = await Promise.all([
+      query<{ c: number }>(
+        `SELECT COUNT(*) AS c FROM words w JOIN lessons l ON w.lesson_id=l.id WHERE ${inVolume}`,
+        [p.volume_id],
+      ),
+      query<{ c: number }>(
+        `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
+         WHERE pr.review_mode=? AND pr.status='KNOWN' AND ${inVolume}`,
+        [mode, p.volume_id],
+      ),
+      query<{ c: number }>(
+        `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
+         WHERE pr.review_mode=? AND pr.status='NOT_KNOWN' AND ${inVolume}`,
+        [mode, p.volume_id],
+      ),
+      query<{ c: number }>(
+        `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
+         WHERE pr.review_mode=? AND pr.introduced_at IS NOT NULL AND ${inVolume}`,
+        [mode, p.volume_id],
+      ),
+      query<{ c: number }>(
+        `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
+         WHERE pr.review_mode=? AND pr.last_reviewed_at>=? AND pr.last_reviewed_at<=? AND ${inVolume}`,
+        [mode, dayStartIso, dayEndIso, p.volume_id],
+      ),
+      query<{ c: number }>(
+        `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
+         WHERE pr.review_mode=? AND pr.introduced_at IS NOT NULL AND pr.next_review_at IS NOT NULL AND pr.next_review_at<=? AND ${inVolume}`,
+        [mode, dayEndIso, p.volume_id],
+      ),
+      query<{ t: string | null }>(
+        `SELECT MAX(pr.last_reviewed_at) AS t FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
+         WHERE pr.review_mode=? AND ${inVolume}`,
+        [mode, p.volume_id],
+      ),
+    ])
     const total = totalRow[0]?.c ?? 0
-    const prog = await query<{ word_id: string; status: WordStatus; updated_at: string | null }>(
-      `SELECT p.word_id, p.status, p.updated_at FROM progress p
-       JOIN words wo ON p.word_id=wo.id JOIN lessons l ON wo.lesson_id=l.id JOIN volumes v ON l.volume_id=v.id
-       WHERE v.book_id = ?`,
-      [b.id],
-    )
-    const byWord = new Map<string, Set<WordStatus>>()
-    let reviewedToday = 0
-    let lastStudied: string | null = null
-    for (const r of prog) {
-      const set = byWord.get(r.word_id) ?? new Set<WordStatus>()
-      set.add(r.status)
-      byWord.set(r.word_id, set)
-      if (dayOf(r.updated_at) === today) reviewedToday++
-      if (r.updated_at && (!lastStudied || r.updated_at > lastStudied)) lastStudied = r.updated_at
-    }
-    let known = 0
-    let notKnown = 0
-    for (const set of byWord.values()) {
-      if (set.has('KNOWN')) known++
-      else if (set.has('NOT_KNOWN')) notKnown++
-    }
-    const notRead = Math.max(0, total - known - notKnown)
-    const dueCount = notRead + notKnown
+    const known = knownRow[0]?.c ?? 0
+    const notKnown = notKnownRow[0]?.c ?? 0
+    const introduced = introRow[0]?.c ?? 0
+    const notRead = Math.max(0, total - introduced)
+    const remainingNew = notRead
     watchlist.push({
-      id: b.id,
-      bookId: b.id,
-      title: b.title,
-      coverImage: coverFor(b.title),
+      id: p.id,
+      bookId: p.book_id,
+      title: `${p.book_title} — ${p.volume_title ?? `جلد ${p.volume_number}`}`,
+      coverImage: coverFor(p.book_title),
       totalWords: total,
       knownWords: known,
       unknownWords: notKnown,
       notReadWords: notRead,
-      reviewedToday,
-      lastStudiedAt: dayOf(lastStudied),
-      dueCount,
-      estimatedDays: dueCount > 0 ? Math.ceil(dueCount / 20) : 0,
+      reviewedToday: reviewedRow[0]?.c ?? 0,
+      lastStudiedAt: lastRow[0]?.t ?? null,
+      dueCount: dueRow[0]?.c ?? 0,
+      estimatedDays: p.daily_new_words > 0 ? Math.ceil(remainingNew / p.daily_new_words) : 0,
     })
   }
 
-  const allProg = await query<{ word_id: string; status: WordStatus; updated_at: string | null }>(
-    'SELECT word_id, status, updated_at FROM progress',
+  // Global stats — from sessions (streak/accuracy/avg) + progress (learned).
+  const learnedRow = await query<{ c: number }>(
+    `SELECT COUNT(*) AS c FROM progress WHERE review_mode=? AND status='KNOWN'`,
+    [mode],
+  )
+  const sessions = await query<{
+    started_at: string | null
+    duration_sec: number
+    reviewed_count: number
+    correct_count: number
+    wrong_count: number
+  }>(
+    'SELECT started_at, duration_sec, reviewed_count, correct_count, wrong_count FROM study_sessions',
     [],
   )
-  const knownSet = new Set(allProg.filter((r) => r.status === 'KNOWN').map((r) => r.word_id))
-  const notKnownSet = new Set(
-    allProg.filter((r) => r.status === 'NOT_KNOWN' && !knownSet.has(r.word_id)).map((r) => r.word_id),
-  )
-  const denom = knownSet.size + notKnownSet.size
-  const reviewsToday = allProg.filter((r) => dayOf(r.updated_at) === today).length
 
-  // Study streak: consecutive days (ending today) with any progress update.
-  const activeDates = new Set(allProg.map((r) => dayOf(r.updated_at)).filter(Boolean) as string[])
+  const reviewsToday = sessions
+    .filter((s) => dayOf(s.started_at) === today)
+    .reduce((sum, s) => sum + s.reviewed_count, 0)
+  const totalCorrect = sessions.reduce((s, x) => s + x.correct_count, 0)
+  const totalWrong = sessions.reduce((s, x) => s + x.wrong_count, 0)
+  const accuracyRate =
+    totalCorrect + totalWrong > 0 ? Math.round((totalCorrect / (totalCorrect + totalWrong)) * 100) : 0
+  const avgStudyMinutes =
+    sessions.length > 0
+      ? Math.round(sessions.reduce((s, x) => s + x.duration_sec, 0) / sessions.length / 60)
+      : 0
+
+  // Streak: consecutive days (ending today, or yesterday) with a session.
+  const sessionDays = new Set(sessions.map((s) => dayOf(s.started_at)).filter(Boolean) as string[])
   let currentStreak = 0
   const cursor = new Date()
   cursor.setHours(0, 0, 0, 0)
-  while (activeDates.has(cursor.toISOString().slice(0, 10))) {
+  if (!sessionDays.has(cursor.toISOString().slice(0, 10))) cursor.setDate(cursor.getDate() - 1)
+  while (sessionDays.has(cursor.toISOString().slice(0, 10))) {
     currentStreak++
     cursor.setDate(cursor.getDate() - 1)
   }
 
+  const bookIds = new Set(plans.map((p) => p.book_id))
   const stats: DashboardGlobalStats = {
-    watchlistCount: watchlist.length,
-    totalWordsLearned: knownSet.size,
+    watchlistCount: bookIds.size,
+    totalWordsLearned: learnedRow[0]?.c ?? 0,
     reviewsToday,
     currentStreak,
-    avgStudyMinutes: 0,
-    accuracyRate: denom > 0 ? Math.round((knownSet.size / denom) * 100) : 0,
+    avgStudyMinutes,
+    accuracyRate,
   }
 
   const queue: ReviewQueueItem[] = watchlist
     .filter((b) => b.dueCount > 0)
     .map((b) => ({ bookId: b.bookId, title: b.title, dueCount: b.dueCount }))
 
-  // Activity heatmap: last 126 days, count of progress updates per day.
+  // Activity heatmap: last 126 days, reviewed words per day from sessions.
   const counts = new Map<string, number>()
-  for (const r of allProg) {
-    const d = dayOf(r.updated_at)
-    if (d) counts.set(d, (counts.get(d) ?? 0) + 1)
+  for (const s of sessions) {
+    const d = dayOf(s.started_at)
+    if (d) counts.set(d, (counts.get(d) ?? 0) + s.reviewed_count)
   }
   const heatmap: HeatmapDay[] = []
   const base = new Date()
@@ -564,4 +614,353 @@ export async function getDashboard(): Promise<DashboardData> {
   }
 
   return { stats, watchlist, heatmap, queue }
+}
+
+// ── Daily learning system (mirrors backend study/plans/settings modules) ───────
+
+interface PlanRow {
+  id: string
+  volume_id: string
+  daily_new_words: number
+  daily_goal: number
+  book_id: string
+  book_title: string
+  volume_number: number
+  volume_title: string | null
+}
+
+/** Active learning plans with their volume + book, oldest first. */
+async function activePlanRows(): Promise<PlanRow[]> {
+  return query<PlanRow>(
+    `SELECT lp.id, lp.volume_id, lp.daily_new_words, lp.daily_goal,
+            b.id AS book_id, b.title AS book_title, v.volume_number, v.title AS volume_title
+     FROM learning_plans lp
+     JOIN volumes v ON lp.volume_id = v.id
+     JOIN books b ON v.book_id = b.id
+     WHERE lp.is_active = 1
+     ORDER BY lp.created_at ASC`,
+    [],
+  )
+}
+
+/** Load full Word objects for a list of ids, preserving the given order. */
+async function wordsByIds(ids: string[]): Promise<Word[]> {
+  if (ids.length === 0) return []
+  const rows = await query<WordRow>(
+    `${WORD_SELECT} WHERE w.id IN (${ids.map(() => '?').join(',')})`,
+    ids,
+  )
+  const [examples, phrases, progress] = await Promise.all([
+    loadExamples(ids),
+    loadPhrases(ids),
+    loadProgress(ids),
+  ])
+  const byId = new Map(rows.map((r) => [r.id, r]))
+  const out: Word[] = []
+  for (const id of ids) {
+    const r = byId.get(id)
+    if (r) out.push(mapWord(r, examples.get(id) ?? [], phrases.get(id) ?? [], progress.get(id) ?? []))
+  }
+  return out
+}
+
+export async function getStudyToday(): Promise<StudyToday> {
+  const now = new Date()
+  const dayEndIso = endOfDay(now).toISOString()
+  const dayStartIso = startOfDay(now).toISOString()
+
+  const settings = await getSettings()
+  const mode = settings.studyDirection
+  const plans = await activePlanRows()
+  const volumeIds = plans.map((p) => p.volume_id)
+
+  // Due reviews.
+  let due: Word[] = []
+  if (volumeIds.length > 0) {
+    const dueRows = await query<{ word_id: string }>(
+      `SELECT p.word_id FROM progress p
+       JOIN words w ON p.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
+       WHERE p.review_mode=? AND p.introduced_at IS NOT NULL
+         AND p.next_review_at IS NOT NULL AND p.next_review_at<=?
+         AND l.volume_id IN (${volumeIds.map(() => '?').join(',')})
+       ORDER BY p.next_review_at ASC`,
+      [mode, dayEndIso, ...volumeIds],
+    )
+    due = await wordsByIds(dueRows.map((r) => r.word_id))
+  }
+
+  // New words per plan.
+  const newWords: Word[] = []
+  const planMeta: StudyPlanMeta[] = []
+  for (const p of plans) {
+    const introducedTodayRow = await query<{ c: number }>(
+      `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
+       WHERE pr.review_mode=? AND pr.introduced_at>=? AND l.volume_id=?`,
+      [mode, dayStartIso, p.volume_id],
+    )
+    const introducedToday = introducedTodayRow[0]?.c ?? 0
+    const capacity = Math.max(0, p.daily_new_words - introducedToday)
+
+    const preview = await query<{ id: string; lesson_id: string | null; l_number: number | null }>(
+      `SELECT w.id, w.lesson_id, l.lesson_number AS l_number
+       FROM words w JOIN lessons l ON w.lesson_id=l.id
+       WHERE l.volume_id=?
+         AND NOT EXISTS (SELECT 1 FROM progress pr WHERE pr.word_id=w.id AND pr.review_mode=? AND pr.introduced_at IS NOT NULL)
+       ORDER BY l.lesson_number ASC, w.chapter ASC, w.created_at ASC, w.id ASC
+       LIMIT ?`,
+      [p.volume_id, mode, Math.max(capacity, 1)],
+    )
+    const todays = capacity > 0 ? preview.slice(0, capacity) : []
+    const todaysWords = await wordsByIds(todays.map((r) => r.id))
+    newWords.push(...todaysWords)
+
+    const next = preview[0]
+    const currentLesson = next?.l_number ?? null
+    let continueLesson = false
+    if (next?.lesson_id) {
+      const c = await query<{ c: number }>(
+        `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id
+         WHERE pr.review_mode=? AND pr.introduced_at IS NOT NULL AND w.lesson_id=?`,
+        [mode, next.lesson_id],
+      )
+      continueLesson = (c[0]?.c ?? 0) > 0
+    }
+
+    planMeta.push({
+      planId: p.id,
+      volumeId: p.volume_id,
+      bookTitle: p.book_title,
+      volumeTitle: p.volume_title ?? `جلد ${p.volume_number}`,
+      dailyNewWords: p.daily_new_words,
+      dailyGoal: p.daily_goal,
+      currentLesson,
+      newToday: todaysWords.length,
+      continueLesson,
+    })
+  }
+
+  return {
+    due,
+    new: newWords,
+    meta: {
+      dueCount: due.length,
+      newCount: newWords.length,
+      dailyGoal: plans.reduce((s, p) => s + p.daily_goal, 0),
+      reviewedToday: 0,
+      hasPlans: plans.length > 0,
+      direction: mode,
+      plans: planMeta,
+    },
+  }
+}
+
+export async function answerStudy(wordId: string, answer: StudyAnswer): Promise<StudyAnswerResult> {
+  const settings = await getSettings()
+  const mode = settings.studyDirection
+  const nowDate = new Date()
+  const nowIso = nowDate.toISOString()
+
+  const existing = (
+    await query<{
+      repetitions: number
+      interval_days: number
+      ease_factor: number
+      review_count: number
+      correct_count: number
+      wrong_count: number
+      introduced_at: string | null
+    }>(
+      'SELECT repetitions, interval_days, ease_factor, review_count, correct_count, wrong_count, introduced_at FROM progress WHERE word_id=? AND review_mode=?',
+      [wordId, mode],
+    )
+  )[0]
+
+  const res = schedule(
+    existing
+      ? {
+          repetitions: existing.repetitions,
+          intervalDays: existing.interval_days,
+          easeFactor: existing.ease_factor,
+        }
+      : null,
+    answer,
+    nowDate,
+  )
+  if (!res) return { wordId, skipped: true }
+
+  const introducedAt = existing?.introduced_at ?? nowIso
+  const nextIso = res.nextReviewAt.toISOString()
+
+  if (existing) {
+    await run(
+      `UPDATE progress SET status=?, repetitions=?, interval_days=?, ease_factor=?,
+         review_count=review_count+1, correct_count=correct_count+?, wrong_count=wrong_count+?,
+         last_reviewed_at=?, next_review_at=?, introduced_at=?, updated_at=?
+       WHERE word_id=? AND review_mode=?`,
+      [
+        res.status, res.repetitions, res.intervalDays, res.easeFactor,
+        res.correct ? 1 : 0, res.correct ? 0 : 1,
+        nowIso, nextIso, introducedAt, nowIso, wordId, mode,
+      ],
+    )
+  } else {
+    await run(
+      `INSERT INTO progress (word_id, review_mode, status, updated_at, repetitions, interval_days,
+         ease_factor, review_count, correct_count, wrong_count, last_reviewed_at, next_review_at, introduced_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)`,
+      [
+        wordId, mode, res.status, nowIso, res.repetitions, res.intervalDays, res.easeFactor,
+        res.correct ? 1 : 0, res.correct ? 0 : 1, nowIso, nextIso, introducedAt,
+      ],
+    )
+  }
+
+  return {
+    wordId,
+    skipped: false,
+    status: res.status,
+    nextReviewAt: nextIso,
+    correct: res.correct,
+  }
+}
+
+export async function recordStudySession(summary: SessionSummary): Promise<{ id: string }> {
+  const id = uid()
+  await run(
+    `INSERT INTO study_sessions (id, started_at, ended_at, duration_sec, reviewed_count,
+       correct_count, wrong_count, hard_count, skipped_count, new_count, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id, summary.startedAt, summary.endedAt, summary.durationSec, summary.reviewedCount,
+      summary.correctCount, summary.wrongCount, summary.hardCount, summary.skippedCount,
+      summary.newCount, now(),
+    ],
+  )
+  return { id }
+}
+
+// ── Learning plans ─────────────────────────────────────────────────────────────
+
+export async function getPlans(): Promise<LearningPlan[]> {
+  const rows = await activePlanRows()
+  const out: LearningPlan[] = []
+  for (const p of rows) {
+    const totalRow = await query<{ c: number }>(
+      'SELECT COUNT(*) AS c FROM words w JOIN lessons l ON w.lesson_id=l.id WHERE l.volume_id=?',
+      [p.volume_id],
+    )
+    out.push({
+      id: p.id,
+      volumeId: p.volume_id,
+      bookId: p.book_id,
+      bookTitle: p.book_title,
+      volumeTitle: p.volume_title ?? `جلد ${p.volume_number}`,
+      volumeNumber: p.volume_number,
+      dailyNewWords: p.daily_new_words,
+      dailyGoal: p.daily_goal,
+      isActive: true,
+      totalWords: totalRow[0]?.c ?? 0,
+    })
+  }
+  return out
+}
+
+export async function createPlan(input: {
+  volumeId: string
+  dailyNewWords: number
+  dailyGoal?: number
+}): Promise<{ id: string; volumeId: string }> {
+  const dailyGoal = input.dailyGoal ?? input.dailyNewWords * 3
+  const existing = (
+    await query<{ id: string }>('SELECT id FROM learning_plans WHERE volume_id=?', [input.volumeId])
+  )[0]
+  if (existing) {
+    await run(
+      'UPDATE learning_plans SET daily_new_words=?, daily_goal=?, is_active=1 WHERE id=?',
+      [input.dailyNewWords, dailyGoal, existing.id],
+    )
+    return { id: existing.id, volumeId: input.volumeId }
+  }
+  const id = uid()
+  await run(
+    'INSERT INTO learning_plans (id, volume_id, daily_new_words, daily_goal, is_active, created_at) VALUES (?, ?, ?, ?, 1, ?)',
+    [id, input.volumeId, input.dailyNewWords, dailyGoal, now()],
+  )
+  return { id, volumeId: input.volumeId }
+}
+
+export async function updatePlan(
+  id: string,
+  input: { dailyNewWords?: number; dailyGoal?: number; isActive?: boolean },
+): Promise<{ id: string }> {
+  const sets: string[] = []
+  const vals: unknown[] = []
+  if (input.dailyNewWords !== undefined) { sets.push('daily_new_words=?'); vals.push(input.dailyNewWords) }
+  if (input.dailyGoal !== undefined) { sets.push('daily_goal=?'); vals.push(input.dailyGoal) }
+  if (input.isActive !== undefined) { sets.push('is_active=?'); vals.push(input.isActive ? 1 : 0) }
+  if (sets.length) { vals.push(id); await run(`UPDATE learning_plans SET ${sets.join(', ')} WHERE id=?`, vals) }
+  return { id }
+}
+
+export async function deletePlan(id: string): Promise<{ id: string }> {
+  await run('DELETE FROM learning_plans WHERE id=?', [id])
+  return { id }
+}
+
+// ── Settings ─────────────────────────────────────────────────────────────────
+
+const SETTINGS_ID = 'local'
+
+export async function getSettings(): Promise<UserSettings> {
+  const row = (
+    await query<{
+      study_direction: ReviewMode
+      auto_play_audio: number
+      show_phonetics: number
+      show_examples: number
+      card_order: CardOrder
+    }>(
+      'SELECT study_direction, auto_play_audio, show_phonetics, show_examples, card_order FROM user_settings WHERE id=?',
+      [SETTINGS_ID],
+    )
+  )[0]
+  if (!row) {
+    await run('INSERT OR IGNORE INTO user_settings (id) VALUES (?)', [SETTINGS_ID])
+    return {
+      studyDirection: 'EN_TO_FA',
+      autoPlayAudio: true,
+      showPhonetics: true,
+      showExamples: true,
+      cardOrder: 'SEQUENTIAL',
+    }
+  }
+  return {
+    studyDirection: row.study_direction,
+    autoPlayAudio: row.auto_play_audio === 1,
+    showPhonetics: row.show_phonetics === 1,
+    showExamples: row.show_examples === 1,
+    cardOrder: row.card_order,
+  }
+}
+
+export async function updateSettings(input: Partial<UserSettings>): Promise<UserSettings> {
+  await getSettings() // ensure the row exists
+  const map: Record<string, string> = {
+    studyDirection: 'study_direction',
+    autoPlayAudio: 'auto_play_audio',
+    showPhonetics: 'show_phonetics',
+    showExamples: 'show_examples',
+    cardOrder: 'card_order',
+  }
+  const sets: string[] = []
+  const vals: unknown[] = []
+  for (const [k, col] of Object.entries(map)) {
+    if (k in input) {
+      const v = (input as Record<string, unknown>)[k]
+      sets.push(`${col}=?`)
+      vals.push(typeof v === 'boolean' ? (v ? 1 : 0) : v)
+    }
+  }
+  if (sets.length) { vals.push(SETTINGS_ID); await run(`UPDATE user_settings SET ${sets.join(', ')} WHERE id=?`, vals) }
+  return getSettings()
 }

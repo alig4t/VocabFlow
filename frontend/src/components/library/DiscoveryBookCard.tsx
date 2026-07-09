@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { BookText, Check, Plus, Play, Loader2 } from 'lucide-react'
+import { BookText, Check, GraduationCap, Play } from 'lucide-react'
 import { Card } from '../ui/card'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
@@ -8,11 +8,11 @@ import type { DiscoveryBook } from '../../types'
 
 interface DiscoveryBookCardProps {
   book: DiscoveryBook
-  onToggle: (book: DiscoveryBook) => void
-  isToggling?: boolean
+  /** Open the "Start Learning Plan" dialog for this book. */
+  onStartPlan: (book: DiscoveryBook) => void
 }
 
-export function DiscoveryBookCard({ book, onToggle, isToggling }: DiscoveryBookCardProps) {
+export function DiscoveryBookCard({ book, onStartPlan }: DiscoveryBookCardProps) {
   const navigate = useNavigate()
 
   return (
@@ -39,7 +39,7 @@ export function DiscoveryBookCard({ book, onToggle, isToggling }: DiscoveryBookC
             {book.inWatchlist && (
               <Badge variant="success" className="shrink-0 gap-1">
                 <Check className="h-3 w-3" aria-hidden="true" />
-                در لیست
+                در حال یادگیری
               </Badge>
             )}
           </div>
@@ -58,17 +58,10 @@ export function DiscoveryBookCard({ book, onToggle, isToggling }: DiscoveryBookC
           variant={book.inWatchlist ? 'outline' : 'default'}
           size="sm"
           className="flex-1 gap-1.5"
-          disabled={isToggling}
-          onClick={() => onToggle(book)}
+          onClick={() => onStartPlan(book)}
         >
-          {isToggling ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-          ) : book.inWatchlist ? (
-            <Check className="h-3.5 w-3.5" aria-hidden="true" />
-          ) : (
-            <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-          )}
-          {book.inWatchlist ? 'در لیست یادگیری' : 'افزودن به لیست'}
+          <GraduationCap className="h-3.5 w-3.5" aria-hidden="true" />
+          {book.inWatchlist ? 'مدیریت برنامه' : 'برنامه یادگیری'}
         </Button>
         <Button
           size="sm"
@@ -77,7 +70,7 @@ export function DiscoveryBookCard({ book, onToggle, isToggling }: DiscoveryBookC
           onClick={() => navigate(`/vocabulary?bookId=${book.id}`)}
         >
           <Play className="h-3.5 w-3.5" aria-hidden="true" />
-          شروع
+          مرور
         </Button>
       </footer>
     </Card>
