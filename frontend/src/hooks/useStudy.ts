@@ -9,5 +9,8 @@ export function useStudyToday(enabled = true) {
     queryFn: () => studyService.getToday(),
     enabled,
     staleTime: 0,
+    // Always refetch when the page mounts so a plan just created in the library
+    // (which invalidates this key) is reflected without a manual refresh.
+    refetchOnMount: 'always',
   })
 }

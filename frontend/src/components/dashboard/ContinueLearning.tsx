@@ -55,7 +55,7 @@ export function ContinueLearning({ queue }: ContinueLearningProps) {
           variant="secondary"
           className="shrink-0 gap-2 bg-white text-primary shadow-sm hover:bg-white/90"
           disabled={totalDue === 0}
-          onClick={() => navigate('/vocabulary/review')}
+          onClick={() => navigate('/study')}
         >
           شروع جلسه یادگیری
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />

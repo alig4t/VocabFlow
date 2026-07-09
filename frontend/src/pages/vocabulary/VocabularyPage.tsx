@@ -174,7 +174,7 @@ export function VocabularyPage() {
           className="gap-2 self-start sm:self-auto"
         >
           <LayoutGrid className="h-4 w-4" />
-          شروع مرور
+          شروع مرور آزاد
         </Button>
       </div>
 

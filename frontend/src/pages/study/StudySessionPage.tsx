@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Volume2, VolumeX, BookOpen, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Tooltip } from '@/components/ui/tooltip'
 import { ReviewCard } from '@/components/vocabulary/ReviewCard'
 import { SessionSummaryScreen, type SessionStats } from '@/components/study/SessionSummaryScreen'
 import { useStudyToday } from '@/hooks/useStudy'
@@ -31,46 +32,53 @@ function loadMuted(): boolean {
 /** Answer buttons — revealed only after the card is flipped (spec: view then rate). */
 function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
   const btn =
-    'min-w-0 flex-1 whitespace-nowrap rounded-lg border px-2 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2'
+    'w-full whitespace-nowrap rounded-lg border px-2 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2'
   return (
-    <div className="flex items-center gap-2">
-      <button
-        onClick={() => onAnswer('AGAIN')}
-        className={cn(
-          btn,
-          'border-red-300 text-red-700 hover:bg-red-50 focus-visible:ring-red-400 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40',
-        )}
-      >
-        بلد نیستم
-      </button>
-      <button
-        onClick={() => onAnswer('HARD')}
-        className={cn(
-          btn,
-          'border-amber-300 text-amber-700 hover:bg-amber-50 focus-visible:ring-amber-400 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/40',
-        )}
-      >
-        سخت
-      </button>
-      <button
-        onClick={() => onAnswer('EASY')}
-        className={cn(
-          btn,
-          'border-green-300 text-green-700 hover:bg-green-50 focus-visible:ring-green-400 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950/40',
-        )}
-      >
-        بلدم
-      </button>
-      <button
-        onClick={() => onAnswer('SKIP')}
-        title="فعلاً رد کن (بدون تغییر زمان‌بندی)"
-        className={cn(
-          btn,
-          'max-w-[4.5rem] border-dashed border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring',
-        )}
-      >
-        رد
-      </button>
+    <div className="flex items-stretch gap-2">
+      <Tooltip label="اصلاً یادم نیامد" className="flex-1">
+        <button
+          onClick={() => onAnswer('AGAIN')}
+          className={cn(
+            btn,
+            'border-red-300 text-red-700 hover:bg-red-50 focus-visible:ring-red-400 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40',
+          )}
+        >
+          بلد نیستم
+        </button>
+      </Tooltip>
+      <Tooltip label="به سختی یادم آمد" className="flex-1">
+        <button
+          onClick={() => onAnswer('HARD')}
+          className={cn(
+            btn,
+            'border-amber-300 text-amber-700 hover:bg-amber-50 focus-visible:ring-amber-400 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/40',
+          )}
+        >
+          سخت
+        </button>
+      </Tooltip>
+      <Tooltip label="به‌راحتی یادم آمد" className="flex-1">
+        <button
+          onClick={() => onAnswer('EASY')}
+          className={cn(
+            btn,
+            'border-green-300 text-green-700 hover:bg-green-50 focus-visible:ring-green-400 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950/40',
+          )}
+        >
+          بلدم
+        </button>
+      </Tooltip>
+      <Tooltip label="فعلاً رد کن (بدون تغییر زمان‌بندی)">
+        <button
+          onClick={() => onAnswer('SKIP')}
+          className={cn(
+            btn,
+            'max-w-[4.5rem] border-dashed border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring',
+          )}
+        >
+          رد
+        </button>
+      </Tooltip>
     </div>
   )
 }
@@ -78,7 +86,7 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
 export function StudySessionPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { data: today, isLoading, isError, refetch } = useStudyToday()
+  const { data: today, isLoading, isError, isFetching, refetch } = useStudyToday()
   const { data: settings } = useSettings()
 
   const mode: ReviewMode = today?.meta.direction ?? settings?.studyDirection ?? 'EN_TO_FA'
@@ -99,16 +107,27 @@ export function StudySessionPage() {
   const counters = useRef({ easy: 0, hard: 0, again: 0, skip: 0 })
   const introducedNew = useRef<Set<string>>(new Set())
 
-  // Freeze the queue once today's data lands.
+  // Freeze the queue once today's data lands — but only when it's FRESH (not a
+  // stale/in-flight refetch), so a just-created plan isn't missed and the
+  // session doesn't freeze an empty "nothing today" list.
   useEffect(() => {
-    if (today && queue === null) {
+    if (today && queue === null && !isFetching) {
       setQueue([
         ...today.due.map((w) => ({ word: w, isNew: false })),
         ...today.new.map((w) => ({ word: w, isNew: true })),
       ])
       startedAtRef.current = new Date()
     }
-  }, [today, queue])
+  }, [today, queue, isFetching])
+
+  // Leaving the session (even mid-way) → refresh the dashboard + today counts so
+  // due/new numbers reflect the answers just given.
+  useEffect(() => {
+    return () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['study', 'today'] })
+    }
+  }, [queryClient])
 
   const current = queue && index < queue.length ? queue[index] : null
   const total = queue?.length ?? 0

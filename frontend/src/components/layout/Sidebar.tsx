@@ -22,7 +22,7 @@ const mainItems: NavItem[] = [
   { to: '/study', icon: <GraduationCap className="h-5 w-5" />, label: 'مطالعه امروز' },
   { to: '/library', icon: <Compass className="h-5 w-5" />, label: 'کتابخانه' },
   { to: '/vocabulary', icon: <Book className="h-5 w-5" />, label: 'لغات' },
-  { to: '/vocabulary/review', icon: <Play className="h-5 w-5" />, label: 'حالت مرور' },
+  { to: '/vocabulary/review', icon: <Play className="h-5 w-5" />, label: 'مرور آزاد' },
   { to: '/settings', icon: <SlidersHorizontal className="h-5 w-5" />, label: 'تنظیمات' },
 ]
 

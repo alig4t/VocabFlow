@@ -402,6 +402,20 @@ export function ReviewPage() {
 
   return (
     <div dir="rtl" className="font-persian max-w-4xl mx-auto px-2 sm:px-4 py-4 sm:py-6 space-y-4">
+      {/* Free-review banner — a SEPARATE track from "Study Today" (SM-2). */}
+      <div className="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50/70 p-3 dark:border-blue-900/50 dark:bg-blue-950/30">
+        <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-300">
+          <BookMarked className="h-5 w-5" />
+        </span>
+        <div className="min-w-0 space-y-0.5">
+          <p className="text-sm font-bold text-blue-900 dark:text-blue-200">مرور آزاد — مسیری جدا از برنامه</p>
+          <p className="text-xs leading-relaxed text-blue-800/90 dark:text-blue-300/90">
+            اینجا فقط لغت‌ها را «بلدم / بلد نیستم» علامت می‌زنید؛ این کار روی زمان‌بندی «مطالعه
+            امروز» تأثیری ندارد. مناسب کسانی که می‌خواهند سریع‌تر و بدون برنامه‌ی مرور پیش بروند.
+          </p>
+        </div>
+      </div>
+
       {/* Compact toolbar — groups all session controls into one tidy card */}
       <div className="rounded-xl border border-border bg-card shadow-sm">
         {/* Row 1: back + title + mode toggle + sound */}
@@ -415,7 +429,7 @@ export function ReviewPage() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-sm font-bold tracking-tight text-foreground">حالت مرور</h1>
+          <h1 className="text-sm font-bold tracking-tight text-foreground">مرور آزاد</h1>
 
           <div className="flex-1" />
 
@@ -538,16 +552,6 @@ export function ReviewPage() {
             </>
           )}
         </div>
-      </div>
-
-      {/* This is a SEPARATE manual track from "Study Today" (SM-2). */}
-      <div className="flex items-start gap-2 rounded-xl border border-blue-200 bg-blue-50/60 px-3 py-2 text-xs leading-relaxed text-blue-800 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300">
-        <BookMarked className="mt-0.5 h-4 w-4 flex-shrink-0" />
-        <span>
-          این یک <span className="font-semibold">مسیر مرور آزاد</span> است: فقط لغت‌ها را «بلدم/بلد
-          نیستم» علامت می‌زنید و روی برنامه‌ی «مطالعه امروز» تأثیری ندارد. مناسب کسانی که می‌خواهند
-          سریع‌تر و بدون زمان‌بندی پیش بروند.
-        </span>
       </div>
 
       {/* Progress — one counter for the whole session */}
