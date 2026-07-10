@@ -38,7 +38,7 @@ export function WatchlistBookCard({ book }: WatchlistBookCardProps) {
   const mood = motivation(progress)
 
   return (
-    <Card className="flex flex-col gap-4 p-5 shadow-soft transition-shadow hover:shadow-md">
+    <Card className="flex flex-col gap-4 p-5 shadow-soft transition-shadow hover:shadow-md overflow-x-hidden">
       {/* Header: cover/title + motivation */}
       <header className="flex items-start gap-3">
         {book.coverImage ? (

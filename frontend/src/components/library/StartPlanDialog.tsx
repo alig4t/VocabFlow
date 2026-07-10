@@ -101,7 +101,7 @@ export function StartPlanDialog({ book, open, onOpenChange }: StartPlanDialogPro
               {volumesLoading ? (
                 <div className="h-20 animate-pulse rounded-lg bg-muted" />
               ) : (
-                <div className="grid max-h-64 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3">
+                <div className="grid max-h-64 grid-cols-2 gap-y-2 gap-x-2 pl-1 pb-1.5 overflow-y-auto sm:grid-cols-3">
                   {volumes?.map((v) => {
                     const planned = plannedVolumeIds.has(v.id)
                     const selected = volumeId === v.id
@@ -121,11 +121,11 @@ export function StartPlanDialog({ book, open, onOpenChange }: StartPlanDialogPro
                             src={v.coverImage}
                             alt={v.title ?? `جلد ${v.volumeNumber}`}
                             loading="lazy"
-                            className="h-24 w-full rounded-lg object-cover ring-1 ring-border"
+                            className="h-[215px] md:h-[180px] w-full rounded-lg object-cover ring-1 ring-border"
                           />
                         ) : (
-                          <span className="flex h-24 w-full items-center justify-center rounded-lg bg-primary/10 text-primary">
-                            <BookText className="h-7 w-7" />
+                          <span className="flex h-34 w-full items-center justify-center rounded-lg bg-primary/10 text-primary">
+                            <BookText className="h-[215px] md:h-[180px] w-7" />
                           </span>
                         )}
                         <span className="text-xs font-medium leading-tight text-foreground">
