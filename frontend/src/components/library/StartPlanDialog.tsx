@@ -101,7 +101,7 @@ export function StartPlanDialog({ book, open, onOpenChange }: StartPlanDialogPro
               {volumesLoading ? (
                 <div className="h-20 animate-pulse rounded-lg bg-muted" />
               ) : (
-                <div className="grid max-h-64 grid-cols-2 gap-y-2 gap-x-2 pl-1 pb-1.5 overflow-y-auto sm:grid-cols-3">
+                <div className="grid max-h-64 grid-cols-2 gap-y-2 gap-x-2 p-1.5 overflow-y-auto sm:grid-cols-3">
                   {volumes?.map((v) => {
                     const planned = plannedVolumeIds.has(v.id)
                     const selected = volumeId === v.id
