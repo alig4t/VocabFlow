@@ -95,7 +95,10 @@ CREATE TABLE IF NOT EXISTS progress (
   PRIMARY KEY (word_id, review_mode)
 );
 CREATE INDEX IF NOT EXISTS idx_progress_status ON progress(status);
-CREATE INDEX IF NOT EXISTS idx_progress_due ON progress(review_mode, next_review_at);
+-- NOTE: idx_progress_due depends on the next_review_at column, which is added by
+-- migrateSchema() for old installs — so it is created there, AFTER the ALTER TABLE,
+-- not here. Creating it in this batch would fail on a pre-SM-2 progress table and
+-- abort the whole schema execution.
 CREATE TABLE IF NOT EXISTS watchlist (
   book_id TEXT PRIMARY KEY NOT NULL,
   created_at TEXT
@@ -169,6 +172,10 @@ async function migrateSchema(db: SQLiteDBConnection): Promise<void> {
   if (addedManualStatus) {
     await db.execute('UPDATE progress SET manual_status = status;')
   }
+  // Now that next_review_at is guaranteed to exist, create the due-review index.
+  await db.execute(
+    'CREATE INDEX IF NOT EXISTS idx_progress_due ON progress(review_mode, next_review_at);',
+  )
 }
 
 /** Open (or reuse) the single app database connection and ensure the schema. */
