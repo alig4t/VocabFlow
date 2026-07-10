@@ -51,7 +51,7 @@ export function ReviewCard({
 
   const Phonetic = ({ show }: { show: boolean }) =>
     show && showPhonetics && phonetic ? (
-      <p dir="ltr" className="mt-2 font-mono text-sm tracking-wide text-muted-foreground/60">
+      <p dir="ltr" className="mt-2 font-ipa text-sm tracking-wide text-muted-foreground/60">
         {phonetic}
       </p>
     ) : null

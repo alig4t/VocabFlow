@@ -103,7 +103,7 @@ export function WordCard({ word, mode }: WordCardProps) {
 
               {/* Phonetic (IPA) — shown next to the English word, tiny & faint */}
               {engIsPrimary && phonetic && (
-                <span dir="ltr" className="font-mono text-xs text-muted-foreground/60">
+                <span dir="ltr" className="font-ipa text-xs text-muted-foreground/60">
                   {phonetic}
                 </span>
               )}
@@ -142,7 +142,7 @@ export function WordCard({ word, mode }: WordCardProps) {
             >
               {mode === 'FA_TO_EN' ? word.eng : word.per}
               {!engIsPrimary && phonetic && (
-                <span dir="ltr" className="ms-2 font-mono text-xs text-muted-foreground/50">
+                <span dir="ltr" className="ms-2 font-ipa text-xs text-muted-foreground/50">
                   {phonetic}
                 </span>
               )}

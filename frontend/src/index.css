@@ -196,6 +196,17 @@
   .rtl { direction: rtl; font-family: 'Anjoman', system-ui, sans-serif; }
   .font-persian { font-family: 'Anjoman', system-ui, sans-serif; }
 
+  /* IPA phonetic transcriptions. The monospace generic (font-mono) resolves to
+     Roboto Mono in the Android WebView, which lacks most IPA glyphs and renders
+     them as tofu boxes. Use a proportional sans stack whose generic fallback
+     (Roboto / Noto Sans on Android, Segoe UI on Windows) covers IPA. */
+  .font-ipa {
+    font-family: 'Charis SIL', 'Doulos SIL', 'Gentium Plus', 'Segoe UI',
+      'Noto Sans', Roboto, system-ui, Arial, sans-serif;
+    font-feature-settings: normal;
+    font-variant-ligatures: none;
+  }
+
   /* Thin, subtle scrollbars (replaces the heavy default track/thumb) */
   * {
     scrollbar-width: thin;

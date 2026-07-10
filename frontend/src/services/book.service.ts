@@ -53,6 +53,7 @@ export const bookService = {
   // ─── Volumes ──────────────────────────────────────────────────────────────
 
   getVolumes(bookId: string): Promise<Volume[]> {
+    if (isNative()) return off().then((o) => o.getVolumes(bookId))
     return api.get<Volume[]>(API_ENDPOINTS.books.volumes(bookId)).then((r) => r.data)
   },
 

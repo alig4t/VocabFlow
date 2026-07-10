@@ -6,6 +6,7 @@ import type {
   PaginatedWords,
   ProgressStats,
   BookSimple,
+  Volume,
   VolumeSimple,
   LessonSimple,
   DiscoveryBook,
@@ -43,6 +44,27 @@ const COVER_BY_TITLE: Record<string, string> = {
   'Street Talk 1': '/books/street-talk.png',
 }
 const coverFor = (title: string): string | undefined => COVER_BY_TITLE[title]
+
+// Per-volume cover art (public/books/), for multi-volume books shown in the
+// plan dialog. Keyed by seeded book title → volume number. Single-volume books
+// fall back to the book cover (coverFor).
+const VOLUME_COVER_BY_TITLE: Record<string, Record<number, string>> = {
+  '4000 Essential English Words': {
+    1: '/books/4000-v1.webp',
+    2: '/books/4000-v2.webp',
+    3: '/books/4000-v3.webp',
+    4: '/books/4000-v4.webp',
+    5: '/books/4000-v5.webp',
+    6: '/books/4000-v6.webp',
+  },
+  'Oxford Word Skills': {
+    1: '/books/oxford-word-skills-basic.webp',
+    2: '/books/oxford-word-skills-intermediate.webp',
+    3: '/books/oxford-word-skills-advanced.webp',
+  },
+}
+const volumeCoverFor = (bookTitle: string, volumeNumber: number): string | undefined =>
+  VOLUME_COVER_BY_TITLE[bookTitle]?.[volumeNumber] ?? coverFor(bookTitle)
 
 // ── Word row → Word object ────────────────────────────────────────────────────
 interface WordRow {
@@ -339,6 +361,30 @@ export async function getVolumesSimple(bookId: string): Promise<VolumeSimple[]> 
     [bookId],
   )
   return rows.map((r) => ({ id: r.id, volumeNumber: r.volume_number, title: r.title ?? undefined }))
+}
+export async function getVolumes(bookId: string): Promise<Volume[]> {
+  const rows = await query<{
+    id: string
+    book_id: string
+    volume_number: number
+    title: string | null
+    book_title: string
+  }>(
+    `SELECT v.id, v.book_id, v.volume_number, v.title, b.title AS book_title
+     FROM volumes v JOIN books b ON b.id = v.book_id
+     WHERE v.book_id = ? ORDER BY v.volume_number ASC`,
+    [bookId],
+  )
+  // The offline volumes table stores no cover column; resolve cover art from the
+  // bundled public/books/ assets by book title + volume number.
+  return rows.map((r) => ({
+    id: r.id,
+    bookId: r.book_id,
+    volumeNumber: r.volume_number,
+    title: r.title ?? undefined,
+    coverImage: volumeCoverFor(r.book_title, r.volume_number),
+    createdAt: '',
+  }))
 }
 export async function getLessonsSimple(volumeId: string): Promise<LessonSimple[]> {
   const rows = await query<{ id: string; lesson_number: number; title: string | null }>(
