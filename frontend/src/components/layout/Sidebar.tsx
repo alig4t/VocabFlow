@@ -1,4 +1,4 @@
-import { X, Book, Play, Settings, Library, LayoutDashboard, Compass, ShieldCheck, Users, FilePlus2, GraduationCap, SlidersHorizontal } from 'lucide-react'
+import { X, Book, Play, Settings, Library, LayoutDashboard, Compass, ShieldCheck, Users, FilePlus2, GraduationCap, SlidersHorizontal, Rocket, Info } from 'lucide-react'
 import { Link, NavLink } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { isNative } from '../../lib/platform'
@@ -23,7 +23,13 @@ const mainItems: NavItem[] = [
   { to: '/library', icon: <Compass className="h-5 w-5" />, label: 'کتابخانه' },
   { to: '/vocabulary', icon: <Book className="h-5 w-5" />, label: 'لغات' },
   { to: '/vocabulary/review', icon: <Play className="h-5 w-5" />, label: 'مرور آزاد' },
+]
+
+// Secondary group — guide / settings / about, split off from the main nav by a divider.
+const secondaryItems: NavItem[] = [
+  { to: '/guide', icon: <Rocket className="h-5 w-5" />, label: 'راهنمای شروع' },
   { to: '/settings', icon: <SlidersHorizontal className="h-5 w-5" />, label: 'تنظیمات' },
+  { to: '/about', icon: <Info className="h-5 w-5" />, label: 'درباره سازنده' },
 ]
 
 const adminItems: NavItem[] = [
@@ -111,6 +117,12 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </p>
         <ul className="space-y-1">
           {primaryItems.map((item) => renderLink(item, 'primary'))}
+        </ul>
+
+        {/* Guide / settings / about — divided off from the main nav */}
+        <hr className="my-3 border-border" />
+        <ul className="space-y-1">
+          {secondaryItems.map((item) => renderLink(item, 'primary'))}
         </ul>
 
         {/* Admin-only management area — web only; the offline app has no server */}
