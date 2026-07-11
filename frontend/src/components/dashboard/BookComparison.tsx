@@ -35,7 +35,7 @@ export function BookComparison({ books }: BookComparisonProps) {
             <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-bold tabular-nums text-muted-foreground">
               {faNum(i + 1)}
             </span>
-            <span className="truncate font-medium text-foreground">{book.title}</span>
+            <span className=" font-medium text-foreground">{book.title}</span>
             <span className="mr-auto shrink-0 font-bold tabular-nums text-foreground">
               {faPercent(book.progress)}
             </span>

@@ -113,7 +113,7 @@ export function DashboardPage() {
                   فعالیت مطالعه
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className='p-2 pr-4 pl-3 sm:p-6'>
                 <ActivityHeatmap days={data.heatmap} />
               </CardContent>
             </Card>
