@@ -17,7 +17,7 @@
 | ویرایش لغت | روی سرور | محلی روی گوشی |
 | داده‌ی اولیه | دیتابیس سرور | seed از فایل‌های JSON داخل خود اپ |
 
-امکانات آفلاین: مرور کتاب‌ها/واژگان با فیلتر، «بلدم/بلد نیستم/نخوانده»، صفحه‌ی مرور با تلفظ نیتیو، ویرایش لغت و مثال‌ها، واچ‌لیست، داشبورد با آمار واقعیِ محلی.
+امکانات آفلاین: مرور کتاب‌ها/واژگان با فیلتر، «بلدم/بلد نیستم/نخوانده»، صفحه‌ی مرور آزاد با تلفظ نیتیو، ویرایش لغت و مثال‌ها، واچ‌لیست، و داشبورد با آمار واقعیِ محلی. علاوه بر این‌ها، **سیستم یادگیری روزانه** به‌صورت کامل آفلاین اضافه شده است: «مطالعه امروز» با زمان‌بندی مرور فاصله‌دار **SM-2** (لغات جدید + مرورهای سررسیده)، **برنامه‌ی یادگیری** برای هر جلد (تعداد لغت جدید و هدف روزانه)، **تنظیمات** (جهت مطالعه، پخش خودکار صدا، نمایش فونتیک/مثال، ترتیب کارت‌ها)، و **استریک/هیت‌مپ فعالیت** روی داشبورد. توجه: «مرور آزاد» (علامت‌گذاری دستیِ بلدم/بلد نیستم) از برنامه‌ی SM-2 جداست و در ستون جداگانه‌ای نگهداری می‌شود.
 
 ---
 
@@ -69,25 +69,35 @@ getWords(filters) {
 }
 ```
 
-سرویس‌های شاخه‌دار: `vocabulary`, `progress`, `book` (سلکتورهای ساده)، `dashboard`, `synonym`.
+سرویس‌های شاخه‌دار: `vocabulary`, `progress`, `book` (سلکتورهای ساده + `getVolumes`)، `dashboard`, `synonym`, `study` (مطالعه امروز/پاسخ/ثبت سشن)، `plan` (برنامه‌های یادگیری)، `settings`.
 **صفحات و کامپوننت‌های React دست‌نخورده‌اند** — فقط لایه‌ی سرویس عوض می‌شود.
 
 ### ۳.۲. لایه‌ی داده‌ی آفلاین (`src/offline/`)
 
 | فایل | نقش |
 |------|-----|
-| `db.ts` | باز کردن اتصال SQLite + اسکیمای جداول (آینه‌ی مدل Prisma، ولی تک‌کاربره بدون `userId`) + هلپرهای `query/run` |
-| `seed.ts` | seed اولیه از JSONها؛ منطق پارس مثل `backend/prisma/import-all.ts`؛ idempotent با فلگ `meta.seeded` |
-| `repo.ts` | همه‌ی توابع کوئری (words+فیلترها، progress، books/volumes/lessons، watchlist، ویرایش لغت، داشبورد، synonyms) با **همان شکل خروجیِ** سرویس‌های HTTP |
+| `db.ts` | باز کردن اتصال SQLite + اسکیمای جداول (آینه‌ی مدل Prisma، ولی تک‌کاربره بدون `userId`) + `migrateSchema()` (افزودن ستون‌های SM-2 به نصب‌های قدیمی) + هلپرهای `query/run` |
+| `seed.ts` | seed اولیه از JSONها؛ منطق پارس مثل `backend/prisma/import-all.ts`؛ idempotent با فلگ `meta.seed_version` |
+| `repo.ts` | همه‌ی توابع کوئری (words+فیلترها، progress، books/volumes/lessons، watchlist، ویرایش لغت، داشبورد، synonyms، مطالعه‌ی امروز/پاسخ/سشن، برنامه‌های یادگیری، تنظیمات) با **همان شکل خروجیِ** سرویس‌های HTTP |
+| `srs.ts` | آینه‌ی نیتیو موتور SM-2 (مثل `backend/src/modules/study/srs.ts`) — تابع `schedule` و هلپرهای روز |
 | `bootstrap.ts` | `prepareNative()` — باز کردن DB و seed در اولین اجرا |
 
-جداول SQLite: `books, volumes, lessons, words, word_examples, word_phrases, word_phrase_examples, progress (word_id, review_mode → status), watchlist, meta`.
+جداول SQLite: `books, volumes, lessons, words, word_examples, word_phrases, word_phrase_examples, progress, watchlist, learning_plans, study_sessions, user_settings, meta`.
+
+جدول `progress` (کلید `word_id, review_mode`) اکنون دو مسیرِ مستقل را نگه می‌دارد:
+- `status` — وضعیت برنامه‌ی SM-2 (به‌همراه ستون‌های `manual_status` هم دارد، `repetitions, interval_days, ease_factor, review_count, correct_count, wrong_count, last_reviewed_at, next_review_at, introduced_at`).
+- `manual_status` — علامت دستیِ «مرور آزاد» (بلدم/بلد نیستم/نخوانده)، جدا از SM-2.
+
+جدول‌های تازه: `learning_plans` (برنامه‌ی هر جلد: `daily_new_words, daily_goal, is_active`)، `study_sessions` (یک ردیف برای هر سشنِ کامل‌شده؛ برای استریک/هیت‌مپ/دقت)، `user_settings` (تنظیماتِ تک‌ردیفی کاربر محلی).
+
+> **مهاجرت اسکیمای نصب‌های قدیمی:** چون `CREATE TABLE IF NOT EXISTS` هرگز جدول موجود را تغییر نمی‌دهد، تابع `migrateSchema()` با `ALTER TABLE ... ADD COLUMN` ستون‌های `manual_status` و SM-2 را به `progress` قدیمی اضافه می‌کند (و علامت‌های دستیِ قبلی را از `status` به `manual_status` کپی می‌کند). ایندکس `idx_progress_due` **بعد از** این ADD COLUMN داخل همین تابع ساخته می‌شود.
 
 ### ۳.۳. seed اولیه
 
 - فایل‌های کتاب در `frontend/public/seed/*.json` + `manifest.json` (لیست فایل‌ها) قرار دارند.
 - هنگام `cap sync` این‌ها داخل assets اپ بسته‌بندی می‌شوند.
 - در **اولین اجرا** `App.tsx` صفحه‌ی `SeedLoader` (نوار پیشرفت) را نشان می‌دهد و `seedIfNeeded()` همه‌ی JSONها را می‌خواند و ~۱۷هزار واژه را در SQLite درج می‌کند (در یک transaction). بعد از آن اپ کاملاً آفلاین است.
+- idempotent با فلگ `meta.seed_version`؛ با بالا رفتن `SEED_VERSION` جدول‌های داده پاک و دوباره seed می‌شوند (تنظیمات/برنامه‌ها دست‌نخورده می‌مانند).
 
 ### ۳.۴. بدون لاگین
 
@@ -102,8 +112,10 @@ if (isNative()) {
 
 ### ۳.۵. تفاوت‌های UIِ نیتیو
 - **سایدبار:** بخش مدیریت سروری (کاربران/کتاب‌ها/پنل) مخفی؛ فقط «افزودن لغت» می‌ماند.
-- **داشبورد:** آمار واقعی از progress محلی محاسبه می‌شود (`repo.getDashboard`)؛ روی وب هنوز mock است.
+- **داشبورد:** آمار واقعی از progress محلی محاسبه می‌شود (`repo.getDashboard`)؛ روی وب همان آمار واقعی از `/api/dashboard` می‌آید (دیگر mock نیست).
 - **کاور کتاب‌ها:** از `public/books/` با نگاشت `COVER_BY_TITLE` در `repo.getDiscovery`.
+- **کاور جلدها:** در دیالوگ برنامه‌ی یادگیری، `repo.getVolumes` کاورِ هر جلد را از `public/books/` با نگاشت `VOLUME_COVER_BY_TITLE` می‌سازد (`4000-v1..v6.webp` و `oxford-word-skills-basic/intermediate/advanced.webp`)؛ جلدهای تک‌جلدی به کاور کتاب برمی‌گردند.
+- **فونتیک (IPA):** متن آوانگاری با کلاس `.font-ipa` رندر می‌شود (استک sans با Roboto/Noto Sans که گلیف‌های IPA را پوشش می‌دهند)، نه `font-mono`؛ چون Roboto Mono در وب‌ویو اندروید گلیف IPA ندارد و کاراکترها به‌صورت مربع خالی (▯) دیده می‌شدند. (`src/index.css`)
 - **تلفظ:** روی نیتیو `TextToSpeech.speak` نیتیو، روی وب `speechSynthesis` مرورگر (`src/lib/pronounce.ts`).
 
 ---
@@ -179,7 +191,10 @@ cd frontend && npx vite build && npx cap sync android \
 | بیلد با JDK پیش‌فرض شکست می‌خورد | حتماً `JAVA_HOME=/usr/lib/jvm/java-17-openjdk` را ست کن (java پیش‌فرض PATH نسخه‌ی ۱۱ است). |
 | تلفظ بی‌صداست | موتور TTS گوشی را در تنظیمات → «خروجی متن‌به‌گفتار» فعال کن (مثلاً Google TTS). عنصر `<queries>` باید در manifest باشد. |
 | seed اولیه طول می‌کشد | طبیعی است (اولین اجرا ~۱۷هزار واژه را درج می‌کند)؛ فقط یک‌بار اتفاق می‌افتد. |
-| برای شروع دوباره‌ی seed | داده‌ی اپ را از تنظیمات گوشی پاک کن (فلگ `meta.seeded` ریست می‌شود). |
+| برای شروع دوباره‌ی seed | داده‌ی اپ را از تنظیمات گوشی پاک کن (فلگ `meta.seed_version` ریست می‌شود). |
+| کرش داشبورد با «no such column: next_review_at» روی نصب قدیمی | برطرف شده: ایندکس `idx_progress_due` حالا **داخل** `migrateSchema()` و **بعد از** افزوده‌شدنِ ستون `next_review_at` ساخته می‌شود. با اجرای بعدیِ اپ خودبه‌خود درست می‌شود (self-healing). |
+| باز کردن دیالوگ برنامه‌ی یادگیریِ کتاب با خطای `t.map is not a function` | برطرف شده: `bookService.getVolumes()` شاخه‌ی `isNative()` نداشت و به API وب می‌خورد (که `index.html` برمی‌گرداند)؛ حالا `getVolumes` آفلاین در `repo.ts` اضافه شده. |
+| فونتیک به‌صورت مربع خالی (▯) دیده می‌شود | برطرف شده: آوانگاری با کلاس `.font-ipa` رندر می‌شود، نه `font-mono` (Roboto Mono در وب‌ویو گلیف IPA ندارد). |
 
 ---
 
