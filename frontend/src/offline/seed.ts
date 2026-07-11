@@ -11,6 +11,8 @@ const BOOK_TITLE_MAP: Record<string, string> = {
   'barron-s-essential-words-for-the-ielts': "Barron's Essential Words for the IELTS",
   'barron-s-essential-words-for-the-toefl': "Barron's Essential Words for the TOEFL",
   'street-talk-1': 'Street Talk 1',
+  '504-absolutely-essential-words': '504 Absolutely Essential Words',
+  'barron-1100-words-you-need-to-know': "Barron's 1100 Words You Need to Know",
 }
 const VOLUME_TITLE_MAP: Record<string, Record<number, string>> = {
   'oxford-word-skills-basic': { 1: 'Basic', 2: 'Intermediate', 3: 'Advanced' },
@@ -163,7 +165,7 @@ function collectFile(filename: string, data: BookFile, bookIdByTitle: Map<string
  */
 // Bump this whenever the bundled book data changes so existing installs wipe
 // their local data and re-seed with the corrected content.
-const SEED_VERSION = '2'
+const SEED_VERSION = '3'
 const WIPE_TABLES = [
   'word_phrase_examples', 'word_phrases', 'word_examples', 'words',
   'lessons', 'volumes', 'books', 'progress', 'watchlist',

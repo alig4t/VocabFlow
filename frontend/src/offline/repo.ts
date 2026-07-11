@@ -42,6 +42,8 @@ const COVER_BY_TITLE: Record<string, string> = {
   "Barron's Essential Words for the IELTS": '/books/Essentaial-words-for-the-ielts.png',
   "Barron's Essential Words for the TOEFL": '/books/Essentaial-words-for-the-toefl.png',
   'Street Talk 1': '/books/street-talk.png',
+  '504 Absolutely Essential Words': '/books/504-absolutely-essential-words-v1.webp',
+  "Barron's 1100 Words You Need to Know": '/books/barron-1100-words-you-need-to-know.webp',
 }
 const coverFor = (title: string): string | undefined => COVER_BY_TITLE[title]
 

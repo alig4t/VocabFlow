@@ -23,6 +23,8 @@ const BOOK_TITLE_MAP: Record<string, string> = {
   'barron-s-essential-words-for-the-ielts':  "Barron's Essential Words for the IELTS",
   'barron-s-essential-words-for-the-toefl':  "Barron's Essential Words for the TOEFL",
   'street-talk-1':                           'Street Talk 1',
+  '504-absolutely-essential-words':          '504 Absolutely Essential Words',
+  'barron-1100-words-you-need-to-know':      "Barron's 1100 Words You Need to Know",
 }
 
 // Override the generated "Volume N" title per slug + volume number.
