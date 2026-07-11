@@ -92,7 +92,7 @@ export class DashboardService {
           id: plan.id,
           bookId: plan.volume.book.id,
           title: `${plan.volume.book.title} — ${volumeTitle}`,
-          coverImage: plan.volume.book.coverImage ?? undefined,
+          coverImage: plan.volume.coverImage ?? plan.volume.book.coverImage ?? undefined,
           totalWords: s.totalWords,
           knownWords: s.knownWords,
           unknownWords: s.unknownWords,

@@ -26,6 +26,7 @@ export class DashboardRepository {
             id: true,
             volumeNumber: true,
             title: true,
+            coverImage: true,
             book: { select: { id: true, title: true, coverImage: true } },
           },
         },

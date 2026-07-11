@@ -595,7 +595,7 @@ export async function getDashboard(): Promise<DashboardData> {
       id: p.id,
       bookId: p.book_id,
       title: `${p.book_title} — ${p.volume_title ?? `جلد ${p.volume_number}`}`,
-      coverImage: coverFor(p.book_title),
+      coverImage: volumeCoverFor(p.book_title, p.volume_number),
       totalWords: total,
       knownWords: known,
       unknownWords: notKnown,
