@@ -21,7 +21,7 @@ export function ContinueLearning({ queue }: ContinueLearningProps) {
       {/* Decorative glow — purely aesthetic, hidden from AT. */}
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute -left-8 -top-10 h-40 w-40 rounded-full bg-white/15 blur-2xl"
+        className="pointer-events-none absolute -left-8 -top-10 h-40 w-40 rounded-full bg-white/15 blur-2xl transform-gpu will-change-transform"
       />
 
       <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
