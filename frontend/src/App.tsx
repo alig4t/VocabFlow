@@ -6,6 +6,7 @@ import { Layout } from './components/layout/Layout'
 import { PageLoader } from './components/layout/PageLoader'
 import { SeedLoader } from './components/layout/SeedLoader'
 import { TopLoadingBar } from './components/layout/TopLoadingBar'
+import { NativeBackButton } from './components/layout/NativeBackButton'
 import { Toaster } from './components/ui/toast'
 import { isNative } from './lib/platform'
 import { prepareNative } from './offline/bootstrap'
@@ -97,6 +98,7 @@ export default function App() {
   return (
     <ThemeProvider defaultTheme="light" storageKey="eng-theme">
       <BrowserRouter>
+        <NativeBackButton />
         <TopLoadingBar />
         <Toaster />
         <Suspense fallback={<PageLoader />}>
