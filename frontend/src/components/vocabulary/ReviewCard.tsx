@@ -84,6 +84,16 @@ export function ReviewCard({
             </p>
             <Phonetic show={frontContent.isEnglish} />
 
+            {frontContent.isEnglish && (
+              <SpeakButton
+                text={word.eng}
+                audioUrl={word.pronunciationAudio}
+                size="md"
+                label="پخش مجدد تلفظ"
+                className="mt-4"
+              />
+            )}
+
             <button
               onClick={onToggle}
               className="mt-8 rounded-full bg-primary px-8 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
@@ -109,6 +119,16 @@ export function ReviewCard({
                 {backContent.text}
               </p>
               <Phonetic show={backContent.isEnglish} />
+
+              {backContent.isEnglish && (
+                <SpeakButton
+                  text={word.eng}
+                  audioUrl={word.pronunciationAudio}
+                  size="md"
+                  label="پخش مجدد تلفظ"
+                  className="mt-4"
+                />
+              )}
 
               {word.description && (
                 <p className="mt-3 max-w-md text-center text-sm leading-relaxed text-muted-foreground">
