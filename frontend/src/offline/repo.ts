@@ -23,6 +23,7 @@ import type {
   StudyAnswer,
   StudyAnswerResult,
   StudyPlanMeta,
+  NotificationStatus,
   SessionSummary,
   LearningPlan,
   UserSettings,
@@ -996,8 +997,13 @@ export async function getSettings(): Promise<UserSettings> {
       show_phonetics: number
       show_examples: number
       card_order: CardOrder
+      daily_reminder_enabled: number
+      daily_reminder_time: string
+      notify_daily_study: number
+      notify_overdue: number
+      notify_streak: number
     }>(
-      'SELECT study_direction, auto_play_audio, show_phonetics, show_examples, card_order FROM user_settings WHERE id=?',
+      'SELECT study_direction, auto_play_audio, show_phonetics, show_examples, card_order, daily_reminder_enabled, daily_reminder_time, notify_daily_study, notify_overdue, notify_streak FROM user_settings WHERE id=?',
       [SETTINGS_ID],
     )
   )[0]
@@ -1009,6 +1015,11 @@ export async function getSettings(): Promise<UserSettings> {
       showPhonetics: true,
       showExamples: true,
       cardOrder: 'SEQUENTIAL',
+      dailyReminderEnabled: true,
+      dailyReminderTime: '20:00',
+      notifyDailyStudy: true,
+      notifyOverdue: true,
+      notifyStreak: true,
     }
   }
   return {
@@ -1017,6 +1028,11 @@ export async function getSettings(): Promise<UserSettings> {
     showPhonetics: row.show_phonetics === 1,
     showExamples: row.show_examples === 1,
     cardOrder: row.card_order,
+    dailyReminderEnabled: row.daily_reminder_enabled === 1,
+    dailyReminderTime: row.daily_reminder_time ?? '20:00',
+    notifyDailyStudy: row.notify_daily_study === 1,
+    notifyOverdue: row.notify_overdue === 1,
+    notifyStreak: row.notify_streak === 1,
   }
 }
 
@@ -1028,6 +1044,11 @@ export async function updateSettings(input: Partial<UserSettings>): Promise<User
     showPhonetics: 'show_phonetics',
     showExamples: 'show_examples',
     cardOrder: 'card_order',
+    dailyReminderEnabled: 'daily_reminder_enabled',
+    dailyReminderTime: 'daily_reminder_time',
+    notifyDailyStudy: 'notify_daily_study',
+    notifyOverdue: 'notify_overdue',
+    notifyStreak: 'notify_streak',
   }
   const sets: string[] = []
   const vals: unknown[] = []
@@ -1040,4 +1061,39 @@ export async function updateSettings(input: Partial<UserSettings>): Promise<User
   }
   if (sets.length) { vals.push(SETTINGS_ID); await run(`UPDATE user_settings SET ${sets.join(', ')} WHERE id=?`, vals) }
   return getSettings()
+}
+
+/**
+ * Live learning status for the notification scheduler. Cheap, native-only:
+ * reuses the daily queue for due/new counts and reads sessions for streak +
+ * "studied today". See `src/lib/notifications.ts`.
+ */
+export async function getNotificationStatus(): Promise<NotificationStatus> {
+  const today = new Date().toISOString().slice(0, 10)
+
+  const todayQueue = await getStudyToday()
+
+  const sessionDays = new Set(
+    (await query<{ started_at: string | null }>('SELECT started_at FROM study_sessions', []))
+      .map((s) => dayOf(s.started_at))
+      .filter(Boolean) as string[],
+  )
+
+  // Streak: consecutive days (ending today, or yesterday) with a session.
+  let streak = 0
+  const cursor = new Date()
+  cursor.setHours(0, 0, 0, 0)
+  if (!sessionDays.has(cursor.toISOString().slice(0, 10))) cursor.setDate(cursor.getDate() - 1)
+  while (sessionDays.has(cursor.toISOString().slice(0, 10))) {
+    streak++
+    cursor.setDate(cursor.getDate() - 1)
+  }
+
+  return {
+    studiedToday: sessionDays.has(today),
+    dueCount: todayQueue.meta.dueCount,
+    newCount: todayQueue.meta.newCount,
+    streak,
+    hasPlans: todayQueue.meta.hasPlans,
+  }
 }

@@ -10,6 +10,7 @@ import { NativeBackButton } from './components/layout/NativeBackButton'
 import { Toaster } from './components/ui/toast'
 import { isNative } from './lib/platform'
 import { prepareNative } from './offline/bootstrap'
+import { initNotifications, rescheduleNotifications } from './lib/notifications'
 import { type Role } from './types'
 
 // ── Lazy-loaded pages (code-split; PageLoader shows while chunks load) ────────
@@ -76,6 +77,23 @@ export default function App() {
         setDbReady(true)
       })
   }, [])
+
+  // Native: schedule study reminders once the offline DB is ready, and rebuild
+  // the schedule every time the app is brought back to the foreground (so a
+  // session completed elsewhere / a new day is reflected). No-op on web.
+  useEffect(() => {
+    if (!isNative() || !dbReady) return
+    initNotifications()
+    let remove: (() => void) | undefined
+    import('@capacitor/app').then(({ App: CapApp }) => {
+      CapApp.addListener('appStateChange', ({ isActive }) => {
+        if (isActive) rescheduleNotifications()
+      }).then((handle) => {
+        remove = () => handle.remove()
+      })
+    })
+    return () => remove?.()
+  }, [dbReady])
 
   // Block route rendering until auth is restored from localStorage.
   if (!isReady) {

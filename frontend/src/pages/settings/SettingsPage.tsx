@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { SlidersHorizontal, Volume2, Eye, BookOpen, Shuffle, ArrowLeftRight, Trash2, Loader2, AlertTriangle } from 'lucide-react'
+import { SlidersHorizontal, Volume2, Eye, BookOpen, Shuffle, ArrowLeftRight, Trash2, Loader2, AlertTriangle, Bell, Clock, Flame, History, BookMarked } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,8 @@ import {
 import { useSettings, useUpdateSettings } from '@/hooks/useSettings'
 import { usePlans, useUpdatePlan, useDeletePlan } from '@/hooks/usePlans'
 import { useToast } from '@/components/ui/use-toast'
+import { isNative } from '@/lib/platform'
+import { ensureNotificationPermission, rescheduleNotifications } from '@/lib/notifications'
 import { cn } from '@/lib/utils'
 import { faNum } from '@/lib/format'
 import type { CardOrder, LearningPlan, ReviewMode, UserSettings } from '@/types'
@@ -214,6 +216,106 @@ function PlanCard({ plan }: { plan: LearningPlan }) {
   )
 }
 
+/**
+ * Study-reminder notifications (native offline build only). Toggling the master
+ * switch requests OS permission; every change rebuilds the local schedule.
+ */
+function NotificationsCard({ settings }: { settings: UserSettings }) {
+  const updateSettings = useUpdateSettings()
+  const { toast } = useToast()
+
+  const enabled = settings.dailyReminderEnabled !== false
+
+  const apply = (patch: Partial<UserSettings>, opts?: { requestPermission?: boolean }) =>
+    updateSettings.mutate(patch, {
+      onSuccess: async () => {
+        if (opts?.requestPermission) {
+          const granted = await ensureNotificationPermission()
+          if (!granted) {
+            toast({
+              title: 'اجازه‌ی اعلان داده نشد',
+              description: 'برای دریافت یادآور، اعلان‌ها را در تنظیمات گوشی برای وکب فعال کنید.',
+              variant: 'destructive',
+            })
+          }
+        }
+        await rescheduleNotifications()
+      },
+    })
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">یادآورها</CardTitle>
+      </CardHeader>
+      <CardContent className="divide-y divide-border">
+        <SettingRow
+          icon={<Bell className="h-5 w-5" />}
+          title="یادآور روزانه‌ی مطالعه"
+          description="اگر امروز مطالعه نکرده باشید و مرور یا لغت جدید داشته باشید، یادآوری می‌شوید."
+        >
+          <Switch
+            checked={enabled}
+            onCheckedChange={(v) => apply({ dailyReminderEnabled: v }, { requestPermission: v })}
+          />
+        </SettingRow>
+
+        {enabled && (
+          <>
+            <SettingRow
+              icon={<Clock className="h-5 w-5" />}
+              title="زمان یادآوری"
+              description="ساعتی که هر روز یادآور مطالعه ارسال می‌شود."
+            >
+              <Input
+                type="time"
+                value={settings.dailyReminderTime ?? '20:00'}
+                onChange={(e) => {
+                  if (e.target.value) apply({ dailyReminderTime: e.target.value })
+                }}
+                className="w-32 tabular-nums"
+              />
+            </SettingRow>
+
+            <SettingRow
+              icon={<BookMarked className="h-5 w-5" />}
+              title="یادآور مطالعه‌ی روزانه"
+              description="پیام آماده‌بودن مرورها و لغت‌های جدیدِ امروز."
+            >
+              <Switch
+                checked={settings.notifyDailyStudy !== false}
+                onCheckedChange={(v) => apply({ notifyDailyStudy: v })}
+              />
+            </SettingRow>
+
+            <SettingRow
+              icon={<History className="h-5 w-5" />}
+              title="یادآور مرورهای عقب‌افتاده"
+              description="وقتی چند روز اپ را باز نکرده‌اید و مرورها روی هم جمع شده‌اند."
+            >
+              <Switch
+                checked={settings.notifyOverdue !== false}
+                onCheckedChange={(v) => apply({ notifyOverdue: v })}
+              />
+            </SettingRow>
+
+            <SettingRow
+              icon={<Flame className="h-5 w-5" />}
+              title="یادآور حفظ استریک"
+              description="وقتی استریک فعال دارید ولی هنوز مطالعه‌ی امروز را کامل نکرده‌اید."
+            >
+              <Switch
+                checked={settings.notifyStreak !== false}
+                onCheckedChange={(v) => apply({ notifyStreak: v })}
+              />
+            </SettingRow>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 export function SettingsPage() {
   const { data: settings, isLoading } = useSettings()
   const { data: plans } = usePlans()
@@ -313,6 +415,9 @@ export function SettingsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Study reminders — native offline build only (no web push). */}
+      {isNative() && settings && <NotificationsCard settings={settings} />}
 
       {/* Per-volume learning plans */}
       <Card>

@@ -11,6 +11,7 @@ import { useSettings } from '@/hooks/useSettings'
 import { studyService } from '@/services/study.service'
 import { cn } from '@/lib/utils'
 import { isNative } from '@/lib/platform'
+import { rescheduleNotifications } from '@/lib/notifications'
 import { playPronunciation, stopPronunciation, warmUpPronunciation } from '@/lib/pronounce'
 import type { ReviewMode, StudyAnswer, Word } from '@/types'
 
@@ -177,6 +178,8 @@ export function StudySessionPage() {
           setSaving(false)
           queryClient.invalidateQueries({ queryKey: ['dashboard'] })
           queryClient.invalidateQueries({ queryKey: ['study', 'today'] })
+          // Studied today → drop tonight's reminder (and refresh the horizon).
+          rescheduleNotifications()
         })
     }
   }, [queryClient])

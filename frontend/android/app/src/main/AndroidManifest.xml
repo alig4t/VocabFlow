@@ -39,6 +39,13 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Local study-reminder notifications (@capacitor/local-notifications).
+         POST_NOTIFICATIONS / RECEIVE_BOOT_COMPLETED / WAKE_LOCK are declared by
+         the plugin; SCHEDULE_EXACT_ALARM lets the daily reminder fire at the
+         exact configured time on Android 12+ (auto-granted, revocable). -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+
     <!-- Required on Android 11+ so the app can discover the Text-to-Speech engine
          (pronunciation). Without this, TextToSpeech finds no engine and stays silent. -->
     <queries>

@@ -330,4 +330,29 @@ export interface UserSettings {
   showPhonetics: boolean
   showExamples: boolean
   cardOrder: CardOrder
+  // ── Notifications (native offline only; web build ignores these) ──────────────
+  /** Master switch for the daily study reminder. */
+  dailyReminderEnabled?: boolean
+  /** Local time the daily reminder fires, `"HH:mm"` (24h). Default `"20:00"`. */
+  dailyReminderTime?: string
+  /** Per-type toggle: the daily "study is ready" reminder. */
+  notifyDailyStudy?: boolean
+  /** Per-type toggle: the "you've been away, reviews are overdue" reminder. */
+  notifyOverdue?: boolean
+  /** Per-type toggle: the "protect your streak" reminder. */
+  notifyStreak?: boolean
+}
+
+/** Live learning status used to decide whether/what to notify (native only). */
+export interface NotificationStatus {
+  /** A study session was completed today. */
+  studiedToday: boolean
+  /** Due reviews waiting in the active plans (today). */
+  dueCount: number
+  /** New words available to introduce today. */
+  newCount: number
+  /** Current consecutive-day streak. */
+  streak: number
+  /** The user has at least one active learning plan. */
+  hasPlans: boolean
 }

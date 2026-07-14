@@ -134,7 +134,12 @@ CREATE TABLE IF NOT EXISTS user_settings (
   auto_play_audio INTEGER NOT NULL DEFAULT 1,
   show_phonetics INTEGER NOT NULL DEFAULT 1,
   show_examples INTEGER NOT NULL DEFAULT 1,
-  card_order TEXT NOT NULL DEFAULT 'SEQUENTIAL'
+  card_order TEXT NOT NULL DEFAULT 'SEQUENTIAL',
+  daily_reminder_enabled INTEGER NOT NULL DEFAULT 1,
+  daily_reminder_time TEXT NOT NULL DEFAULT '20:00',
+  notify_daily_study INTEGER NOT NULL DEFAULT 1,
+  notify_overdue INTEGER NOT NULL DEFAULT 1,
+  notify_streak INTEGER NOT NULL DEFAULT 1
 );
 CREATE TABLE IF NOT EXISTS meta (
   key TEXT PRIMARY KEY NOT NULL,
@@ -158,24 +163,46 @@ const PROGRESS_ADDED_COLUMNS: { name: string; ddl: string }[] = [
   { name: 'introduced_at', ddl: 'introduced_at TEXT' },
 ]
 
-async function migrateSchema(db: SQLiteDBConnection): Promise<void> {
-  const cols = (await db.query('PRAGMA table_info(progress)')).values ?? []
+// Columns added to `user_settings` after its first release (notification prefs).
+// Same rationale as PROGRESS_ADDED_COLUMNS: ADD COLUMN onto old installs.
+const USER_SETTINGS_ADDED_COLUMNS: { name: string; ddl: string }[] = [
+  { name: 'daily_reminder_enabled', ddl: 'daily_reminder_enabled INTEGER NOT NULL DEFAULT 1' },
+  { name: 'daily_reminder_time', ddl: "daily_reminder_time TEXT NOT NULL DEFAULT '20:00'" },
+  { name: 'notify_daily_study', ddl: 'notify_daily_study INTEGER NOT NULL DEFAULT 1' },
+  { name: 'notify_overdue', ddl: 'notify_overdue INTEGER NOT NULL DEFAULT 1' },
+  { name: 'notify_streak', ddl: 'notify_streak INTEGER NOT NULL DEFAULT 1' },
+]
+
+async function addMissingColumns(
+  db: SQLiteDBConnection,
+  table: string,
+  columns: { name: string; ddl: string }[],
+): Promise<Set<string>> {
+  const cols = (await db.query(`PRAGMA table_info(${table})`)).values ?? []
   const existing = new Set((cols as { name: string }[]).map((c) => c.name))
-  let addedManualStatus = false
-  for (const col of PROGRESS_ADDED_COLUMNS) {
+  const added = new Set<string>()
+  for (const col of columns) {
     if (!existing.has(col.name)) {
-      await db.execute(`ALTER TABLE progress ADD COLUMN ${col.ddl};`)
-      if (col.name === 'manual_status') addedManualStatus = true
+      await db.execute(`ALTER TABLE ${table} ADD COLUMN ${col.ddl};`)
+      added.add(col.name)
     }
   }
+  return added
+}
+
+async function migrateSchema(db: SQLiteDBConnection): Promise<void> {
+  const addedProgress = await addMissingColumns(db, 'progress', PROGRESS_ADDED_COLUMNS)
   // Manual marks were previously stored in `status` (pre-SM-2); carry them over.
-  if (addedManualStatus) {
+  if (addedProgress.has('manual_status')) {
     await db.execute('UPDATE progress SET manual_status = status;')
   }
   // Now that next_review_at is guaranteed to exist, create the due-review index.
   await db.execute(
     'CREATE INDEX IF NOT EXISTS idx_progress_due ON progress(review_mode, next_review_at);',
   )
+
+  // Notification-preference columns for pre-notifications installs.
+  await addMissingColumns(db, 'user_settings', USER_SETTINGS_ADDED_COLUMNS)
 }
 
 /** Open (or reuse) the single app database connection and ensure the schema. */
