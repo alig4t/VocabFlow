@@ -115,14 +115,18 @@ export function WordCard({ word, mode }: WordCardProps) {
                 </span>
               )}
 
-              {/* Audio pronunciation button (English) */}
-              <button
-                onClick={handleSpeak}
-                className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
-                title="تلفظ"
-              >
-                <Volume2 className="h-3.5 w-3.5" />
-              </button>
+              {/* Audio pronunciation button — sits beside the English word, so
+                  only in the top row when English is the primary word (EN→FA).
+                  In FA→EN it moves down next to the English (secondary) line. */}
+              {engIsPrimary && (
+                <button
+                  onClick={handleSpeak}
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                  title="تلفظ"
+                >
+                  <Volume2 className="h-3.5 w-3.5" />
+                </button>
+              )}
 
               {/* Location badge */}
               {locationBadge && (
@@ -133,20 +137,33 @@ export function WordCard({ word, mode }: WordCardProps) {
             </div>
 
             {/* Secondary word (below, muted): Persian in EN→FA, English in FA→EN */}
-            <p
-              dir={mode === 'FA_TO_EN' ? 'ltr' : 'rtl'}
-              className={cn(
-                'mt-1 text-base text-muted-foreground font-medium',
-                mode === 'FA_TO_EN' ? '' : 'rtl',
+            <div className="mt-1 flex items-center gap-2 flex-wrap">
+              <p
+                dir={mode === 'FA_TO_EN' ? 'ltr' : 'rtl'}
+                className={cn(
+                  'text-base text-muted-foreground font-medium',
+                  mode === 'FA_TO_EN' ? '' : 'rtl',
+                )}
+              >
+                {mode === 'FA_TO_EN' ? word.eng : word.per}
+                {!engIsPrimary && phonetic && (
+                  <span dir="ltr" className="ms-2 font-ipa text-xs text-muted-foreground/50">
+                    {phonetic}
+                  </span>
+                )}
+              </p>
+
+              {/* In FA→EN the English word lives here — attach its play button. */}
+              {!engIsPrimary && (
+                <button
+                  onClick={handleSpeak}
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                  title="تلفظ"
+                >
+                  <Volume2 className="h-3.5 w-3.5" />
+                </button>
               )}
-            >
-              {mode === 'FA_TO_EN' ? word.eng : word.per}
-              {!engIsPrimary && phonetic && (
-                <span dir="ltr" className="ms-2 font-ipa text-xs text-muted-foreground/50">
-                  {phonetic}
-                </span>
-              )}
-            </p>
+            </div>
 
             {/* Description */}
             {word.description && (
