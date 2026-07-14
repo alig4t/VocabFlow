@@ -28,12 +28,35 @@ function SettingRow({
   title,
   description,
   children,
+  /**
+   * Stack the control on its own full-width row below the title/description
+   * instead of beside it. Use for wide controls (e.g. the segmented toggles)
+   * that would otherwise squeeze the description into several lines on narrow
+   * screens.
+   */
+  stacked = false,
 }: {
   icon: React.ReactNode
   title: string
   description: string
   children: React.ReactNode
+  stacked?: boolean
 }) {
+  if (stacked) {
+    return (
+      <div className="py-3">
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 text-primary">{icon}</span>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-foreground">{title}</p>
+            <p className="text-xs text-muted-foreground">{description}</p>
+          </div>
+        </div>
+        <div className="mt-3 ps-8">{children}</div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex items-center justify-between gap-4 py-3">
       <div className="flex min-w-0 items-start gap-3">
@@ -59,13 +82,13 @@ function Segmented<T extends string>({
   onChange: (v: T) => void
 }) {
   return (
-    <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5">
+    <div className="flex w-full items-center gap-0.5 rounded-lg bg-muted p-0.5">
       {options.map((o) => (
         <button
           key={o.value}
           onClick={() => onChange(o.value)}
           className={cn(
-            'rounded-md px-3 py-1 text-xs font-medium transition-colors',
+            'flex-1 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
             value === o.value
               ? 'bg-primary text-primary-foreground shadow-sm'
               : 'text-muted-foreground hover:text-foreground',
@@ -226,6 +249,7 @@ export function SettingsPage() {
                 icon={<ArrowLeftRight className="h-5 w-5" />}
                 title="جهت مطالعه"
                 description="لغات به کدام جهت مرور و زمان‌بندی شوند."
+                stacked
               >
                 <Segmented<ReviewMode>
                   value={settings.studyDirection}
@@ -274,6 +298,7 @@ export function SettingsPage() {
                 icon={<Shuffle className="h-5 w-5" />}
                 title="ترتیب کارت‌ها"
                 description="ترتیب نمایش لغات جدید."
+                stacked
               >
                 <Segmented<CardOrder>
                   value={settings.cardOrder}
