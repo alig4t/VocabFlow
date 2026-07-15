@@ -301,8 +301,8 @@ function NotificationsCard({ settings }: { settings: UserSettings }) {
 
             <SettingRow
               icon={<Flame className="h-5 w-5" />}
-              title="یادآور حفظ استریک"
-              description="وقتی استریک فعال دارید ولی هنوز مطالعه‌ی امروز را کامل نکرده‌اید."
+              title="یادآور حفظ پشتکار"
+              description="وقتی چند روز متوالی مطالعه کرده‌اید ولی مطالعه‌ی امروز کامل نشده."
             >
               <Switch
                 checked={settings.notifyStreak !== false}

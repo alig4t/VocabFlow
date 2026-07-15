@@ -57,13 +57,15 @@ function messageFor(kind: Kind, s: NotificationStatus, exact: boolean): { title:
   if (kind === 'overdue') {
     return {
       title: '🔥 چند روزه ندیدیمت',
-      body: 'لغت‌هات منتظر مرورن؛ چند دقیقه وقت بذار و به مسیر یادگیری برگرد.',
+      body: 'لغت‌هات منتظر مرورن؛ چند دقیقه وقت بذار و پشتکارت رو دوباره بساز.',
     }
   }
   if (kind === 'streak') {
+    // "پشتکار" is the term the dashboard already uses for this number
+    // (GlobalStats stat tile) — keep the user-facing wording identical.
     return {
-      title: `🔥 امروز آخرین فرصت برای حفظ استریک ${faNum(s.streak)} روزه‌ته`,
-      body: 'یه مرور کوتاه انجام بده تا زنجیره‌ی یادگیری‌ت نشکنه.',
+      title: `🔥 پشتکار ${faNum(s.streak)} روزه‌ات در خطره`,
+      body: 'امروز هنوز مطالعه نکرده‌ای؛ یه مرور کوتاه کافیه.',
     }
   }
   // daily — use exact counts only for today (future-day counts are unknown).
