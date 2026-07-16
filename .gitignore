@@ -41,5 +41,5 @@ promptt.txt
 words-new.sql
 
 #scraper
-/scrap
-/books
+/scrap/output
+/scrap/book-scraper.js

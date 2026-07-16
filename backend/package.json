@@ -12,8 +12,6 @@
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "db:migrate-mysql": "tsx prisma/migrate-mysql.ts",
-    "db:import-volume6": "tsx prisma/import-volume6.ts",
-    "db:import-scraped": "tsx prisma/import-volume6.ts",
     "db:seed-all-datas": "tsx prisma/import-all.ts",
     "db:studio": "prisma studio"
   },
