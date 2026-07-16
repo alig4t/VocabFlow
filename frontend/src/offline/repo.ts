@@ -37,7 +37,7 @@ const now = () => new Date().toISOString()
 const COVER_BY_TITLE: Record<string, string> = {
   '4000 Essential English Words': '/books/Pakage-4000.png',
   'Oxford Word Skills': '/books/Oxford-Word-Skills-Book-Series.png',
-  '1000 English Collocations': '/books/1000-collocation.png',
+  '1000 English Collocations in 10 Minutes a Day': '/books/1000-collocation.png',
   'English Phrasal Verbs in Use': '/books/english-phrasal-verbs-in-use.png',
   "Barron's Essential Words for the GRE": '/books/Essentaial-words-for-the-GRE-1.png',
   "Barron's Essential Words for the IELTS": '/books/Essentaial-words-for-the-ielts.png',

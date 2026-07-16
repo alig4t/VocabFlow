@@ -5,7 +5,7 @@ import type { SQLiteDBConnection } from '@capacitor-community/sqlite'
 const BOOK_TITLE_MAP: Record<string, string> = {
   '4000-essential-english-words': '4000 Essential English Words',
   'oxford-word-skills-basic': 'Oxford Word Skills',
-  '1000-english-collocations': '1000 English Collocations',
+  '1000-english-collocations-in-10-Minutes-a-Day': '1000 English Collocations in 10 Minutes a Day',
   'english-phrasal-verbs-in-use': 'English Phrasal Verbs in Use',
   'barron-essential-words-for-the-gre': "Barron's Essential Words for the GRE",
   'barron-s-essential-words-for-the-ielts': "Barron's Essential Words for the IELTS",

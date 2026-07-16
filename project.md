@@ -441,7 +441,7 @@ frontend/src/
     │   └── SettingsPage.tsx    Per-user study settings
     ├── vocabulary/
     │   ├── VocabularyPage.tsx  Word list with filters, pagination (browse-only)
-    │   └── ReviewPage.tsx      Manual "free review" flashcards (EN→FA or FA→EN)
+    │   └── ReviewPage.tsx      Manual "free review"  (EN→FA or FA→EN)
     └── admin/
         ├── AdminPage.tsx       Admin dashboard / word list with edit/delete
         ├── WordFormPage.tsx    Create / edit word (all fields)
@@ -560,7 +560,7 @@ npm run preview # vite preview
 ### Scraper (`scrap/`)
 ```bash
 npm run scrap -- <volume> <index-url>
-# e.g.: npm run scrap -- 5 https://lang.b-amooz.com/en/vocabulary/categories/250/4000-essential-english-words-5
+# e.g.: npm run scrap -- 5 url-site
 # Output: scrap/output/unit-01.json … unit-30.json + volume-5.json
 ```
 
