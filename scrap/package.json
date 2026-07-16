@@ -1,0 +1,14 @@
+{
+  "name": "scrap",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "scrap": "node scraper.js",
+    "scrap:book": "node book-scraper.js",
+    "scrap:quizlet": "node quzlet-scrapper.js"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "node-fetch": "^3.3.2"
+  }
+}
