@@ -1,9 +1,10 @@
 import { useNavigate } from 'react-router-dom'
-import { BookText, Check, GraduationCap, Play } from 'lucide-react'
+import { BookText, Check, GraduationCap, Info } from 'lucide-react'
 import { Card } from '../ui/card'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
 import { faNum } from '../../lib/format'
+import { getBookMeta, LEVEL_CLASS } from '../../lib/bookMeta'
 import type { DiscoveryBook } from '../../types'
 
 interface DiscoveryBookCardProps {
@@ -14,6 +15,7 @@ interface DiscoveryBookCardProps {
 
 export function DiscoveryBookCard({ book, onStartPlan }: DiscoveryBookCardProps) {
   const navigate = useNavigate()
+  const meta = getBookMeta(book.title)
 
   return (
     <Card className="flex flex-col gap-4 p-5 shadow-soft transition-shadow hover:shadow-md">
@@ -43,7 +45,14 @@ export function DiscoveryBookCard({ book, onStartPlan }: DiscoveryBookCardProps)
               </Badge>
             )}
           </div>
-          <p className="mt-0.5 text-xs text-muted-foreground">{faNum(book.totalWords)} لغت</p>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            <span
+              className={`inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-bold ${LEVEL_CLASS[meta.level]}`}
+            >
+              {meta.level}
+            </span>
+            <span className="text-xs text-muted-foreground">{faNum(book.totalWords)} لغت</span>
+          </div>
         </div>
       </header>
 
@@ -67,10 +76,10 @@ export function DiscoveryBookCard({ book, onStartPlan }: DiscoveryBookCardProps)
           size="sm"
           variant="secondary"
           className="gap-1.5"
-          onClick={() => navigate(`/vocabulary?bookId=${book.id}`)}
+          onClick={() => navigate(`/library/${book.id}`)}
         >
-          <Play className="h-3.5 w-3.5" aria-hidden="true" />
-          مرور
+          <Info className="h-3.5 w-3.5" aria-hidden="true" />
+          توضیحات
         </Button>
       </footer>
     </Card>

@@ -19,6 +19,7 @@ const LoginPage = lazy(() => import('./pages/auth/LoginPage').then((m) => ({ def
 const RegisterPage = lazy(() => import('./pages/auth/RegisterPage').then((m) => ({ default: m.RegisterPage })))
 const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })))
 const LibraryPage = lazy(() => import('./pages/library/LibraryPage').then((m) => ({ default: m.LibraryPage })))
+const BookDetailPage = lazy(() => import('./pages/library/BookDetailPage').then((m) => ({ default: m.BookDetailPage })))
 const VocabularyPage = lazy(() => import('./pages/vocabulary/VocabularyPage').then((m) => ({ default: m.VocabularyPage })))
 const ReviewPage = lazy(() => import('./pages/vocabulary/ReviewPage').then((m) => ({ default: m.ReviewPage })))
 const StudySessionPage = lazy(() => import('./pages/study/StudySessionPage').then((m) => ({ default: m.StudySessionPage })))
@@ -161,6 +162,16 @@ export default function App() {
                 <ProtectedRoute>
                   <Layout>
                     <LibraryPage />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/library/:bookId"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <BookDetailPage />
                   </Layout>
                 </ProtectedRoute>
               }

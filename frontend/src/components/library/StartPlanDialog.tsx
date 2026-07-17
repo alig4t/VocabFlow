@@ -23,13 +23,15 @@ interface StartPlanDialogProps {
   book: DiscoveryBook | null
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** Pre-select this volume when the dialog opens (e.g. from the book detail page). */
+  initialVolumeId?: string
 }
 
 /**
  * Add a book VOLUME (not the whole book) to the learning plan and choose how
  * many new words to learn per day. Single-volume books skip volume selection.
  */
-export function StartPlanDialog({ book, open, onOpenChange }: StartPlanDialogProps) {
+export function StartPlanDialog({ book, open, onOpenChange, initialVolumeId }: StartPlanDialogProps) {
   const navigate = useNavigate()
   const { toast } = useToast()
   const { data: volumes, isLoading: volumesLoading } = useVolumes(open && book ? book.id : '')
@@ -49,13 +51,14 @@ export function StartPlanDialog({ book, open, onOpenChange }: StartPlanDialogPro
     if (open && volumes && volumes.length === 1) setVolumeId(volumes[0].id)
   }, [open, volumes])
 
-  // Reset selection each time the dialog opens for a new book.
+  // Reset selection each time the dialog opens for a new book. When the caller
+  // pre-selects a volume (from the detail page), honour it instead of clearing.
   useEffect(() => {
     if (open) {
-      setVolumeId('')
+      setVolumeId(initialVolumeId ?? '')
       setDailyNewWords(20)
     }
-  }, [open, book?.id])
+  }, [open, book?.id, initialVolumeId])
 
   const singleVolume = volumes?.length === 1
   const canConfirm = Boolean(volumeId) && !createPlan.isPending

@@ -11,6 +11,7 @@ import { ActivityHeatmap } from '@/components/dashboard/ActivityHeatmap'
 import { BookComparison } from '@/components/dashboard/BookComparison'
 import { useDashboard } from '@/hooks/useDashboard'
 import { useAuthStore } from '@/store/authStore'
+import { isNative } from '@/lib/platform'
 
 function DashboardSkeleton() {
   return (
@@ -42,7 +43,7 @@ export function DashboardPage() {
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-foreground">
             <LayoutDashboard className="h-6 w-6 text-primary" aria-hidden="true" />
-            {user ? `سلام ${user.name} 👋` : 'داشبورد'}
+            {user ? (isNative() ? 'سلام زبان‌آموز گرامی 👋' : `سلام ${user.name} 👋`) : 'داشبورد'}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             خلاصه‌ای از مسیر یادگیری شخصی شما

@@ -34,14 +34,15 @@ export function ActivityHeatmap({ days }: ActivityHeatmapProps) {
         {faNum(totalSessions)} جلسه مرور.
       </figcaption>
 
-      <div dir="ltr" className="overflow-x-auto pb-1">
-        <div className="flex flex-row-reverse gap-1" aria-hidden="true">
+      {/* Cells flex to fill the card width (newest week on the right, RTL-friendly). */}
+      <div dir="ltr" className="w-full pb-1">
+        <div className="flex w-full flex-row-reverse gap-[3px] sm:gap-1" aria-hidden="true">
           {weeks.map((week, wi) => (
-            <div key={wi} className="flex flex-col gap-1">
+            <div key={wi} className="flex min-w-0 flex-1 flex-col gap-[3px] sm:gap-1">
               {week.map((day) => (
                 <span
                   key={day.date}
-                  className={`heat-${level(day.count)} h-3 w-3 rounded-[3px]`}
+                  className={`heat-${level(day.count)} aspect-square w-full rounded-[3px]`}
                   title={`${day.date} — ${day.count} مرور`}
                 />
               ))}

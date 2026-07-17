@@ -27,8 +27,8 @@ const mainItems: NavItem[] = [
 
 // Secondary group — guide / settings / about, split off from the main nav by a divider.
 const secondaryItems: NavItem[] = [
-  { to: '/guide', icon: <Rocket className="h-5 w-5" />, label: 'راهنمای شروع' },
   { to: '/settings', icon: <SlidersHorizontal className="h-5 w-5" />, label: 'تنظیمات' },
+  { to: '/guide', icon: <Rocket className="h-5 w-5" />, label: 'راهنمای شروع' },
   { to: '/about', icon: <Info className="h-5 w-5" />, label: 'درباره سازنده' },
 ]
 
