@@ -1,5 +1,7 @@
 import { cn } from '@/lib/utils'
+import { collectExamples } from '@/lib/word-examples'
 import { SpeakButton } from './SpeakButton'
+import { WordDescription } from './WordDescription'
 import type { Word, ReviewMode } from '@/types'
 
 interface ReviewCardProps {
@@ -36,11 +38,9 @@ export function ReviewCard({
   const phonetic = word.pronunciation
   const pos = word.partOfSpeech
 
-  // Primary example + a couple of extras — enough context without clutter.
-  const examples = [
-    ...(word.primaryExample ? [{ eng: word.primaryExample, per: word.primaryExampleTrs }] : []),
-    ...(word.examples ?? []).slice(0, 2).map((e) => ({ eng: e.engSentence, per: e.perTranslation })),
-  ]
+  // Enough context without clutter. collectExamples also reaches into
+  // phrases[].examples, which is the only example source many words have.
+  const examples = collectExamples(word).slice(0, 3)
 
   const Pos = () =>
     pos ? (
@@ -130,11 +130,8 @@ export function ReviewCard({
                 />
               )}
 
-              {word.description && (
-                <p className="mt-3 max-w-md text-center text-sm leading-relaxed text-muted-foreground">
-                  {word.description}
-                </p>
-              )}
+              <WordDescription word={word} />
+
 
               {showExamples && examples.length > 0 && (
                 <div className="mt-4 w-full max-w-md space-y-2">

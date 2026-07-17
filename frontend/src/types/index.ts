@@ -85,7 +85,10 @@ export interface Word {
   id: string
   eng: string
   per: string
+  /** English definition gloss (newer collocation/idiom books only). */
   description?: string
+  /** Persian rendering of the same definition. */
+  descriptionPer?: string
   pronunciation?: string
   partOfSpeech?: string
   wordForms?: string

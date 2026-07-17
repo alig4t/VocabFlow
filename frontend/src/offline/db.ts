@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS words (
   eng TEXT NOT NULL,
   per TEXT NOT NULL,
   description TEXT,
+  description_per TEXT,
   pronunciation TEXT,
   part_of_speech TEXT,
   word_forms TEXT,
@@ -163,6 +164,11 @@ const PROGRESS_ADDED_COLUMNS: { name: string; ddl: string }[] = [
   { name: 'introduced_at', ddl: 'introduced_at TEXT' },
 ]
 
+// Columns added to `words` after its first release (definition gloss).
+const WORDS_ADDED_COLUMNS: { name: string; ddl: string }[] = [
+  { name: 'description_per', ddl: 'description_per TEXT' },
+]
+
 // Columns added to `user_settings` after its first release (notification prefs).
 // Same rationale as PROGRESS_ADDED_COLUMNS: ADD COLUMN onto old installs.
 const USER_SETTINGS_ADDED_COLUMNS: { name: string; ddl: string }[] = [
@@ -200,6 +206,9 @@ async function migrateSchema(db: SQLiteDBConnection): Promise<void> {
   await db.execute(
     'CREATE INDEX IF NOT EXISTS idx_progress_due ON progress(review_mode, next_review_at);',
   )
+
+  // Persian definition gloss for pre-description_per installs.
+  await addMissingColumns(db, 'words', WORDS_ADDED_COLUMNS)
 
   // Notification-preference columns for pre-notifications installs.
   await addMissingColumns(db, 'user_settings', USER_SETTINGS_ADDED_COLUMNS)

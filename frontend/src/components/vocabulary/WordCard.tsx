@@ -8,7 +8,9 @@ import { useWordStatus } from '@/hooks/useProgress'
 import { useAuthStore } from '@/store/authStore'
 import { synonymService } from '@/services/synonym.service'
 import { playPronunciation } from '@/lib/pronounce'
+import { collectExamples, hasExamples } from '@/lib/word-examples'
 import { SpeakButton } from './SpeakButton'
+import { WordDescription } from './WordDescription'
 import type { Word, ReviewMode, SynonymResult } from '@/types'
 
 interface WordCardProps {
@@ -165,12 +167,8 @@ export function WordCard({ word, mode }: WordCardProps) {
               )}
             </div>
 
-            {/* Description */}
-            {word.description && (
-              <p className="mt-1.5 text-sm text-muted-foreground leading-snug line-clamp-2">
-                {word.description}
-              </p>
-            )}
+            {/* Definition gloss — clamped so the list stays scannable */}
+            <WordDescription word={word} variant="compact" />
           </div>
 
           {/* Status badge */}
@@ -204,7 +202,7 @@ export function WordCard({ word, mode }: WordCardProps) {
           </button>
 
           {/* Expand examples button */}
-          {(word.examples?.length > 0 || word.primaryExample) && (
+          {hasExamples(word) && (
             <button
               onClick={() => setExpanded((v) => !v)}
               className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
@@ -270,52 +268,23 @@ export function WordCard({ word, mode }: WordCardProps) {
           )}
         >
           {expanded && (
-            <div className="border-t border-border pt-3 space-y-3">
-              {/* Primary example */}
-              {word.primaryExample && (
-                <div className="space-y-1">
+            <div className="border-t border-border pt-3 space-y-2">
+              {/* Every example, including those nested under phrases */}
+              {collectExamples(word).map((ex, i) => (
+                <div key={i} className="space-y-0.5">
                   <div dir="ltr" className="flex items-start gap-2">
-                    <SpeakButton
-                      text={word.primaryExample}
-                      label="پخش تلفظ مثال"
-                      className="mt-0.5"
-                    />
+                    <SpeakButton text={ex.eng} label="پخش تلفظ مثال" className="mt-0.5" />
                     <p className="flex-1 text-start text-sm text-foreground leading-relaxed italic">
-                      "{word.primaryExample}"
+                      "{ex.eng}"
                     </p>
                   </div>
-                  {word.primaryExampleTrs && (
+                  {ex.per && (
                     <p dir="rtl" className="text-start text-sm text-muted-foreground leading-relaxed rtl">
-                      {word.primaryExampleTrs}
+                      {ex.per}
                     </p>
                   )}
                 </div>
-              )}
-
-              {/* Additional examples */}
-              {word.examples?.length > 0 && (
-                <div className="space-y-2">
-                  {word.examples.map((ex, i) => (
-                    <div key={ex.id ?? i} className="space-y-0.5">
-                      <div dir="ltr" className="flex items-start gap-2">
-                        <SpeakButton
-                          text={ex.engSentence}
-                          label="پخش تلفظ مثال"
-                          className="mt-0.5"
-                        />
-                        <p className="flex-1 text-start text-sm text-foreground leading-relaxed italic">
-                          "{ex.engSentence}"
-                        </p>
-                      </div>
-                      {ex.perTranslation && (
-                        <p dir="rtl" className="text-start text-sm text-muted-foreground leading-relaxed rtl">
-                          {ex.perTranslation}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+              ))}
             </div>
           )}
         </div>

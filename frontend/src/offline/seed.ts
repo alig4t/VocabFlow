@@ -13,15 +13,36 @@ const BOOK_TITLE_MAP: Record<string, string> = {
   'street-talk-1': 'Street Talk 1',
   '504-absolutely-essential-words': '504 Absolutely Essential Words',
   'barron-1100-words-you-need-to-know': "Barron's 1100 Words You Need to Know",
+  // NOTE: the collocations "advanced" slug carries a trailing dash in the JSON.
+  'english-collocations-in-use-intermediate': 'English Collocations in Use',
+  'english-collocations-in-use-advanced-': 'English Collocations in Use',
+  'english-idioms-in-use-intermediate': 'English Idioms in Use',
+  'english-idioms-in-use-advanced': 'English Idioms in Use',
+  'idoms-and-phrasal-verbs-intermediate': 'Idioms and Phrasal Verbs',
+  'idoms-and-phrasal-verbs-advanced': 'Idioms and Phrasal Verbs',
+  'vocabulary-in-use-basic': 'Vocabulary in Use',
+  'vocabulary-in-use-pre-intermediate-and-intermediate': 'Vocabulary in Use',
+  'vocabulary-in-use-academic': 'Vocabulary in Use',
 }
 const VOLUME_TITLE_MAP: Record<string, Record<number, string>> = {
   'oxford-word-skills-basic': { 1: 'Basic', 2: 'Intermediate', 3: 'Advanced' },
+  'english-collocations-in-use-intermediate': { 1: 'Intermediate' },
+  'english-collocations-in-use-advanced-': { 2: 'Advanced' },
+  'english-idioms-in-use-intermediate': { 1: 'Intermediate' },
+  'english-idioms-in-use-advanced': { 2: 'Advanced' },
+  'idoms-and-phrasal-verbs-intermediate': { 1: 'Intermediate' },
+  'idoms-and-phrasal-verbs-advanced': { 2: 'Advanced' },
+  'vocabulary-in-use-basic': { 1: 'Basic' },
+  'vocabulary-in-use-pre-intermediate-and-intermediate': { 2: 'Pre-intermediate & Intermediate' },
+  'vocabulary-in-use-academic': { 4: 'Academic' },
 }
 
 interface ScrapedExample { eng: string; per: string }
 interface ScrapedPhrase { patternEng: string; patternPer?: string; examples: ScrapedExample[] }
+interface ScrapedDescription { eng?: string; per?: string }
 interface ScrapedMeaning {
   per: string
+  description?: ScrapedDescription
   examples: ScrapedExample[]
   phrases?: ScrapedPhrase[]
   synonyms?: string[]
@@ -50,6 +71,12 @@ function slugFromFilename(filename: string): string {
 }
 function titleFromSlug(slug: string): string {
   return BOOK_TITLE_MAP[slug] ?? slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+/** Join per-meaning definition glosses into one column value (null when empty). */
+function joinDescriptions(parts: Array<string | undefined>): string | null {
+  const kept = parts.map((p) => p?.trim()).filter((p): p is string => !!p)
+  return kept.length > 0 ? [...new Set(kept)].join(' / ') : null
 }
 
 const NOW = () => new Date().toISOString()
@@ -115,6 +142,8 @@ function collectFile(filename: string, data: BookFile, bookIdByTitle: Map<string
 
     for (const w of les.words) {
       const per = w.meanings.map((m) => m.per).filter(Boolean).join(' / ')
+      const description = joinDescriptions(w.meanings.map((m) => m.description?.eng))
+      const descriptionPer = joinDescriptions(w.meanings.map((m) => m.description?.per))
       const synonyms = [...new Set(w.meanings.flatMap((m) => m.synonyms ?? []))]
       const antonyms = [...new Set(w.meanings.flatMap((m) => m.antonyms ?? []))]
       const allExamples = w.meanings.flatMap((m) => m.examples ?? [])
@@ -128,7 +157,8 @@ function collectFile(filename: string, data: BookFile, bookIdByTitle: Map<string
         wordId,
         w.eng.trim(),
         per || w.eng,
-        null,
+        description,
+        descriptionPer,
         w.pronunciation || null,
         w.partOfSpeech || null,
         wordForms,
@@ -165,7 +195,7 @@ function collectFile(filename: string, data: BookFile, bookIdByTitle: Map<string
  */
 // Bump this whenever the bundled book data changes so existing installs wipe
 // their local data and re-seed with the corrected content.
-const SEED_VERSION = '3'
+const SEED_VERSION = '4'
 const WIPE_TABLES = [
   'word_phrase_examples', 'word_phrases', 'word_examples', 'words',
   'lessons', 'volumes', 'books', 'progress', 'watchlist',
@@ -205,7 +235,7 @@ export async function seedIfNeeded(onProgress?: (p: number, label: string) => vo
     await bulkInsert(
       db,
       'words',
-      ['id', 'eng', 'per', 'description', 'pronunciation', 'part_of_speech', 'word_forms',
+      ['id', 'eng', 'per', 'description', 'description_per', 'pronunciation', 'part_of_speech', 'word_forms',
         'synonyms', 'antonyms', 'primary_example', 'primary_example_trs', 'pronunciation_audio',
         'chapter', 'unit', 'lesson_id', 'created_at', 'updated_at'],
       rows.words,

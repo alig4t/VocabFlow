@@ -17,6 +17,7 @@ export const createWordSchema = z.object({
   eng: z.string().min(1).max(255),
   per: z.string().min(1).max(255),
   description: z.string().optional(),
+  descriptionPer: z.string().optional(),
   pronunciation: z.string().optional(),
   partOfSpeech: z.string().optional(),
   wordForms: z.string().optional(),

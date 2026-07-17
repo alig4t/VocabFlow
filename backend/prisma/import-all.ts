@@ -25,6 +25,18 @@ const BOOK_TITLE_MAP: Record<string, string> = {
   'street-talk-1':                           'Street Talk 1',
   '504-absolutely-essential-words':          '504 Absolutely Essential Words',
   'barron-1100-words-you-need-to-know':      "Barron's 1100 Words You Need to Know",
+  // Each volume of these series ships as its own slug, so every slug maps to the
+  // shared parent title. NOTE: the collocations "advanced" slug has a trailing
+  // dash in the source JSON — that is intentional, not a typo here.
+  'english-collocations-in-use-intermediate': 'English Collocations in Use',
+  'english-collocations-in-use-advanced-':    'English Collocations in Use',
+  'english-idioms-in-use-intermediate':       'English Idioms in Use',
+  'english-idioms-in-use-advanced':           'English Idioms in Use',
+  'idoms-and-phrasal-verbs-intermediate':     'Idioms and Phrasal Verbs',
+  'idoms-and-phrasal-verbs-advanced':         'Idioms and Phrasal Verbs',
+  'vocabulary-in-use-basic':                                'Vocabulary in Use',
+  'vocabulary-in-use-pre-intermediate-and-intermediate':    'Vocabulary in Use',
+  'vocabulary-in-use-academic':                             'Vocabulary in Use',
 }
 
 // Override the generated "Volume N" title per slug + volume number.
@@ -34,18 +46,94 @@ const VOLUME_TITLE_MAP: Record<string, Record<number, string>> = {
     2: 'Intermediate',
     3: 'Advanced',
   },
+  'english-collocations-in-use-intermediate': { 1: 'Intermediate' },
+  'english-collocations-in-use-advanced-':    { 2: 'Advanced' },
+  'english-idioms-in-use-intermediate':       { 1: 'Intermediate' },
+  'english-idioms-in-use-advanced':           { 2: 'Advanced' },
+  'idoms-and-phrasal-verbs-intermediate':     { 1: 'Intermediate' },
+  'idoms-and-phrasal-verbs-advanced':         { 2: 'Advanced' },
+  'vocabulary-in-use-basic':                             { 1: 'Basic' },
+  'vocabulary-in-use-pre-intermediate-and-intermediate': { 2: 'Pre-intermediate & Intermediate' },
+  // Volume 3 (Advanced) has no JSON yet; Academic keeps the source's volume 4.
+  'vocabulary-in-use-academic':                          { 4: 'Academic' },
 }
+
+// ── Cover art ─────────────────────────────────────────────────────────────────
+// Served by the frontend from `frontend/public/books/`, so these are web paths.
+// Keyed by resolved book title (mirrors frontend/src/offline/repo.ts).
+
+const BOOK_COVER_MAP: Record<string, string> = {
+  '4000 Essential English Words':                  '/books/Pakage-4000.png',
+  'Oxford Word Skills':                            '/books/Oxford-Word-Skills-Book-Series.png',
+  '1000 English Collocations in 10 Minutes a Day': '/books/1000-collocation.png',
+  'English Phrasal Verbs in Use':                  '/books/english-phrasal-verbs-in-use.png',
+  "Barron's Essential Words for the GRE":          '/books/Essentaial-words-for-the-GRE-1.png',
+  "Barron's Essential Words for the IELTS":        '/books/Essentaial-words-for-the-ielts.png',
+  "Barron's Essential Words for the TOEFL":        '/books/Essentaial-words-for-the-toefl.png',
+  'Street Talk 1':                                 '/books/street-talk.png',
+  '504 Absolutely Essential Words':                '/books/504-absolutely-essential-words-v1.webp',
+  "Barron's 1100 Words You Need to Know":          '/books/barron-1100-words-you-need-to-know.webp',
+  'English Collocations in Use':                   '/books/ENGLISH-collocations-IN-USE-collection.webp',
+  'English Idioms in Use':                         '/books/ENGLISH-IDIOMS-IN-USE-collection.webp',
+  'Idioms and Phrasal Verbs':                      '/books/idioms-and-phrasal-verb-collection.webp',
+  'Vocabulary in Use':                             '/books/vocabulary-in-use-collection.webp',
+}
+
+// Per-volume art for multi-volume series; single-volume books fall back to the
+// book cover.
+const VOLUME_COVER_MAP: Record<string, Record<number, string>> = {
+  '4000 Essential English Words': {
+    1: '/books/4000-v1.webp',
+    2: '/books/4000-v2.webp',
+    3: '/books/4000-v3.webp',
+    4: '/books/4000-v4.webp',
+    5: '/books/4000-v5.webp',
+    6: '/books/4000-v6.webp',
+  },
+  'Oxford Word Skills': {
+    1: '/books/oxford-word-skills-basic.webp',
+    2: '/books/oxford-word-skills-intermediate.webp',
+    3: '/books/oxford-word-skills-advanced.webp',
+  },
+  'English Collocations in Use': {
+    1: '/books/english-collocations-in-use-intermediate.webp',
+    2: '/books/english-collocations-in-use-advanced.webp',
+  },
+  'English Idioms in Use': {
+    1: '/books/english-idioms-in-use-intermediate.webp',
+    2: '/books/english-idioms-in-use-advanced.webp',
+  },
+  'Idioms and Phrasal Verbs': {
+    1: '/books/idioms-and-phrasal-verb-intermediate.jpg',
+    2: '/books/idioms-and-phrasal-verb-advanced.jpg',
+  },
+  'Vocabulary in Use': {
+    1: '/books/vocabulary-in-use-basic.webp',
+    // Source filename misspells "intermeidate" — keep it to match the real file.
+    2: '/books/vocabulary-in-use-pre-intermeidate-and-intermediate.webp',
+    3: '/books/vocabulary-in-use-advanced.webp',
+    4: '/books/vocabulary-in-use-academic.jpg',
+  },
+}
+
+const bookCoverFor = (title: string): string | undefined => BOOK_COVER_MAP[title]
+
+const volumeCoverFor = (bookTitle: string, volumeNumber: number): string | undefined =>
+  VOLUME_COVER_MAP[bookTitle]?.[volumeNumber] ?? bookCoverFor(bookTitle)
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface ScrapedExample { eng: string; per: string }
 interface ScrapedPhrase  { patternEng: string; patternPer?: string; examples: ScrapedExample[] }
+/** Definition gloss, present only in the newer collocation/idiom books. */
+interface ScrapedDescription { eng?: string; per?: string }
 interface ScrapedMeaning {
-  per:       string
-  examples:  ScrapedExample[]
-  phrases?:  ScrapedPhrase[]
-  synonyms?: string[]
-  antonyms?: string[]
+  per:          string
+  description?: ScrapedDescription
+  examples:     ScrapedExample[]
+  phrases?:     ScrapedPhrase[]
+  synonyms?:    string[]
+  antonyms?:    string[]
 }
 interface ScrapedWord {
   eng:            string
@@ -80,6 +168,12 @@ function titleFromSlug(slug: string): string {
     ?? slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
+/** Join the per-meaning glosses into one column value; undefined when all empty. */
+function joinDescriptions(parts: Array<string | undefined>): string | undefined {
+  const kept = parts.map(p => p?.trim()).filter((p): p is string => !!p)
+  return kept.length > 0 ? [...new Set(kept)].join(' / ') : undefined
+}
+
 // ── Word import (shared for both formats) ─────────────────────────────────────
 
 async function importWord(
@@ -90,6 +184,9 @@ async function importWord(
   unitNum: number,
 ) {
   const per         = w.meanings.map(m => m.per).filter(Boolean).join(' / ')
+  // Definition glosses, joined across meanings the same way `per` is.
+  const description    = joinDescriptions(w.meanings.map(m => m.description?.eng))
+  const descriptionPer = joinDescriptions(w.meanings.map(m => m.description?.per))
   const synonyms    = [...new Set(w.meanings.flatMap(m => m.synonyms ?? []))]
   const antonyms    = [...new Set(w.meanings.flatMap(m => m.antonyms ?? []))]
   const allPhrases  = w.meanings.flatMap(m => m.phrases ?? [])
@@ -103,6 +200,8 @@ async function importWord(
     data: {
       eng:               w.eng.trim(),
       per:               per || w.eng,
+      description,
+      descriptionPer,
       pronunciation:     w.pronunciation  || undefined,
       partOfSpeech:      w.partOfSpeech   || undefined,
       wordForms,
@@ -186,21 +285,29 @@ async function importFile(
     lessons      = data.lessons
   }
 
-  const bookTitle = titleFromSlug(bookSlug)
+  const bookTitle  = titleFromSlug(bookSlug)
+  const bookCover  = bookCoverFor(bookTitle)
 
-  // Book — find or create (title is not @unique in schema, so no upsert)
+  // Book — find or create (title is not @unique in schema, so no upsert).
+  // Existing books get their cover refreshed too, so a re-run backfills art for
+  // books imported before covers were part of this script.
   let book = await prisma.book.findFirst({ where: { title: bookTitle } })
   if (!book) {
-    book = await prisma.book.create({ data: { title: bookTitle } })
-    console.log(`  📚 Created book: "${bookTitle}"`)
+    book = await prisma.book.create({ data: { title: bookTitle, coverImage: bookCover } })
+    console.log(`  📚 Created book: "${bookTitle}"${bookCover ? `  🖼  ${bookCover}` : ''}`)
+  } else if (bookCover && book.coverImage !== bookCover) {
+    book = await prisma.book.update({ where: { id: book.id }, data: { coverImage: bookCover } })
+    console.log(`  🖼  Cover set on "${bookTitle}": ${bookCover}`)
   }
+  if (!bookCover) console.warn(`  ⚠️  No cover mapped for book "${bookTitle}"`)
 
   // Volume — upsert (has @@unique([bookId, volumeNumber]))
   const volumeTitle = VOLUME_TITLE_MAP[bookSlug]?.[volumeNumber] ?? `Volume ${volumeNumber}`
+  const volumeCover = volumeCoverFor(bookTitle, volumeNumber)
   const volume = await prisma.volume.upsert({
     where:  { bookId_volumeNumber: { bookId: book.id, volumeNumber } },
-    update: { title: volumeTitle },
-    create: { bookId: book.id, volumeNumber, title: volumeTitle },
+    update: { title: volumeTitle, coverImage: volumeCover },
+    create: { bookId: book.id, volumeNumber, title: volumeTitle, coverImage: volumeCover },
   })
 
   let ok = 0; let fail = 0

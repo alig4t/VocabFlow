@@ -32,6 +32,7 @@ const wordSchema = z.object({
   eng: z.string().min(1, 'لغت انگلیسی الزامی است'),
   per: z.string().min(1, 'معنی فارسی الزامی است'),
   description: z.string().optional(),
+  descriptionPer: z.string().optional(),
   pronunciation: z.string().optional(),
   partOfSpeech: z.string().optional(),
   wordForms: z.string().optional(),
@@ -52,6 +53,7 @@ type WordFormInput = {
   eng: string
   per: string
   description?: string
+  descriptionPer?: string
   pronunciation?: string
   partOfSpeech?: string
   wordForms?: string
@@ -176,7 +178,7 @@ export function WordFormPage() {
   } = useForm<WordFormInput>({
     resolver: zodResolver(wordSchema) as any,
     defaultValues: {
-      eng: '', per: '', description: '', pronunciation: '', partOfSpeech: '',
+      eng: '', per: '', description: '', descriptionPer: '', pronunciation: '', partOfSpeech: '',
       wordForms: '', chapter: '', unit: '', primaryExample: '', primaryExampleTrs: '', moduleId: '',
     },
   })
@@ -187,6 +189,7 @@ export function WordFormPage() {
         eng:               word.eng,
         per:               word.per,
         description:       word.description       ?? '',
+        descriptionPer:    word.descriptionPer    ?? '',
         pronunciation:     word.pronunciation      ?? '',
         partOfSpeech:      word.partOfSpeech       ?? '',
         wordForms:         word.wordForms          ?? '',
@@ -328,9 +331,15 @@ export function WordFormPage() {
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="description">توضیح / تعریف</Label>
-              <Input id="description" placeholder="توضیح یا یادداشت اختیاری..." {...register('description')} />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="description">تعریف (انگلیسی)</Label>
+                <Input id="description" placeholder="obey or do what sth states" dir="ltr" {...register('description')} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="descriptionPer">تعریف (فارسی)</Label>
+                <Input id="descriptionPer" placeholder="توضیح یا یادداشت اختیاری..." {...register('descriptionPer')} />
+              </div>
             </div>
 
             <div className="space-y-1.5">

@@ -45,6 +45,10 @@ const COVER_BY_TITLE: Record<string, string> = {
   'Street Talk 1': '/books/street-talk.png',
   '504 Absolutely Essential Words': '/books/504-absolutely-essential-words-v1.webp',
   "Barron's 1100 Words You Need to Know": '/books/barron-1100-words-you-need-to-know.webp',
+  'English Collocations in Use': '/books/ENGLISH-collocations-IN-USE-collection.webp',
+  'English Idioms in Use': '/books/ENGLISH-IDIOMS-IN-USE-collection.webp',
+  'Idioms and Phrasal Verbs': '/books/idioms-and-phrasal-verb-collection.webp',
+  'Vocabulary in Use': '/books/vocabulary-in-use-collection.webp',
 }
 const coverFor = (title: string): string | undefined => COVER_BY_TITLE[title]
 
@@ -65,6 +69,25 @@ const VOLUME_COVER_BY_TITLE: Record<string, Record<number, string>> = {
     2: '/books/oxford-word-skills-intermediate.webp',
     3: '/books/oxford-word-skills-advanced.webp',
   },
+  'English Collocations in Use': {
+    1: '/books/english-collocations-in-use-intermediate.webp',
+    2: '/books/english-collocations-in-use-advanced.webp',
+  },
+  'English Idioms in Use': {
+    1: '/books/english-idioms-in-use-intermediate.webp',
+    2: '/books/english-idioms-in-use-advanced.webp',
+  },
+  'Idioms and Phrasal Verbs': {
+    1: '/books/idioms-and-phrasal-verb-intermediate.jpg',
+    2: '/books/idioms-and-phrasal-verb-advanced.jpg',
+  },
+  'Vocabulary in Use': {
+    1: '/books/vocabulary-in-use-basic.webp',
+    // Source filename misspells "intermeidate" — keep it to match the real file.
+    2: '/books/vocabulary-in-use-pre-intermeidate-and-intermediate.webp',
+    3: '/books/vocabulary-in-use-advanced.webp',
+    4: '/books/vocabulary-in-use-academic.jpg',
+  },
 }
 const volumeCoverFor = (bookTitle: string, volumeNumber: number): string | undefined =>
   VOLUME_COVER_BY_TITLE[bookTitle]?.[volumeNumber] ?? coverFor(bookTitle)
@@ -75,6 +98,7 @@ interface WordRow {
   eng: string
   per: string
   description: string | null
+  description_per: string | null
   pronunciation: string | null
   part_of_speech: string | null
   word_forms: string | null
@@ -118,6 +142,7 @@ function mapWord(
     eng: r.eng,
     per: r.per,
     description: r.description ?? undefined,
+    descriptionPer: r.description_per ?? undefined,
     pronunciation: r.pronunciation ?? undefined,
     partOfSpeech: r.part_of_speech ?? undefined,
     wordForms: r.word_forms ?? undefined,
@@ -442,6 +467,7 @@ export async function updateWord(id: string, data: Record<string, unknown>): Pro
     eng: 'eng',
     per: 'per',
     description: 'description',
+    descriptionPer: 'description_per',
     primaryExample: 'primary_example',
     primaryExampleTrs: 'primary_example_trs',
     pronunciationAudio: 'pronunciation_audio',
@@ -466,13 +492,14 @@ export async function createWord(data: Record<string, unknown>): Promise<Word> {
   const id = uid()
   const ts = now()
   await run(
-    `INSERT INTO words (id, eng, per, description, primary_example, primary_example_trs, pronunciation_audio, chapter, unit, lesson_id, synonyms, antonyms, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', '[]', ?, ?)`,
+    `INSERT INTO words (id, eng, per, description, description_per, primary_example, primary_example_trs, pronunciation_audio, chapter, unit, lesson_id, synonyms, antonyms, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', '[]', ?, ?)`,
     [
       id,
       data.eng ?? '',
       data.per ?? '',
       data.description ?? null,
+      data.descriptionPer ?? null,
       data.primaryExample ?? null,
       data.primaryExampleTrs ?? null,
       data.pronunciationAudio ?? null,

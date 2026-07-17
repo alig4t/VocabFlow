@@ -119,7 +119,10 @@ model Word {
   id                 String   @id @default(cuid())
   eng                String
   per                String
+  // English definition (from the source JSON's meanings[].description.eng).
   description        String?
+  // Persian rendering of the same definition (meanings[].description.per).
+  descriptionPer     String?  @map("description_per")
   pronunciation      String?
   partOfSpeech       String?  @map("part_of_speech")
   wordForms          String?  @map("word_forms")

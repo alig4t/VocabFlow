@@ -95,6 +95,43 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
   )
 }
 
+/**
+ * Buttons shown the very first time a brand-new word appears in the session.
+ * "خواندم" (Read) behaves exactly like "بلد نیستم" (AGAIN) — same scheduling —
+ * it only carries a gentler label for a word the user is meeting for the first
+ * time. On any later appearance the word falls back to the full AnswerBar.
+ */
+function ReadBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
+  const btn =
+    'whitespace-nowrap rounded-lg border px-2 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2'
+  return (
+    <div className="flex items-stretch gap-2">
+      <Tooltip label="این لغت جدید را خواندم" className="flex-1">
+        <button
+          onClick={() => onAnswer('AGAIN')}
+          className={cn(
+            btn,
+            'w-full border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 focus-visible:ring-primary/40',
+          )}
+        >
+          خواندم
+        </button>
+      </Tooltip>
+      <Tooltip label={!isNative() ? 'فعلاً رد کن (بدون تغییر زمان‌بندی)' : ''}>
+        <button
+          onClick={() => onAnswer('SKIP')}
+          className={cn(
+            btn,
+            'max-w-[4.5rem] border-dashed border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring',
+          )}
+        >
+          رد
+        </button>
+      </Tooltip>
+    </div>
+  )
+}
+
 export function StudySessionPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -118,6 +155,10 @@ export function StudySessionPage() {
   const startedAtRef = useRef<Date>(new Date())
   const counters = useRef({ easy: 0, hard: 0, again: 0, skip: 0 })
   const introducedNew = useRef<Set<string>>(new Set())
+  // New words the user has already been shown once this session. A new word gets
+  // the Read/Skip bar only on its FIRST appearance; once seen (even if requeued
+  // by Read/Again), it uses the standard AnswerBar.
+  const seenNewOnce = useRef<Set<string>>(new Set())
 
   // Freeze the queue once today's data lands — but only when it's FRESH (not a
   // stale/in-flight refetch), so a just-created plan isn't missed and the
@@ -143,6 +184,9 @@ export function StudySessionPage() {
 
   const current = queue && index < queue.length ? queue[index] : null
   const total = queue?.length ?? 0
+
+  // First time this new word is shown → offer only Read/Skip.
+  const isFirstExposure = !!current?.isNew && !seenNewOnce.current.has(current.word.id)
 
   const finish = useCallback(() => {
     const c = counters.current
@@ -200,6 +244,9 @@ export function StudySessionPage() {
       else if (a === 'AGAIN') counters.current.again += 1
       else counters.current.skip += 1
       if (a !== 'SKIP' && cur.isNew) introducedNew.current.add(cur.word.id)
+      // After this answer the word is no longer on its first exposure, so any
+      // later appearance (e.g. an Again/Read requeue) uses the standard buttons.
+      if (cur.isNew) seenNewOnce.current.add(cur.word.id)
 
       // "بلد نیستم" (Again) → requeue so the card returns later this session.
       // "رد" (Skip) → just move on; no reschedule, no requeue (distinct behavior).
@@ -235,6 +282,7 @@ export function StudySessionPage() {
   const restart = useCallback(() => {
     counters.current = { easy: 0, hard: 0, again: 0, skip: 0 }
     introducedNew.current = new Set()
+    seenNewOnce.current = new Set()
     setSummary(null)
     setQueue(null)
     setIndex(0)
@@ -272,7 +320,11 @@ export function StudySessionPage() {
         e.preventDefault()
         if (!muted) playPronunciation(current.word)
       } else if (flipped) {
-        if (e.key === '1') handleAnswer('AGAIN')
+        if (isFirstExposure) {
+          // First exposure of a new word: only Read (1/Enter) and Skip (s).
+          if (e.key === '1' || e.key === 'Enter') handleAnswer('AGAIN')
+          else if (e.key === 's' || e.key === 'S') handleAnswer('SKIP')
+        } else if (e.key === '1') handleAnswer('AGAIN')
         else if (e.key === '2') handleAnswer('HARD')
         else if (e.key === '3') handleAnswer('EASY')
         else if (e.key === 's' || e.key === 'S') handleAnswer('SKIP')
@@ -280,7 +332,7 @@ export function StudySessionPage() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [summary, current, flipped, muted, toggleFlip, handleAnswer])
+  }, [summary, current, flipped, muted, toggleFlip, handleAnswer, isFirstExposure])
 
   const progressPercent = total > 0 ? Math.round((Math.min(index, total) / total) * 100) : 0
 
@@ -435,7 +487,11 @@ export function StudySessionPage() {
           />
 
           {flipped ? (
-            <AnswerBar onAnswer={handleAnswer} />
+            isFirstExposure ? (
+              <ReadBar onAnswer={handleAnswer} />
+            ) : (
+              <AnswerBar onAnswer={handleAnswer} />
+            )
           ) : (
             <div className="flex items-center justify-center gap-2">
               <Button variant="outline" className="min-w-[10rem]" onClick={toggleFlip}>
@@ -453,13 +509,20 @@ export function StudySessionPage() {
           {/* Keyboard hint (web only) */}
           {!isNative() && flipped && (
             <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[11px] text-muted-foreground/80">
-              {[
-                { key: '1', label: 'بلد نیستم' },
-                { key: '2', label: 'سخت' },
-                { key: '3', label: 'بلدم' },
-                { key: 'S', label: 'رد' },
-                { key: 'P', label: 'تلفظ' },
-              ].map((s) => (
+              {(isFirstExposure
+                ? [
+                    { key: '1', label: 'خواندم' },
+                    { key: 'S', label: 'رد' },
+                    { key: 'P', label: 'تلفظ' },
+                  ]
+                : [
+                    { key: '1', label: 'بلد نیستم' },
+                    { key: '2', label: 'سخت' },
+                    { key: '3', label: 'بلدم' },
+                    { key: 'S', label: 'رد' },
+                    { key: 'P', label: 'تلفظ' },
+                  ]
+              ).map((s) => (
                 <span key={s.label} className="inline-flex items-center gap-1">
                   <kbd className="rounded border border-border px-1.5 py-0.5 font-mono text-[11px]">
                     {s.key}
