@@ -9,9 +9,12 @@
  * "don't remind a user who already studied today" falls out for free: a fresh
  * reschedule after a completed session simply omits today's reminder.
  *
- * We lay down a 7-day horizon so a user who stays away still gets a daily nudge,
- * and the message escalates to the "overdue" tone after 3 idle days. Opening the
- * app at any point wipes and rebuilds the whole schedule.
+ * The horizon is a **tapering ladder** (`REMINDER_DAYS`), not one-per-day: the
+ * longer the absence, the wider the gap. Nagging daily is what the spec warns
+ * against ("limit the number of notifications"), and since only opening the app
+ * reschedules, a dense-but-short horizon would also abandon the very user who
+ * stayed away longest. The ladder sends *fewer* messages across a *longer*
+ * window, and the tone escalates to "overdue" after 3 idle days.
  *
  * On the web build every export is a no-op.
  */
@@ -22,9 +25,31 @@ import type { NotificationStatus, UserSettings } from '@/types'
 const off = () => import('@/offline/repo')
 
 const CHANNEL_ID = 'vocabflow-reminders'
-const HORIZON_DAYS = 7 // schedule this many days ahead
+
+/**
+ * The reminder ladder: days (from the last app open) to schedule a nudge on.
+ * Gaps widen as the absence grows — 8 messages across a month instead of one
+ * per day. Days 0 and 1 are the real "daily reminder" (0 = you haven't studied
+ * yet today; 1 = you didn't open the app today at all); everything past
+ * OVERDUE_AFTER_DAYS is a gentle come-back nudge, spaced ever wider.
+ */
+const REMINDER_DAYS = [0, 1, 3, 6, 10, 15, 21, 30]
 const OVERDUE_AFTER_DAYS = 3 // idle days before the message turns "overdue"
-const BASE_ID = 4200 // notification id range: BASE_ID .. BASE_ID+HORIZON_DAYS-1
+const BASE_ID = 4200 // ids: BASE_ID .. BASE_ID+REMINDER_DAYS.length-1
+
+/** The ladder days that use the "overdue" tone — drives message rotation. */
+const OVERDUE_DAYS = REMINDER_DAYS.filter((d) => d >= OVERDUE_AFTER_DAYS)
+
+/**
+ * Come-back messages, rotated across the overdue rungs so a long absence never
+ * repeats the same text. Tone is deliberately low-pressure — the spec asks for
+ * "friendly and motivational, not demanding or stressful".
+ */
+const OVERDUE_MESSAGES: { title: string; body: string }[] = [
+  { title: '📚 چند روزه ندیدیمت', body: 'هر وقت فرصت داشتی، لغت‌هات همین‌جا منتظرتن.' },
+  { title: '🌱 یه مرور کوتاه کافیه', body: 'چند دقیقه وقت بذار و پشتکارت رو دوباره بساز.' },
+  { title: '✨ هر وقت آماده بودی، از همون‌جا ادامه بده', body: 'شروع دوباره سخت نیست؛ از همون لغت بعدی.' },
+]
 
 type Kind = 'daily' | 'overdue' | 'streak'
 
@@ -52,18 +77,22 @@ function fireDate(dayOffset: number, h: number, min: number): Date {
   return d
 }
 
-/** Build the message for a given notification kind. Persian, matches spec tone. */
-function messageFor(kind: Kind, s: NotificationStatus, exact: boolean): { title: string; body: string } {
+/**
+ * Build the message for a rung of the ladder. `day` selects the overdue variant
+ * and decides whether exact counts are known (only day 0 is "today").
+ */
+function messageFor(kind: Kind, s: NotificationStatus, day: number): { title: string; body: string } {
+  const exact = day === 0
   if (kind === 'overdue') {
-    return {
-      title: '🔥 چند روزه ندیدیمت',
-      body: 'لغت‌هات منتظر مرورن؛ چند دقیقه وقت بذار و به مسیر یادگیری برگرد.',
-    }
+    const rung = OVERDUE_DAYS.indexOf(day)
+    return OVERDUE_MESSAGES[(rung < 0 ? 0 : rung) % OVERDUE_MESSAGES.length]
   }
   if (kind === 'streak') {
+    // "پشتکار" is the term the dashboard already uses for this number
+    // (GlobalStats stat tile) — keep the user-facing wording identical.
     return {
-      title: `🔥 امروز آخرین فرصت برای حفظ استریک ${faNum(s.streak)} روزه‌ته`,
-      body: 'یه مرور کوتاه انجام بده تا زنجیره‌ی یادگیری‌ت نشکنه.',
+      title: `🔥 پشتکار ${faNum(s.streak)} روزه‌ات در خطره`,
+      body: 'امروز هنوز مطالعه نکرده‌ای؛ یه مرور کوتاه کافیه.',
     }
   }
   // daily — use exact counts only for today (future-day counts are unknown).
@@ -110,32 +139,36 @@ function planReminders(settings: UserSettings, status: NotificationStatus): Remi
   const now = new Date()
   const out: Reminder[] = []
 
-  for (let d = 0; d < HORIZON_DAYS; d++) {
+  REMINDER_DAYS.forEach((d, idx) => {
     const at = fireDate(d, h, min)
 
     if (d === 0) {
       // Today: skip if the time has passed, already studied, or nothing to do.
-      if (at.getTime() <= now.getTime()) continue
-      if (status.studiedToday) continue
-      if (status.dueCount + status.newCount === 0) continue
+      if (at.getTime() <= now.getTime()) return
+      if (status.studiedToday) return
+      if (status.dueCount + status.newCount === 0) return
     } else {
       // Future days: only meaningful if the user actually has a plan to study.
-      if (!status.hasPlans) continue
+      if (!status.hasPlans) return
     }
 
     const kind = kindForDay(d, settings, status)
-    if (!kind) continue
+    if (!kind) return
 
-    const { title, body } = messageFor(kind, status, d === 0)
-    out.push({ id: BASE_ID + d, at, title, body })
-  }
+    const { title, body } = messageFor(kind, status, d)
+    out.push({ id: BASE_ID + idx, at, title, body })
+  })
 
   return out
 }
 
-/** Cancel every reminder we may have scheduled (our whole id range). */
+/**
+ * Cancel every reminder we may have scheduled (our whole id range). The range
+ * only ever grows, so ids left over from an older/shorter ladder are cleared
+ * too — no orphaned notifications survive an app update.
+ */
 async function cancelAll(LocalNotifications: typeof import('@capacitor/local-notifications').LocalNotifications) {
-  const ids = Array.from({ length: HORIZON_DAYS }, (_, d) => ({ id: BASE_ID + d }))
+  const ids = Array.from({ length: REMINDER_DAYS.length }, (_, i) => ({ id: BASE_ID + i }))
   await LocalNotifications.cancel({ notifications: ids })
 }
 
