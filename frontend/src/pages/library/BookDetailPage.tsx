@@ -6,7 +6,6 @@ import {
   Check,
   GraduationCap,
   Layers,
-  PenLine,
   UserRound,
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
@@ -168,56 +167,52 @@ export function BookDetailPage() {
         </div>
 
         {volumesLoading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {[...Array(3)].map((_, i) => (
-              <Skeleton key={i} className="h-64 rounded-xl" />
+          <div className="flex gap-6 pb-2">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="aspect-[2/3] w-32 shrink-0 rounded-lg" />
             ))}
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {volumes?.map((v) => {
+          <div className="book-shelf flex flex-wrap items-end justify-start gap-y-10 px-2 pb-6 pt-4">
+            {volumes?.map((v, i) => {
               const planned = plannedVolumeIds.has(v.id)
               const label = v.title ?? `جلد ${faNum(v.volumeNumber)}`
               return (
-                <Card
+                <button
                   key={v.id}
-                  className="flex flex-col gap-3 p-4 shadow-soft transition-shadow hover:shadow-md"
+                  type="button"
+                  onClick={() => openPlan(v.id)}
+                  title={label}
+                  style={{ zIndex: i, marginInlineStart: i === 0 ? 0 : '-2.75rem' }}
+                  className="group relative w-32 shrink-0 text-right transition-[z-index] focus:outline-none hover:z-30 focus-visible:z-30"
                 >
-                  <div className="relative">
-                    {v.coverImage ? (
-                      <img
-                        src={v.coverImage}
-                        alt={label}
-                        loading="lazy"
-                        className="h-44 w-full rounded-lg object-cover ring-1 ring-border"
-                      />
-                    ) : (
-                      <span className="flex h-44 w-full items-center justify-center rounded-lg bg-primary/10 text-primary">
-                        <BookText className="h-10 w-10" aria-hidden="true" />
-                      </span>
-                    )}
+                  <div className="book3d">
+                    <div className="book3d__cover-wrap">
+                      {v.coverImage ? (
+                        <img
+                          src={v.coverImage}
+                          alt={label}
+                          loading="lazy"
+                          className="book3d__cover"
+                        />
+                      ) : (
+                        <span className="book3d__cover flex items-center justify-center bg-primary/10 text-primary">
+                          <BookText className="h-10 w-10" aria-hidden="true" />
+                        </span>
+                      )}
+                      <span className="book3d__pages" aria-hidden="true" />
+                    </div>
                     {planned && (
-                      <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                      <span className="absolute -left-1 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
                         <Check className="h-3 w-3" />
                         در برنامه
                       </span>
                     )}
                   </div>
-                  <p className="text-sm font-semibold text-foreground">{label}</p>
-                  <Button
-                    size="sm"
-                    variant={planned ? 'outline' : 'default'}
-                    className="mt-auto w-full gap-1.5"
-                    onClick={() => openPlan(v.id)}
-                  >
-                    {planned ? (
-                      <PenLine className="h-3.5 w-3.5" aria-hidden="true" />
-                    ) : (
-                      <GraduationCap className="h-3.5 w-3.5" aria-hidden="true" />
-                    )}
-                    {planned ? 'مدیریت برنامه' : 'افزودن به برنامه'}
-                  </Button>
-                </Card>
+                  <p className="mt-3 truncate text-center text-sm font-semibold text-foreground opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100">
+                    {label}
+                  </p>
+                </button>
               )
             })}
           </div>

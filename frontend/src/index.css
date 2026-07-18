@@ -358,6 +358,88 @@
 .heat-3 { background-color: hsl(var(--primary) / 0.70); }
 .heat-4 { background-color: hsl(var(--primary)); }
 
+/* ── 3D fanned book stack (library book detail — volumes) ────
+   Each volume is a real book: vertical cover on the front face,
+   a page-edge block on the spine side for thickness, and a dark
+   binding. Books overlap ("روی هم") and fan out; hover/focus
+   lifts one, straightens it, and brings it fully to the front. */
+.book-shelf {
+  perspective: 1800px;
+  perspective-origin: 50% 40%;
+}
+.book3d {
+  position: relative;
+  transform-style: preserve-3d;
+  transform: rotateY(-32deg) translateZ(0);
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+              margin 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: transform;
+}
+/* Front cover */
+.book3d__cover {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 3px 6px 6px 3px;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.12),
+    0 14px 26px rgba(15, 23, 42, 0.32);
+}
+/* Page-edge block on the spine side → book thickness */
+.book3d__pages {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  right: 0;
+  width: var(--book-thick, 30px);
+  transform-origin: center right;
+  transform: rotateY(90deg) translateX(calc(var(--book-thick, 30px) / 2));
+  border-radius: 2px;
+  background: repeating-linear-gradient(
+    to left,
+    #fbf7ee 0,
+    #fbf7ee 1px,
+    #d8cfbe 2px,
+    #fbf7ee 3px
+  );
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.3);
+}
+/* Dark binding down the front spine edge */
+.book3d__cover-wrap::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 14px;
+  border-radius: 0 6px 6px 0;
+  background: linear-gradient(
+    to left,
+    rgba(0, 0, 0, 0.34),
+    rgba(0, 0, 0, 0.08) 55%,
+    transparent
+  );
+  pointer-events: none;
+}
+.book3d__cover-wrap::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 5px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.28);
+  pointer-events: none;
+}
+.book3d__cover-wrap {
+  position: relative;
+}
+.group:hover .book3d,
+.group:focus-visible .book3d {
+  transform: rotateY(-6deg) translateY(-14px) scale(1.05);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .float-word { animation: none !important; opacity: 0.12 !important; }
   .orb        { animation: none !important; }
@@ -365,4 +447,5 @@
   .marquee-track { animation: none !important; }
   .cover-float  { animation: none !important; }
   .landing-book { transition: none !important; }
+  .book3d       { transition: none !important; }
 }
