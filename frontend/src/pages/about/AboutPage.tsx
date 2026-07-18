@@ -26,7 +26,7 @@ export function AboutPage() {
         <div className="mt-12 flex flex-col items-center gap-1">
           <span className="h-px w-8 bg-border" aria-hidden="true" />
           <p className="pt-2 text-[13px] font-medium tracking-wide text-muted-foreground/50">
-            ساخته‌ی علی قاسمی
+             علی قاسمی
           </p>
         </div>
 

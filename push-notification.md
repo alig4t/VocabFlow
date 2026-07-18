@@ -183,6 +183,30 @@ const REMINDER_DAYS = [0, 1, 3, 6, 10, 15, 21, 30]
 
 ---
 
+## ۶.۵. آیکونِ نوتیفیکیشن (status bar)
+
+**مشکل:** به‌صورت پیش‌فرض آیکونِ نوتیف یک علامت‌تعجب/مربع بود، چون آیکونِ اختصاصی تعریف نشده بود.
+
+**راه‌حل:** یک آیکونِ **کتابِ بازِ سفید-شفاف** (هم‌خانواده با المانِ کتابِ لوگوی «وکب») ساخته شد:
+- منبع: `scratchpad/ic_stat_notify.svg` (شبح تک‌رنگِ سفید، مسیرِ open-book متریال).
+- رستر به PNG با `rsvg-convert` در ۵ دنسیتی:
+  `res/drawable-{mdpi,hdpi,xhdpi,xxhdpi,xxxhdpi}/ic_stat_notify.png` (۲۴/۳۶/۴۸/۷۲/۹۶ px).
+- **چرا PNG نه VectorDrawable؟** چون `minSdk = 22` و آیکونِ وکتور برای نوتیف قبل از API 24 باگ دارد
+  (در system process اینفلیت می‌شود). PNGِ چنددنسیتی روی همه‌ی نسخه‌ها امن است.
+- ثبت در `capacitor.config.ts`:
+  ```ts
+  plugins: {
+    LocalNotifications: {
+      smallIcon: 'ic_stat_notify',   // نامِ drawable (بدون پسوند)
+      iconColor: '#ECAD26',          // accentِ برند (طلاییِ لوگو)
+    },
+  }
+  ```
+- بازسازیِ آیکون در آینده: SVG را ادیت کن و همان ۵ دستورِ `rsvg-convert` را اجرا کن، بعد `cap sync` + بیلد.
+- ⚠ آیکونِ status bar **باید** فقط سفید+آلفا باشد؛ اگر رنگی/مات بدهی اندروید آن را مربعِ توپر نشان می‌دهد.
+
+---
+
 ## ۷. مجوزها و مانیفست
 
 پلاگین خودش این‌ها را merge می‌کند: `POST_NOTIFICATIONS`, `RECEIVE_BOOT_COMPLETED`, `WAKE_LOCK` + سه Receiver
