@@ -370,7 +370,7 @@
 .book3d {
   position: relative;
   transform-style: preserve-3d;
-  transform: rotateY(-32deg) translateZ(0);
+  transform: rotateY(-32deg) rotateZ(-8deg) translateZ(0);
   transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
               margin 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
   will-change: transform;
@@ -437,7 +437,7 @@
 }
 .group:hover .book3d,
 .group:focus-visible .book3d {
-  transform: rotateY(-6deg) translateY(-14px) scale(1.05);
+  transform: rotateY(-6deg) rotateZ(0deg) translateY(-14px) scale(1.05);
 }
 
 @media (prefers-reduced-motion: reduce) {

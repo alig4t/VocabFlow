@@ -173,7 +173,7 @@ export function BookDetailPage() {
             ))}
           </div>
         ) : (
-          <div className="book-shelf flex flex-wrap items-end justify-start gap-y-10 px-2 pb-6 pt-4">
+          <div className="book-shelf flex flex-wrap items-end justify-center gap-y-10 px-2 pb-6 pt-6">
             {volumes?.map((v, i) => {
               const planned = plannedVolumeIds.has(v.id)
               const label = v.title ?? `جلد ${faNum(v.volumeNumber)}`
