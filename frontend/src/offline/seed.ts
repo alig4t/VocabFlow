@@ -149,7 +149,15 @@ function collectFile(filename: string, data: BookFile, bookIdByTitle: Map<string
       const allExamples = w.meanings.flatMap((m) => m.examples ?? [])
       const allPhrases = w.meanings.flatMap((m) => m.phrases ?? [])
       const wordForms = w.wordForms ? `${w.wordForms.label}: ${w.wordForms.forms}` : null
-      const firstEx = allExamples[0]
+      // Some entries have empty examples[] on every meaning but DO carry a phrase
+      // pattern (patternEng/patternPer) — often itself with no examples either.
+      // Fall back to the first phrase's pattern ONLY when there is truly no
+      // example anywhere (mirrors backend/prisma/import-all.ts), so the word
+      // doesn't render with zero examples in the app.
+      const hasAnyExample = allExamples.length > 0 || allPhrases.some((p) => (p.examples?.length ?? 0) > 0)
+      const fallbackPhrase = !hasAnyExample ? allPhrases[0] : undefined
+      const firstEx = allExamples[0] ??
+        (fallbackPhrase ? { eng: fallbackPhrase.patternEng, per: fallbackPhrase.patternPer ?? '' } : undefined)
       const wordId = uid()
       const now = NOW()
 
@@ -195,7 +203,7 @@ function collectFile(filename: string, data: BookFile, bookIdByTitle: Map<string
  */
 // Bump this whenever the bundled book data changes so existing installs wipe
 // their local data and re-seed with the corrected content.
-const SEED_VERSION = '4'
+const SEED_VERSION = '5'
 const WIPE_TABLES = [
   'word_phrase_examples', 'word_phrases', 'word_examples', 'words',
   'lessons', 'volumes', 'books', 'progress', 'watchlist',
