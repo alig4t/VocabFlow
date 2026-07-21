@@ -223,6 +223,8 @@ export interface DashboardGlobalStats {
   avgStudyMinutes: number
   /** 0–100, share of reviews marked "known". */
   accuracyRate: number
+  /** "سخت" (HARD) answers given today, across all sessions. */
+  hardToday: number
 }
 
 /** One day of activity for the GitHub-style heatmap. */

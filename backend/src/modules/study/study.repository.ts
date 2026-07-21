@@ -68,8 +68,19 @@ export class StudyRepository {
     })
   }
 
-  /** Words already due for review (introduced, nextReviewAt in the past/today). */
-  async getDueWords(userId: string, mode: ReviewMode, volumeIds: string[], dueBefore: Date) {
+  /**
+   * Words already due for review (introduced, nextReviewAt in the past/today),
+   * oldest-due first. `take` caps how many are returned (e.g. a volume's
+   * `dailyGoal`) — the oldest-due-first order means a cap always drops the
+   * *least* overdue words, never the most urgent ones.
+   */
+  async getDueWords(
+    userId: string,
+    mode: ReviewMode,
+    volumeIds: string[],
+    dueBefore: Date,
+    take?: number,
+  ) {
     if (volumeIds.length === 0) return []
     const rows = await prisma.userWordProgress.findMany({
       where: {
@@ -80,6 +91,7 @@ export class StudyRepository {
         word: { lesson: { volumeId: { in: volumeIds } } },
       },
       orderBy: { nextReviewAt: 'asc' },
+      ...(take !== undefined ? { take } : {}),
       include: { word: { include: wordInclude(userId, mode) } },
     })
     return rows.map((r) => r.word)

@@ -562,11 +562,25 @@ export async function getSynonyms(wordId: string): Promise<SynonymResult[]> {
 }
 
 // ── Dashboard (real, computed from local progress) ────────────────────────────
-const dayOf = (iso: string | null | undefined) => (iso ? iso.slice(0, 10) : null)
+
+/**
+ * Local YYYY-MM-DD bucket for a date, respecting the SM-2 day boundary (see
+ * `startOfDay` in `./srs` — the day starts at 06:00, not midnight) so a
+ * session at 1am buckets into the previous day, same as the study queue.
+ */
+function isoDayLocal(d: Date): string {
+  const local = startOfDay(d)
+  const y = local.getFullYear()
+  const m = String(local.getMonth() + 1).padStart(2, '0')
+  const day = String(local.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+const dayOf = (iso: string | null | undefined) => (iso ? isoDayLocal(new Date(iso)) : null)
 
 export async function getDashboard(): Promise<DashboardData> {
   const now = new Date()
-  const today = now.toISOString().slice(0, 10)
+  const today = isoDayLocal(now)
   const dayStartIso = startOfDay(now).toISOString()
   const dayEndIso = endOfDay(now).toISOString()
 
@@ -648,14 +662,15 @@ export async function getDashboard(): Promise<DashboardData> {
     reviewed_count: number
     correct_count: number
     wrong_count: number
+    hard_count: number
   }>(
-    'SELECT started_at, duration_sec, reviewed_count, correct_count, wrong_count FROM study_sessions',
+    'SELECT started_at, duration_sec, reviewed_count, correct_count, wrong_count, hard_count FROM study_sessions',
     [],
   )
 
-  const reviewsToday = sessions
-    .filter((s) => dayOf(s.started_at) === today)
-    .reduce((sum, s) => sum + s.reviewed_count, 0)
+  const todaysSessions = sessions.filter((s) => dayOf(s.started_at) === today)
+  const reviewsToday = todaysSessions.reduce((sum, s) => sum + s.reviewed_count, 0)
+  const hardToday = todaysSessions.reduce((sum, s) => sum + s.hard_count, 0)
   const totalCorrect = sessions.reduce((s, x) => s + x.correct_count, 0)
   const totalWrong = sessions.reduce((s, x) => s + x.wrong_count, 0)
   const accuracyRate =
@@ -668,10 +683,9 @@ export async function getDashboard(): Promise<DashboardData> {
   // Streak: consecutive days (ending today, or yesterday) with a session.
   const sessionDays = new Set(sessions.map((s) => dayOf(s.started_at)).filter(Boolean) as string[])
   let currentStreak = 0
-  const cursor = new Date()
-  cursor.setHours(0, 0, 0, 0)
-  if (!sessionDays.has(cursor.toISOString().slice(0, 10))) cursor.setDate(cursor.getDate() - 1)
-  while (sessionDays.has(cursor.toISOString().slice(0, 10))) {
+  const cursor = startOfDay(new Date())
+  if (!sessionDays.has(isoDayLocal(cursor))) cursor.setDate(cursor.getDate() - 1)
+  while (sessionDays.has(isoDayLocal(cursor))) {
     currentStreak++
     cursor.setDate(cursor.getDate() - 1)
   }
@@ -684,6 +698,7 @@ export async function getDashboard(): Promise<DashboardData> {
     currentStreak,
     avgStudyMinutes,
     accuracyRate,
+    hardToday,
   }
 
   const queue: ReviewQueueItem[] = watchlist
@@ -697,12 +712,11 @@ export async function getDashboard(): Promise<DashboardData> {
     if (d) counts.set(d, (counts.get(d) ?? 0) + s.reviewed_count)
   }
   const heatmap: HeatmapDay[] = []
-  const base = new Date()
-  base.setHours(0, 0, 0, 0)
+  const base = startOfDay(new Date())
   for (let i = 125; i >= 0; i--) {
     const d = new Date(base)
     d.setDate(base.getDate() - i)
-    const iso = d.toISOString().slice(0, 10)
+    const iso = isoDayLocal(d)
     heatmap.push({ date: iso, count: counts.get(iso) ?? 0 })
   }
 
@@ -757,6 +771,16 @@ async function wordsByIds(ids: string[]): Promise<Word[]> {
   return out
 }
 
+/** In-place Fisher–Yates shuffle, returning a new array. */
+function shuffle<T>(items: T[]): T[] {
+  const out = [...items]
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[out[i], out[j]] = [out[j], out[i]]
+  }
+  return out
+}
+
 export async function getStudyToday(): Promise<StudyToday> {
   const now = new Date()
   const dayEndIso = endOfDay(now).toISOString()
@@ -765,21 +789,23 @@ export async function getStudyToday(): Promise<StudyToday> {
   const settings = await getSettings()
   const mode = settings.studyDirection
   const plans = await activePlanRows()
-  const volumeIds = plans.map((p) => p.volume_id)
 
-  // Due reviews.
+  // Due reviews, capped per volume by that plan's own dailyGoal (oldest-due
+  // first, so a cap only ever defers the least-urgent words) — mirrors the
+  // backend's per-plan cap in study.service.ts.
   let due: Word[] = []
-  if (volumeIds.length > 0) {
+  for (const p of plans) {
     const dueRows = await query<{ word_id: string }>(
       `SELECT p.word_id FROM progress p
        JOIN words w ON p.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
        WHERE p.review_mode=? AND p.introduced_at IS NOT NULL
          AND p.next_review_at IS NOT NULL AND p.next_review_at<=?
-         AND l.volume_id IN (${volumeIds.map(() => '?').join(',')})
-       ORDER BY p.next_review_at ASC`,
-      [mode, dayEndIso, ...volumeIds],
+         AND l.volume_id=?
+       ORDER BY p.next_review_at ASC
+       LIMIT ?`,
+      [mode, dayEndIso, p.volume_id, p.daily_goal],
     )
-    due = await wordsByIds(dueRows.map((r) => r.word_id))
+    due.push(...(await wordsByIds(dueRows.map((r) => r.word_id))))
   }
 
   // New words per plan.
@@ -832,9 +858,14 @@ export async function getStudyToday(): Promise<StudyToday> {
     })
   }
 
+  // Shuffle within each group when RANDOM — review-before-new always holds,
+  // only the order *inside* each group changes.
+  const orderedDue = settings.cardOrder === 'RANDOM' ? shuffle(due) : due
+  const orderedNew = settings.cardOrder === 'RANDOM' ? shuffle(newWords) : newWords
+
   return {
-    due,
-    new: newWords,
+    due: orderedDue,
+    new: orderedNew,
     meta: {
       dueCount: due.length,
       newCount: newWords.length,
@@ -958,12 +989,46 @@ export async function getPlans(): Promise<LearningPlan[]> {
   return out
 }
 
+// Mirrors backend/src/modules/plans/plan.service.ts — keep these in sync.
+const ALLOWED_DAILY_NEW = [10, 20, 30, 40, 50]
+const MIN_DAILY_GOAL = 5
+const MAX_DAILY_GOAL = 500
+const MAX_TOTAL_DAILY_NEW = 200
+
+function assertDailyGoal(dailyNewWords: number, dailyGoal: number) {
+  if (dailyGoal < dailyNewWords) throw new Error('هدف روزانه نمی‌تواند از لغات جدید روزانه کمتر باشد')
+  if (dailyGoal < MIN_DAILY_GOAL || dailyGoal > MAX_DAILY_GOAL) {
+    throw new Error(`هدف روزانه باید بین ${MIN_DAILY_GOAL} و ${MAX_DAILY_GOAL} باشد`)
+  }
+}
+
+/** Sum of dailyNewWords across active plans, excluding one volume (being replaced/updated). */
+async function sumActiveDailyNewWordsExcluding(volumeId: string): Promise<number> {
+  const rows = await query<{ c: number }>(
+    'SELECT COALESCE(SUM(daily_new_words), 0) AS c FROM learning_plans WHERE is_active=1 AND volume_id<>?',
+    [volumeId],
+  )
+  return rows[0]?.c ?? 0
+}
+
 export async function createPlan(input: {
   volumeId: string
   dailyNewWords: number
   dailyGoal?: number
 }): Promise<{ id: string; volumeId: string }> {
+  if (!ALLOWED_DAILY_NEW.includes(input.dailyNewWords)) {
+    throw new Error(`لغات جدید روزانه باید یکی از این مقادیر باشد: ${ALLOWED_DAILY_NEW.join(', ')}`)
+  }
   const dailyGoal = input.dailyGoal ?? input.dailyNewWords * 3
+  assertDailyGoal(input.dailyNewWords, dailyGoal)
+
+  const otherTotal = await sumActiveDailyNewWordsExcluding(input.volumeId)
+  if (otherTotal + input.dailyNewWords > MAX_TOTAL_DAILY_NEW) {
+    throw new Error(
+      `مجموع لغات جدید روزانه در همه‌ی برنامه‌های فعال نمی‌تواند از ${MAX_TOTAL_DAILY_NEW} بیشتر شود`,
+    )
+  }
+
   const existing = (
     await query<{ id: string }>('SELECT id FROM learning_plans WHERE volume_id=?', [input.volumeId])
   )[0]
@@ -986,6 +1051,31 @@ export async function updatePlan(
   id: string,
   input: { dailyNewWords?: number; dailyGoal?: number; isActive?: boolean },
 ): Promise<{ id: string }> {
+  const row = (
+    await query<{ volume_id: string; daily_new_words: number; daily_goal: number; is_active: number }>(
+      'SELECT volume_id, daily_new_words, daily_goal, is_active FROM learning_plans WHERE id=?',
+      [id],
+    )
+  )[0]
+  if (!row) throw new Error('برنامه یادگیری یافت نشد')
+
+  if (input.dailyNewWords !== undefined && !ALLOWED_DAILY_NEW.includes(input.dailyNewWords)) {
+    throw new Error(`لغات جدید روزانه باید یکی از این مقادیر باشد: ${ALLOWED_DAILY_NEW.join(', ')}`)
+  }
+  const dailyNewWords = input.dailyNewWords ?? row.daily_new_words
+  const dailyGoal = input.dailyGoal ?? row.daily_goal
+  assertDailyGoal(dailyNewWords, dailyGoal)
+
+  const isActive = input.isActive ?? row.is_active === 1
+  if (isActive) {
+    const otherTotal = await sumActiveDailyNewWordsExcluding(row.volume_id)
+    if (otherTotal + dailyNewWords > MAX_TOTAL_DAILY_NEW) {
+      throw new Error(
+        `مجموع لغات جدید روزانه در همه‌ی برنامه‌های فعال نمی‌تواند از ${MAX_TOTAL_DAILY_NEW} بیشتر شود`,
+      )
+    }
+  }
+
   const sets: string[] = []
   const vals: unknown[] = []
   if (input.dailyNewWords !== undefined) { sets.push('daily_new_words=?'); vals.push(input.dailyNewWords) }
@@ -1096,7 +1186,7 @@ export async function updateSettings(input: Partial<UserSettings>): Promise<User
  * "studied today". See `src/lib/notifications.ts`.
  */
 export async function getNotificationStatus(): Promise<NotificationStatus> {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = isoDayLocal(new Date())
 
   const todayQueue = await getStudyToday()
 
@@ -1108,10 +1198,9 @@ export async function getNotificationStatus(): Promise<NotificationStatus> {
 
   // Streak: consecutive days (ending today, or yesterday) with a session.
   let streak = 0
-  const cursor = new Date()
-  cursor.setHours(0, 0, 0, 0)
-  if (!sessionDays.has(cursor.toISOString().slice(0, 10))) cursor.setDate(cursor.getDate() - 1)
-  while (sessionDays.has(cursor.toISOString().slice(0, 10))) {
+  const cursor = startOfDay(new Date())
+  if (!sessionDays.has(isoDayLocal(cursor))) cursor.setDate(cursor.getDate() - 1)
+  while (sessionDays.has(isoDayLocal(cursor))) {
     streak++
     cursor.setDate(cursor.getDate() - 1)
   }

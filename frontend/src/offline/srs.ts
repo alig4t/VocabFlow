@@ -24,15 +24,24 @@ export interface SrsResult {
   correct: boolean
 }
 
+/**
+ * The daily program's "day" starts at this local hour, not midnight — so
+ * studying at 1am still counts as the previous day's session and the queue
+ * doesn't reset under you. Keep in sync with `backend/src/modules/study/srs.ts`.
+ */
+const DAY_START_HOUR = 6
+
 export function startOfDay(now: Date): Date {
   const d = new Date(now)
-  d.setHours(0, 0, 0, 0)
+  d.setHours(DAY_START_HOUR, 0, 0, 0)
+  if (d.getTime() > now.getTime()) d.setDate(d.getDate() - 1)
   return d
 }
 
 export function endOfDay(now: Date): Date {
-  const d = new Date(now)
-  d.setHours(23, 59, 59, 999)
+  const d = startOfDay(now)
+  d.setDate(d.getDate() + 1)
+  d.setMilliseconds(d.getMilliseconds() - 1)
   return d
 }
 

@@ -84,4 +84,13 @@ export class PlanRepository {
   async countVolumeWords(volumeId: string) {
     return prisma.word.count({ where: { lesson: { volumeId } } })
   }
+
+  /** Sum of dailyNewWords across this user's active plans, excluding one volume. */
+  async sumActiveDailyNewWordsExcluding(userId: string, volumeId: string): Promise<number> {
+    const rows = await prisma.learningPlan.findMany({
+      where: { userId, isActive: true, NOT: { volumeId } },
+      select: { dailyNewWords: true },
+    })
+    return rows.reduce((sum, r) => sum + r.dailyNewWords, 0)
+  }
 }

@@ -1,7 +1,17 @@
-import { ReviewMode } from '@prisma/client'
+import { CardOrder, ReviewMode } from '@prisma/client'
 import { NotFoundError } from '../../shared/errors'
 import { StudyRepository, SessionInput } from './study.repository'
 import { schedule, startOfDay, endOfDay, StudyAnswer } from './srs'
+
+/** In-place Fisher–Yates shuffle, returning a new array. */
+function shuffle<T>(items: T[]): T[] {
+  const out = [...items]
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[out[i], out[j]] = [out[j], out[i]]
+  }
+  return out
+}
 
 /** One active volume's daily-learning context, shown on Home / in the session. */
 export interface StudyPlanMeta {
@@ -36,25 +46,42 @@ export interface StudyToday {
 export class StudyService {
   constructor(private readonly repo: StudyRepository) {}
 
-  /** The scheduling direction, from user settings (defaults to EN→FA). */
-  private async resolveMode(userId: string): Promise<ReviewMode> {
+  /** The scheduling direction + card order, from user settings. */
+  private async resolveSettings(
+    userId: string,
+  ): Promise<{ mode: ReviewMode; cardOrder: CardOrder }> {
     const settings = await this.repo.getUserSettings(userId)
-    return settings?.studyDirection ?? ReviewMode.EN_TO_FA
+    return {
+      mode: settings?.studyDirection ?? ReviewMode.EN_TO_FA,
+      cardOrder: settings?.cardOrder ?? CardOrder.SEQUENTIAL,
+    }
   }
 
   async getToday(userId: string, now = new Date()): Promise<StudyToday> {
-    const mode = await this.resolveMode(userId)
+    const { mode, cardOrder } = await this.resolveSettings(userId)
     const plans = await this.repo.getActivePlans(userId)
 
-    const volumeIds = plans.map((p) => p.volume.id)
-    const dueWords = await this.repo.getDueWords(userId, mode, volumeIds, endOfDay(now))
-
     const dayStart = startOfDay(now)
+    const dayEnd = endOfDay(now)
+
+    // Due reviews are capped per volume by that plan's own dailyGoal (oldest-due
+    // first, so a cap only ever defers the least-urgent words). Without this cap
+    // a large backlog would show as one giant, unbounded list every day.
+    const dueWords: unknown[] = []
     const newWords: unknown[] = []
     const planMeta: StudyPlanMeta[] = []
 
     for (const plan of plans) {
       const volumeId = plan.volume.id
+      const dueInVolume = await this.repo.getDueWords(
+        userId,
+        mode,
+        [volumeId],
+        dayEnd,
+        plan.dailyGoal,
+      )
+      dueWords.push(...dueInVolume)
+
       const introducedToday = await this.repo.countIntroducedToday(userId, mode, volumeId, dayStart)
       const capacity = Math.max(0, plan.dailyNewWords - introducedToday)
 
@@ -85,9 +112,14 @@ export class StudyService {
       })
     }
 
+    // Shuffle within each group when RANDOM — review-before-new always holds,
+    // only the order *inside* each group changes.
+    const orderedDue = cardOrder === CardOrder.RANDOM ? shuffle(dueWords) : dueWords
+    const orderedNew = cardOrder === CardOrder.RANDOM ? shuffle(newWords) : newWords
+
     return {
-      due: dueWords,
-      new: newWords,
+      due: orderedDue,
+      new: orderedNew,
       meta: {
         dueCount: dueWords.length,
         newCount: newWords.length,
@@ -105,7 +137,7 @@ export class StudyService {
     const exists = await this.repo.wordExists(wordId)
     if (!exists) throw new NotFoundError('Word')
 
-    const mode = await this.resolveMode(userId)
+    const { mode } = await this.resolveSettings(userId)
     const existing = await this.repo.getProgressRow(userId, wordId, mode)
 
     const result = schedule(existing, answer, now)

@@ -1,4 +1,4 @@
-import { Flame, GraduationCap, Repeat2, Library, Clock, Target } from 'lucide-react'
+import { Flame, GraduationCap, Repeat2, Library, Clock, Target, Zap } from 'lucide-react'
 import { StatTile } from './StatTile'
 import { faNum, faPercent } from '../../lib/format'
 import type { DashboardGlobalStats } from '../../types'
@@ -9,7 +9,7 @@ interface GlobalStatsProps {
 
 export function GlobalStats({ stats }: GlobalStatsProps) {
   return (
-    <section aria-label="آمار کلی" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+    <section aria-label="آمار کلی" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
       <StatTile
         icon={Flame}
         accent="warning"
@@ -47,6 +47,12 @@ export function GlobalStats({ stats }: GlobalStatsProps) {
         accent="success"
         label="دقت"
         value={faPercent(stats.accuracyRate)}
+      />
+      <StatTile
+        icon={Zap}
+        accent="warning"
+        label="سخت‌ها امروز"
+        value={faNum(stats.hardToday)}
       />
     </section>
   )

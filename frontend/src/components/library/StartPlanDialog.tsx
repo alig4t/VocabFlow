@@ -13,11 +13,11 @@ import { Button } from '@/components/ui/button'
 import { useVolumes } from '@/hooks/useBooks'
 import { usePlans, useCreatePlan } from '@/hooks/usePlans'
 import { useToast } from '@/components/ui/use-toast'
-import { cn } from '@/lib/utils'
+import { cn, getErrorMessage } from '@/lib/utils'
 import { faNum } from '@/lib/format'
 import type { DiscoveryBook } from '@/types'
 
-const DAILY_OPTIONS = [10, 20, 30, 50]
+const DAILY_OPTIONS = [10, 20, 30, 40, 50]
 
 interface StartPlanDialogProps {
   book: DiscoveryBook | null
@@ -78,8 +78,12 @@ export function StartPlanDialog({ book, open, onOpenChange, initialVolumeId }: S
           onOpenChange(false)
           navigate('/study')
         },
-        onError: () => {
-          toast({ title: 'خطا', description: 'عملیات ناموفق بود.', variant: 'destructive' })
+        onError: (error) => {
+          toast({
+            title: 'خطا',
+            description: getErrorMessage(error, 'عملیات ناموفق بود.'),
+            variant: 'destructive',
+          })
         },
       },
     )

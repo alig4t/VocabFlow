@@ -26,3 +26,14 @@ export function getWordStatusLabel(status: string): string {
     default: return 'Not Read'
   }
 }
+
+/**
+ * User-facing message from a mutation error. Web errors are AxiosErrors whose
+ * real backend message lives at `response.data.message` (the axios interceptor
+ * doesn't unwrap error responses); native/offline errors are plain `Error`s
+ * whose `.message` is already the right text.
+ */
+export function getErrorMessage(error: unknown, fallback: string): string {
+  const e = error as { response?: { data?: { message?: string } }; message?: string } | undefined
+  return e?.response?.data?.message ?? e?.message ?? fallback
+}

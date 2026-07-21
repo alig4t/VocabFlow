@@ -101,6 +101,7 @@ export class DashboardRepository {
         reviewedCount: true,
         correctCount: true,
         wrongCount: true,
+        hardCount: true,
       },
       orderBy: { startedAt: 'asc' },
     })

@@ -30,6 +30,47 @@ function loadMuted(): boolean {
   }
 }
 
+// Persist the in-progress session (queue, position, tallies) so leaving the
+// page (back button, accidental nav, phone lock) and returning resumes at the
+// exact same card instead of re-fetching and losing position. Cleared on
+// finish/restart. sessionStorage (not localStorage) so a stale session never
+// survives a full app close+reopen days later.
+const SESSION_KEY = 'vocab_study_session_v1'
+
+interface PersistedSession {
+  queue: QueueItem[]
+  index: number
+  counters: { easy: number; hard: number; again: number; skip: number }
+  introducedNew: string[]
+  seenNewOnce: string[]
+  startedAt: string
+}
+
+function loadPersistedSession(): PersistedSession | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY)
+    return raw ? (JSON.parse(raw) as PersistedSession) : null
+  } catch {
+    return null
+  }
+}
+
+function savePersistedSession(s: PersistedSession) {
+  try {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(s))
+  } catch {
+    /* ignore (quota / private mode) */
+  }
+}
+
+function clearPersistedSession() {
+  try {
+    sessionStorage.removeItem(SESSION_KEY)
+  } catch {
+    /* ignore */
+  }
+}
+
 /** Answer buttons — revealed only after the card is flipped (spec: view then rate). */
 function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
   const btn =
@@ -160,16 +201,41 @@ export function StudySessionPage() {
   // by Read/Again), it uses the standard AnswerBar.
   const seenNewOnce = useRef<Set<string>>(new Set())
 
-  // Freeze the queue once today's data lands — but only when it's FRESH (not a
-  // stale/in-flight refetch), so a just-created plan isn't missed and the
-  // session doesn't freeze an empty "nothing today" list.
+  // Resume an in-progress session if one was left mid-way (see SESSION_KEY);
+  // otherwise freeze a fresh queue once today's data lands — but only when
+  // it's FRESH (not a stale/in-flight refetch), so a just-created plan isn't
+  // missed and the session doesn't freeze an empty "nothing today" list.
   useEffect(() => {
-    if (today && queue === null && !isFetching) {
-      setQueue([
+    if (queue !== null) return
+
+    const persisted = loadPersistedSession()
+    if (persisted && persisted.queue.length > 0) {
+      setQueue(persisted.queue)
+      setIndex(persisted.index)
+      counters.current = { ...persisted.counters }
+      introducedNew.current = new Set(persisted.introducedNew)
+      seenNewOnce.current = new Set(persisted.seenNewOnce)
+      startedAtRef.current = new Date(persisted.startedAt)
+      return
+    }
+
+    if (today && !isFetching) {
+      const initial = [
         ...today.due.map((w) => ({ word: w, isNew: false })),
         ...today.new.map((w) => ({ word: w, isNew: true })),
-      ])
+      ]
+      setQueue(initial)
       startedAtRef.current = new Date()
+      if (initial.length > 0) {
+        savePersistedSession({
+          queue: initial,
+          index: 0,
+          counters: counters.current,
+          introducedNew: [],
+          seenNewOnce: [],
+          startedAt: startedAtRef.current.toISOString(),
+        })
+      }
     }
   }, [today, queue, isFetching])
 
@@ -200,6 +266,7 @@ export function StudySessionPage() {
       durationSec: Math.max(0, Math.round((Date.now() - startedAtRef.current.getTime()) / 1000)),
     }
     setSummary(stats)
+    clearPersistedSession()
     stopPronunciation()
 
     // Only record a session if the user actually did something.
@@ -251,14 +318,23 @@ export function StudySessionPage() {
       // "بلد نیستم" (Again) → requeue so the card returns later this session.
       // "رد" (Skip) → just move on; no reschedule, no requeue (distinct behavior).
       const willRequeue = a === 'AGAIN'
-      if (willRequeue) setQueue((prev) => (prev ? [...prev, cur] : prev))
+      const nextQueue = willRequeue ? [...queue, cur] : queue
+      if (willRequeue) setQueue(nextQueue)
 
-      const nextLen = queue.length + (willRequeue ? 1 : 0)
-      if (index + 1 >= nextLen) {
+      const nextIndex = index + 1
+      if (nextIndex >= nextQueue.length) {
         finish()
       } else {
-        setIndex(index + 1)
+        setIndex(nextIndex)
         setFlipped(false)
+        savePersistedSession({
+          queue: nextQueue,
+          index: nextIndex,
+          counters: { ...counters.current },
+          introducedNew: [...introducedNew.current],
+          seenNewOnce: [...seenNewOnce.current],
+          startedAt: startedAtRef.current.toISOString(),
+        })
       }
     },
     [current, queue, index, finish],
@@ -280,6 +356,7 @@ export function StudySessionPage() {
   }, [])
 
   const restart = useCallback(() => {
+    clearPersistedSession()
     counters.current = { easy: 0, hard: 0, again: 0, skip: 0 }
     introducedNew.current = new Set()
     seenNewOnce.current = new Set()

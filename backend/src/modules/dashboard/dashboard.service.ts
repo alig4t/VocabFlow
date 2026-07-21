@@ -1,5 +1,6 @@
 import { ReviewMode } from '@prisma/client'
 import { DashboardRepository } from './dashboard.repository'
+import { startOfDay, endOfDay } from '../study/srs'
 
 // Mirrors the frontend `DashboardData` shape (frontend/src/types/index.ts).
 export interface WatchlistBook {
@@ -24,6 +25,8 @@ export interface DashboardGlobalStats {
   currentStreak: number
   avgStudyMinutes: number
   accuracyRate: number
+  /** "سخت" (HARD) answers given today, across all sessions. */
+  hardToday: number
 }
 
 export interface HeatmapDay {
@@ -46,26 +49,17 @@ export interface DashboardData {
 
 const HEATMAP_DAYS = 126
 
-/** Local YYYY-MM-DD for a date (heatmap/streak buckets are day-granular). */
+/**
+ * Local YYYY-MM-DD bucket for a date (heatmap/streak buckets are day-granular).
+ * Uses the same 06:00 day-boundary as the study queue (`startOfDay` from
+ * `study/srs.ts`) so a session at 1am buckets into the previous day everywhere.
+ */
 function isoDay(d: Date): string {
-  const local = new Date(d)
-  local.setHours(0, 0, 0, 0)
+  const local = startOfDay(d)
   const y = local.getFullYear()
   const m = String(local.getMonth() + 1).padStart(2, '0')
   const day = String(local.getDate()).padStart(2, '0')
   return `${y}-${m}-${day}`
-}
-
-function startOfDay(now: Date): Date {
-  const d = new Date(now)
-  d.setHours(0, 0, 0, 0)
-  return d
-}
-
-function endOfDay(now: Date): Date {
-  const d = new Date(now)
-  d.setHours(23, 59, 59, 999)
-  return d
 }
 
 export class DashboardService {
@@ -114,9 +108,11 @@ export class DashboardService {
       this.repo.getSessionDates(userId),
     ])
 
-    const reviewsToday = sessions
-      .filter((sess) => sess.startedAt >= dayStart && sess.startedAt <= dayEnd)
-      .reduce((sum, sess) => sum + sess.reviewedCount, 0)
+    const todaysSessions = sessions.filter(
+      (sess) => sess.startedAt >= dayStart && sess.startedAt <= dayEnd,
+    )
+    const reviewsToday = todaysSessions.reduce((sum, sess) => sum + sess.reviewedCount, 0)
+    const hardToday = todaysSessions.reduce((sum, sess) => sum + sess.hardCount, 0)
 
     const totalCorrect = sessions.reduce((s, x) => s + x.correctCount, 0)
     const totalWrong = sessions.reduce((s, x) => s + x.wrongCount, 0)
@@ -138,6 +134,7 @@ export class DashboardService {
       currentStreak: this.computeStreak(sessionDates.map((s) => s.startedAt), now),
       avgStudyMinutes,
       accuracyRate,
+      hardToday,
     }
 
     // Heatmap: sum reviewedCount per day across the window (fill gaps with 0).

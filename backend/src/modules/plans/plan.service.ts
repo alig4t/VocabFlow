@@ -14,10 +14,28 @@ export interface PlanSummary {
   totalWords: number
 }
 
-const ALLOWED_DAILY_NEW = [10, 20, 30, 50]
+const ALLOWED_DAILY_NEW = [10, 20, 30, 40, 50]
+// A "هدف روزانه (مرور)" outside this range would either hide the queue almost
+// entirely (too low → backlog never clears) or make the cap meaningless (too
+// high) — see study.service.ts, which caps each volume's due-review query at
+// its plan's dailyGoal.
+const MIN_DAILY_GOAL = 5
+const MAX_DAILY_GOAL = 500
+// Across ALL active plans (possibly several books) combined, so new-word
+// introduction can't snowball into an unmanageable review backlog the next day.
+const MAX_TOTAL_DAILY_NEW = 200
 
 export class PlanService {
   constructor(private readonly repo: PlanRepository) {}
+
+  private assertDailyGoal(dailyNewWords: number, dailyGoal: number) {
+    if (dailyGoal < dailyNewWords) {
+      throw new ValidationError('dailyGoal must be at least dailyNewWords')
+    }
+    if (dailyGoal < MIN_DAILY_GOAL || dailyGoal > MAX_DAILY_GOAL) {
+      throw new ValidationError(`dailyGoal must be between ${MIN_DAILY_GOAL} and ${MAX_DAILY_GOAL}`)
+    }
+  }
 
   async list(userId: string): Promise<PlanSummary[]> {
     const plans = await this.repo.findByUser(userId)
@@ -40,11 +58,19 @@ export class PlanService {
     if (!ALLOWED_DAILY_NEW.includes(dailyNewWords)) {
       throw new ValidationError(`dailyNewWords must be one of ${ALLOWED_DAILY_NEW.join(', ')}`)
     }
-    if (dailyGoal < dailyNewWords) {
-      throw new ValidationError('dailyGoal must be at least dailyNewWords')
-    }
+    this.assertDailyGoal(dailyNewWords, dailyGoal)
     const exists = await this.repo.volumeExists(volumeId)
     if (!exists) throw new NotFoundError('Volume')
+
+    // Sum of dailyNewWords across every OTHER active plan (a plan for this same
+    // volume, if any, is being replaced by this call, not added to).
+    const otherTotal = await this.repo.sumActiveDailyNewWordsExcluding(userId, volumeId)
+    if (otherTotal + dailyNewWords > MAX_TOTAL_DAILY_NEW) {
+      throw new ValidationError(
+        `مجموع لغات جدید روزانه در همه‌ی برنامه‌های فعال نمی‌تواند از ${MAX_TOTAL_DAILY_NEW} بیشتر شود`,
+      )
+    }
+
     const plan = await this.repo.upsert(userId, volumeId, dailyNewWords, dailyGoal)
     return { id: plan.id, volumeId: plan.volumeId }
   }
@@ -55,11 +81,23 @@ export class PlanService {
     data: { dailyNewWords?: number; dailyGoal?: number; isActive?: boolean },
   ) {
     const plan = await this.assertOwned(userId, id)
+    if (data.dailyNewWords !== undefined && !ALLOWED_DAILY_NEW.includes(data.dailyNewWords)) {
+      throw new ValidationError(`dailyNewWords must be one of ${ALLOWED_DAILY_NEW.join(', ')}`)
+    }
     const dailyNewWords = data.dailyNewWords ?? plan.dailyNewWords
     const dailyGoal = data.dailyGoal ?? plan.dailyGoal
-    if (dailyGoal < dailyNewWords) {
-      throw new ValidationError('dailyGoal must be at least dailyNewWords')
+    this.assertDailyGoal(dailyNewWords, dailyGoal)
+
+    const isActive = data.isActive ?? plan.isActive
+    if (isActive) {
+      const otherTotal = await this.repo.sumActiveDailyNewWordsExcluding(userId, plan.volumeId)
+      if (otherTotal + dailyNewWords > MAX_TOTAL_DAILY_NEW) {
+        throw new ValidationError(
+          `مجموع لغات جدید روزانه در همه‌ی برنامه‌های فعال نمی‌تواند از ${MAX_TOTAL_DAILY_NEW} بیشتر شود`,
+        )
+      }
     }
+
     return this.repo.update(id, data)
   }
 

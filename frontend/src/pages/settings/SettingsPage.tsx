@@ -19,11 +19,14 @@ import { usePlans, useUpdatePlan, useDeletePlan } from '@/hooks/usePlans'
 import { useToast } from '@/components/ui/use-toast'
 import { isNative } from '@/lib/platform'
 import { ensureNotificationPermission, rescheduleNotifications } from '@/lib/notifications'
-import { cn } from '@/lib/utils'
+import { cn, getErrorMessage } from '@/lib/utils'
 import { faNum } from '@/lib/format'
 import type { CardOrder, LearningPlan, ReviewMode, UserSettings } from '@/types'
 
-const DAILY_OPTIONS = [10, 20, 30, 50]
+const DAILY_OPTIONS = [10, 20, 30, 40, 50]
+// Keep in sync with backend/src/modules/plans/plan.service.ts (MIN/MAX_DAILY_GOAL).
+const MIN_DAILY_GOAL = 5
+const MAX_DAILY_GOAL = 500
 
 function SettingRow({
   icon,
@@ -119,6 +122,14 @@ function PlanCard({ plan }: { plan: LearningPlan }) {
     })
   }
 
+  function handleUpdateError(error: unknown) {
+    toast({
+      title: 'خطا',
+      description: getErrorMessage(error, 'ذخیره‌ی تغییرات ناموفق بود.'),
+      variant: 'destructive',
+    })
+  }
+
   return (
     <div className="rounded-xl border border-border p-4">
       <div className="flex items-start justify-between gap-3">
@@ -179,10 +190,13 @@ function PlanCard({ plan }: { plan: LearningPlan }) {
             <button
               key={n}
               onClick={() =>
-                updatePlan.mutate({
-                  id: plan.id,
-                  input: { dailyNewWords: n, dailyGoal: Math.max(plan.dailyGoal, n) },
-                })
+                updatePlan.mutate(
+                  {
+                    id: plan.id,
+                    input: { dailyNewWords: n, dailyGoal: Math.max(plan.dailyGoal, n) },
+                  },
+                  { onError: handleUpdateError },
+                )
               }
               className={cn(
                 'min-w-[3rem] rounded-lg border px-3 py-1.5 text-sm font-semibold tabular-nums transition-colors',
@@ -201,12 +215,14 @@ function PlanCard({ plan }: { plan: LearningPlan }) {
         <p className="text-xs font-medium text-muted-foreground">هدف روزانه (مرور)</p>
         <Input
           type="number"
-          min={plan.dailyNewWords}
+          min={Math.max(plan.dailyNewWords, MIN_DAILY_GOAL)}
+          max={MAX_DAILY_GOAL}
           defaultValue={plan.dailyGoal}
           onBlur={(e) => {
             const v = Number(e.target.value)
-            if (v >= plan.dailyNewWords && v !== plan.dailyGoal) {
-              updatePlan.mutate({ id: plan.id, input: { dailyGoal: v } })
+            const clamped = Math.min(MAX_DAILY_GOAL, Math.max(v, plan.dailyNewWords, MIN_DAILY_GOAL))
+            if (Number.isFinite(v) && clamped !== plan.dailyGoal) {
+              updatePlan.mutate({ id: plan.id, input: { dailyGoal: clamped } }, { onError: handleUpdateError })
             }
           }}
           className="w-24 tabular-nums"
