@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { BookOpen, CheckCircle2, XCircle, CalendarClock, Play, CircleDashed } from 'lucide-react'
+import { BookOpen, CheckCircle2, XCircle, CalendarClock, Play, CircleDashed, Zap } from 'lucide-react'
 import { Card } from '../ui/card'
 import { Button } from '../ui/button'
 import { Progress } from '../ui/progress'
@@ -80,6 +80,12 @@ export function WatchlistBookCard({ book }: WatchlistBookCardProps) {
       <div className="grid grid-cols-1 gap-2 rounded-lg bg-muted/50 p-3 text-sm sm:grid-cols-2">
         <Metric icon={CheckCircle2} className="text-success" label="یادگرفته" value={faNum(book.knownWords)} />
         <Metric icon={XCircle} className="text-destructive" label="یاد نگرفته" value={faNum(book.unknownWords)} />
+        <Metric
+          icon={Zap}
+          className="text-amber-600 dark:text-amber-400"
+          label="سخت"
+          value={faNum(book.hardWords)}
+        />
         <Metric icon={CircleDashed} className="text-muted-foreground" label="نخوانده" value={faNum(book.notReadWords)} />
         <Metric icon={CalendarClock} className="text-primary" label="آخرین مطالعه" value={faRelativeDate(book.lastStudiedAt)} />
       </div>

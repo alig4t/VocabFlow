@@ -11,6 +11,8 @@ export interface WatchlistBook {
   totalWords: number
   knownWords: number
   unknownWords: number
+  /** KNOWN words in this volume that were answered "سخت" (HARD) at least once. */
+  hardWords: number
   notReadWords: number
   reviewedToday: number
   lastStudiedAt: string | null
@@ -25,8 +27,6 @@ export interface DashboardGlobalStats {
   currentStreak: number
   avgStudyMinutes: number
   accuracyRate: number
-  /** "سخت" (HARD) answers given today, across all sessions. */
-  hardToday: number
 }
 
 export interface HeatmapDay {
@@ -90,6 +90,7 @@ export class DashboardService {
           totalWords: s.totalWords,
           knownWords: s.knownWords,
           unknownWords: s.unknownWords,
+          hardWords: s.hardWords,
           notReadWords: Math.max(0, s.totalWords - s.introducedWords),
           reviewedToday: s.reviewedToday,
           lastStudiedAt: s.lastStudiedAt ? s.lastStudiedAt.toISOString() : null,
@@ -108,11 +109,9 @@ export class DashboardService {
       this.repo.getSessionDates(userId),
     ])
 
-    const todaysSessions = sessions.filter(
-      (sess) => sess.startedAt >= dayStart && sess.startedAt <= dayEnd,
-    )
-    const reviewsToday = todaysSessions.reduce((sum, sess) => sum + sess.reviewedCount, 0)
-    const hardToday = todaysSessions.reduce((sum, sess) => sum + sess.hardCount, 0)
+    const reviewsToday = sessions
+      .filter((sess) => sess.startedAt >= dayStart && sess.startedAt <= dayEnd)
+      .reduce((sum, sess) => sum + sess.reviewedCount, 0)
 
     const totalCorrect = sessions.reduce((s, x) => s + x.correctCount, 0)
     const totalWrong = sessions.reduce((s, x) => s + x.wrongCount, 0)
@@ -134,7 +133,6 @@ export class DashboardService {
       currentStreak: this.computeStreak(sessionDates.map((s) => s.startedAt), now),
       avgStudyMinutes,
       accuracyRate,
-      hardToday,
     }
 
     // Heatmap: sum reviewedCount per day across the window (fill gaps with 0).

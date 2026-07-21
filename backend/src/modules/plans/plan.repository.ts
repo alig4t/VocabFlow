@@ -73,6 +73,7 @@ export class PlanRepository {
         reviewCount: 0,
         correctCount: 0,
         wrongCount: 0,
+        hardCount: 0,
         lastReviewedAt: null,
         nextReviewAt: null,
         introducedAt: null,

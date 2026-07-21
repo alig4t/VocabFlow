@@ -131,8 +131,8 @@ function PlanCard({ plan }: { plan: LearningPlan }) {
   }
 
   return (
-    <div className="rounded-xl border border-border p-4">
-      <div className="flex items-start justify-between gap-3">
+    <div className="min-w-0 overflow-x-hidden rounded-xl border border-border p-4">
+      <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-bold text-foreground">
             {plan.bookTitle} — {plan.volumeTitle}
@@ -452,7 +452,7 @@ export function SettingsPage() {
               هنوز برنامه‌ی یادگیری ندارید. از کتابخانه یک جلد اضافه کنید.
             </p>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid min-w-0 gap-3 sm:grid-cols-2">
               {plans.map((p) => (
                 <PlanCard key={p.id} plan={p} />
               ))}

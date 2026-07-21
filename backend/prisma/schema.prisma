@@ -209,6 +209,9 @@ model UserWordProgress {
   reviewCount    Int       @default(0) @map("review_count")
   correctCount   Int       @default(0) @map("correct_count")
   wrongCount     Int       @default(0) @map("wrong_count")
+  // Times this word was answered "سخت" (HARD) — a correct-but-struggled recall.
+  // Drives the per-book "لغات سخت" stat (see dashboard.repository.ts).
+  hardCount      Int       @default(0) @map("hard_count")
   lastReviewedAt DateTime? @map("last_reviewed_at")
   nextReviewAt   DateTime? @map("next_review_at")
   // Timestamp the word first entered the learning cycle (null = never introduced,

@@ -593,45 +593,52 @@ export async function getDashboard(): Promise<DashboardData> {
   const watchlist: WatchlistBook[] = []
   for (const p of plans) {
     const inVolume = 'l.volume_id = ?'
-    const [totalRow, knownRow, notKnownRow, introRow, reviewedRow, dueRow, lastRow] = await Promise.all([
-      query<{ c: number }>(
-        `SELECT COUNT(*) AS c FROM words w JOIN lessons l ON w.lesson_id=l.id WHERE ${inVolume}`,
-        [p.volume_id],
-      ),
-      query<{ c: number }>(
-        `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
-         WHERE pr.review_mode=? AND pr.status='KNOWN' AND ${inVolume}`,
-        [mode, p.volume_id],
-      ),
-      query<{ c: number }>(
-        `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
-         WHERE pr.review_mode=? AND pr.status='NOT_KNOWN' AND ${inVolume}`,
-        [mode, p.volume_id],
-      ),
-      query<{ c: number }>(
-        `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
-         WHERE pr.review_mode=? AND pr.introduced_at IS NOT NULL AND ${inVolume}`,
-        [mode, p.volume_id],
-      ),
-      query<{ c: number }>(
-        `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
-         WHERE pr.review_mode=? AND pr.last_reviewed_at>=? AND pr.last_reviewed_at<=? AND ${inVolume}`,
-        [mode, dayStartIso, dayEndIso, p.volume_id],
-      ),
-      query<{ c: number }>(
-        `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
-         WHERE pr.review_mode=? AND pr.introduced_at IS NOT NULL AND pr.next_review_at IS NOT NULL AND pr.next_review_at<=? AND ${inVolume}`,
-        [mode, dayEndIso, p.volume_id],
-      ),
-      query<{ t: string | null }>(
-        `SELECT MAX(pr.last_reviewed_at) AS t FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
-         WHERE pr.review_mode=? AND ${inVolume}`,
-        [mode, p.volume_id],
-      ),
-    ])
+    const [totalRow, knownRow, notKnownRow, hardRow, introRow, reviewedRow, dueRow, lastRow] =
+      await Promise.all([
+        query<{ c: number }>(
+          `SELECT COUNT(*) AS c FROM words w JOIN lessons l ON w.lesson_id=l.id WHERE ${inVolume}`,
+          [p.volume_id],
+        ),
+        query<{ c: number }>(
+          `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
+           WHERE pr.review_mode=? AND pr.status='KNOWN' AND ${inVolume}`,
+          [mode, p.volume_id],
+        ),
+        query<{ c: number }>(
+          `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
+           WHERE pr.review_mode=? AND pr.status='NOT_KNOWN' AND ${inVolume}`,
+          [mode, p.volume_id],
+        ),
+        query<{ c: number }>(
+          `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
+           WHERE pr.review_mode=? AND pr.status='KNOWN' AND pr.hard_count>0 AND ${inVolume}`,
+          [mode, p.volume_id],
+        ),
+        query<{ c: number }>(
+          `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
+           WHERE pr.review_mode=? AND pr.introduced_at IS NOT NULL AND ${inVolume}`,
+          [mode, p.volume_id],
+        ),
+        query<{ c: number }>(
+          `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
+           WHERE pr.review_mode=? AND pr.last_reviewed_at>=? AND pr.last_reviewed_at<=? AND ${inVolume}`,
+          [mode, dayStartIso, dayEndIso, p.volume_id],
+        ),
+        query<{ c: number }>(
+          `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
+           WHERE pr.review_mode=? AND pr.introduced_at IS NOT NULL AND pr.next_review_at IS NOT NULL AND pr.next_review_at<=? AND ${inVolume}`,
+          [mode, dayEndIso, p.volume_id],
+        ),
+        query<{ t: string | null }>(
+          `SELECT MAX(pr.last_reviewed_at) AS t FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
+           WHERE pr.review_mode=? AND ${inVolume}`,
+          [mode, p.volume_id],
+        ),
+      ])
     const total = totalRow[0]?.c ?? 0
     const known = knownRow[0]?.c ?? 0
     const notKnown = notKnownRow[0]?.c ?? 0
+    const hard = hardRow[0]?.c ?? 0
     const introduced = introRow[0]?.c ?? 0
     const notRead = Math.max(0, total - introduced)
     const remainingNew = notRead
@@ -643,6 +650,7 @@ export async function getDashboard(): Promise<DashboardData> {
       totalWords: total,
       knownWords: known,
       unknownWords: notKnown,
+      hardWords: hard,
       notReadWords: notRead,
       reviewedToday: reviewedRow[0]?.c ?? 0,
       lastStudiedAt: lastRow[0]?.t ?? null,
@@ -662,15 +670,14 @@ export async function getDashboard(): Promise<DashboardData> {
     reviewed_count: number
     correct_count: number
     wrong_count: number
-    hard_count: number
   }>(
-    'SELECT started_at, duration_sec, reviewed_count, correct_count, wrong_count, hard_count FROM study_sessions',
+    'SELECT started_at, duration_sec, reviewed_count, correct_count, wrong_count FROM study_sessions',
     [],
   )
 
-  const todaysSessions = sessions.filter((s) => dayOf(s.started_at) === today)
-  const reviewsToday = todaysSessions.reduce((sum, s) => sum + s.reviewed_count, 0)
-  const hardToday = todaysSessions.reduce((sum, s) => sum + s.hard_count, 0)
+  const reviewsToday = sessions
+    .filter((s) => dayOf(s.started_at) === today)
+    .reduce((sum, s) => sum + s.reviewed_count, 0)
   const totalCorrect = sessions.reduce((s, x) => s + x.correct_count, 0)
   const totalWrong = sessions.reduce((s, x) => s + x.wrong_count, 0)
   const accuracyRate =
@@ -698,7 +705,6 @@ export async function getDashboard(): Promise<DashboardData> {
     currentStreak,
     avgStudyMinutes,
     accuracyRate,
-    hardToday,
   }
 
   const queue: ReviewQueueItem[] = watchlist
@@ -918,23 +924,23 @@ export async function answerStudy(wordId: string, answer: StudyAnswer): Promise<
   if (existing) {
     await run(
       `UPDATE progress SET status=?, repetitions=?, interval_days=?, ease_factor=?,
-         review_count=review_count+1, correct_count=correct_count+?, wrong_count=wrong_count+?,
+         review_count=review_count+1, correct_count=correct_count+?, wrong_count=wrong_count+?, hard_count=hard_count+?,
          last_reviewed_at=?, next_review_at=?, introduced_at=?, updated_at=?
        WHERE word_id=? AND review_mode=?`,
       [
         res.status, res.repetitions, res.intervalDays, res.easeFactor,
-        res.correct ? 1 : 0, res.correct ? 0 : 1,
+        res.correct ? 1 : 0, res.correct ? 0 : 1, res.hard ? 1 : 0,
         nowIso, nextIso, introducedAt, nowIso, wordId, mode,
       ],
     )
   } else {
     await run(
       `INSERT INTO progress (word_id, review_mode, status, updated_at, repetitions, interval_days,
-         ease_factor, review_count, correct_count, wrong_count, last_reviewed_at, next_review_at, introduced_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)`,
+         ease_factor, review_count, correct_count, wrong_count, hard_count, last_reviewed_at, next_review_at, introduced_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?)`,
       [
         wordId, mode, res.status, nowIso, res.repetitions, res.intervalDays, res.easeFactor,
-        res.correct ? 1 : 0, res.correct ? 0 : 1, nowIso, nextIso, introducedAt,
+        res.correct ? 1 : 0, res.correct ? 0 : 1, res.hard ? 1 : 0, nowIso, nextIso, introducedAt,
       ],
     )
   }
@@ -1093,7 +1099,7 @@ export async function deletePlan(id: string): Promise<{ id: string }> {
     // Clear SM-2 program data for the volume's words; keep manual_status intact.
     await run(
       `UPDATE progress SET status='NOT_READ', repetitions=0, interval_days=0, ease_factor=2.5,
-         review_count=0, correct_count=0, wrong_count=0, last_reviewed_at=NULL, next_review_at=NULL, introduced_at=NULL
+         review_count=0, correct_count=0, wrong_count=0, hard_count=0, last_reviewed_at=NULL, next_review_at=NULL, introduced_at=NULL
        WHERE word_id IN (SELECT w.id FROM words w JOIN lessons l ON w.lesson_id=l.id WHERE l.volume_id=?)`,
       [row.volume_id],
     )

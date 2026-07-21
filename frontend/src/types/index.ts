@@ -203,6 +203,8 @@ export interface WatchlistBook {
   totalWords: number
   knownWords: number
   unknownWords: number
+  /** KNOWN words in this volume answered "سخت" (HARD) at least once — a subset of knownWords. */
+  hardWords: number
   notReadWords: number
   reviewedToday: number
   /** ISO date of the last study session, or null if never studied. */
@@ -223,8 +225,6 @@ export interface DashboardGlobalStats {
   avgStudyMinutes: number
   /** 0–100, share of reviews marked "known". */
   accuracyRate: number
-  /** "سخت" (HARD) answers given today, across all sessions. */
-  hardToday: number
 }
 
 /** One day of activity for the GitHub-style heatmap. */

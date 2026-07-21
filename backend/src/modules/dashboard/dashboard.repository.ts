@@ -6,6 +6,8 @@ export interface VolumeStats {
   totalWords: number
   knownWords: number
   unknownWords: number
+  /** KNOWN words that were answered "سخت" (HARD) at least once — a subset of knownWords. */
+  hardWords: number
   introducedWords: number
   reviewedToday: number
   dueCount: number
@@ -46,12 +48,15 @@ export class DashboardRepository {
     const inVolume = { lesson: { volumeId } }
     const progressInVolume = { userId, reviewMode: mode, word: inVolume }
 
-    const [totalWords, knownWords, unknownWords, introducedWords, reviewedToday, dueCount, lastRow] =
+    const [totalWords, knownWords, unknownWords, hardWords, introducedWords, reviewedToday, dueCount, lastRow] =
       await Promise.all([
         prisma.word.count({ where: inVolume }),
         prisma.userWordProgress.count({ where: { ...progressInVolume, status: WordStatus.KNOWN } }),
         prisma.userWordProgress.count({
           where: { ...progressInVolume, status: WordStatus.NOT_KNOWN },
+        }),
+        prisma.userWordProgress.count({
+          where: { ...progressInVolume, status: WordStatus.KNOWN, hardCount: { gt: 0 } },
         }),
         prisma.userWordProgress.count({
           where: { ...progressInVolume, introducedAt: { not: null } },
@@ -77,6 +82,7 @@ export class DashboardRepository {
       totalWords,
       knownWords,
       unknownWords,
+      hardWords,
       introducedWords,
       reviewedToday,
       dueCount,
@@ -101,7 +107,6 @@ export class DashboardRepository {
         reviewedCount: true,
         correctCount: true,
         wrongCount: true,
-        hardCount: true,
       },
       orderBy: { startedAt: 'asc' },
     })

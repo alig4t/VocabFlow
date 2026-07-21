@@ -13,6 +13,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:migrate-mysql": "tsx prisma/migrate-mysql.ts",
     "db:seed-all-datas": "tsx prisma/import-all.ts",
+    "db:backfill-pattern-examples": "tsx prisma/backfill-pattern-examples.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {

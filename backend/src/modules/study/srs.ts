@@ -37,6 +37,8 @@ export interface SrsResult {
   nextReviewAt: Date
   /** Answer counted as a successful recall (HARD/EASY). */
   correct: boolean
+  /** This specific answer was "سخت" (HARD) — a recall that succeeded but struggled. */
+  hard: boolean
 }
 
 const DEFAULT_EASE = 2.5
@@ -106,5 +108,6 @@ export function schedule(prev: Partial<SrsState> | null, answer: StudyAnswer, no
     status: q < 3 ? WordStatus.NOT_KNOWN : WordStatus.KNOWN,
     nextReviewAt,
     correct: q >= 3,
+    hard: answer === 'HARD',
   }
 }

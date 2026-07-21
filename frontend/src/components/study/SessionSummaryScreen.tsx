@@ -31,16 +31,26 @@ function StatTile({
   label,
   value,
   tone,
+  unit,
 }: {
   icon: React.ReactNode
   label: string
   value: string | number
   tone: string
+  /**
+   * A short word shown after the number (e.g. "بار") to make it clear this
+   * counts ANSWER EVENTS, not distinct words — a word answered wrong then
+   * right again shows up as two separate counts, one in each tile.
+   */
+  unit?: string
 }) {
   return (
     <div className="flex flex-col items-center gap-1 rounded-xl border border-border bg-card px-3 py-4">
       <span className={tone}>{icon}</span>
-      <span className="text-2xl font-bold tabular-nums text-foreground">{value}</span>
+      <span className="flex items-baseline gap-1">
+        <span className="text-2xl font-bold tabular-nums text-foreground">{value}</span>
+        {unit && <span className="text-xs text-muted-foreground">{unit}</span>}
+      </span>
       <span className="text-xs text-muted-foreground">{label}</span>
     </div>
   )
@@ -77,24 +87,28 @@ export function SessionSummaryScreen({ stats, onHome, onAgain, saving }: Session
           icon={<CheckCircle2 className="h-5 w-5" />}
           label="درست"
           value={stats.correctCount}
+          unit="بار"
           tone="text-green-500"
         />
         <StatTile
           icon={<XCircle className="h-5 w-5" />}
           label="نادرست"
           value={stats.wrongCount}
+          unit="بار"
           tone="text-red-500"
         />
         <StatTile
           icon={<AlertTriangle className="h-5 w-5" />}
           label="سخت"
           value={stats.hardCount}
+          unit="بار"
           tone="text-amber-500"
         />
         <StatTile
           icon={<SkipForward className="h-5 w-5" />}
           label="رد شده"
           value={stats.skippedCount}
+          unit="بار"
           tone="text-muted-foreground"
         />
         <StatTile
@@ -112,7 +126,7 @@ export function SessionSummaryScreen({ stats, onHome, onAgain, saving }: Session
       </div>
 
       <p className="text-sm text-muted-foreground">
-        مجموع مرور شده: <span className="font-semibold text-foreground">{stats.reviewedCount}</span> لغت
+        مجموع مرور شده: <span className="font-semibold text-foreground">{stats.reviewedCount}</span> بار
       </p>
 
       <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">

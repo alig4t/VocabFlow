@@ -194,7 +194,17 @@ async function importWord(
   const wordForms   = w.wordForms
     ? `${w.wordForms.label}: ${w.wordForms.forms}`
     : undefined
-  const firstEx = allExamples[0]
+
+  // Some source entries have an empty `examples[]` on every meaning but DO carry
+  // a phrase (patternEng/patternPer) — often itself with no examples either. With
+  // no fallback the word would render with zero examples in the app even though
+  // there's usable pattern text sitting unused. Fall back to the first phrase's
+  // pattern ONLY when there is truly no example anywhere (top-level or nested in
+  // any phrase) — a word that has phrase-level examples elsewhere is left as-is.
+  const hasAnyExample = allExamples.length > 0 || allPhrases.some(p => (p.examples?.length ?? 0) > 0)
+  const fallbackPhrase = !hasAnyExample ? allPhrases[0] : undefined
+  const firstEx = allExamples[0] ??
+    (fallbackPhrase ? { eng: fallbackPhrase.patternEng, per: fallbackPhrase.patternPer ?? '' } : undefined)
 
   const word = await prisma.word.create({
     data: {

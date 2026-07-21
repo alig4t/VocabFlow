@@ -22,6 +22,8 @@ export interface SrsResult {
   status: WordStatus
   nextReviewAt: Date
   correct: boolean
+  /** This specific answer was "سخت" (HARD) — a recall that succeeded but struggled. */
+  hard: boolean
 }
 
 /**
@@ -79,5 +81,6 @@ export function schedule(prev: SrsPrev | null, answer: StudyAnswer, now: Date): 
     status: q < 3 ? 'NOT_KNOWN' : 'KNOWN',
     nextReviewAt,
     correct: q >= 3,
+    hard: answer === 'HARD',
   }
 }
