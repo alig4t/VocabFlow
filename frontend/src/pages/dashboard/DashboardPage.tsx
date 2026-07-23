@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { GlobalStats } from '@/components/dashboard/GlobalStats'
 import { StudyTodayHero } from '@/components/dashboard/StudyTodayHero'
+import { TodayPracticeCard } from '@/components/dashboard/TodayPracticeCard'
 import { WatchlistBookCard } from '@/components/dashboard/WatchlistBookCard'
 import { ContinueLearning } from '@/components/dashboard/ContinueLearning'
 import { ActivityHeatmap } from '@/components/dashboard/ActivityHeatmap'
@@ -66,6 +67,9 @@ export function DashboardPage() {
         <>
           {/* Today's study — the primary call to action */}
           <StudyTodayHero />
+
+          {/* Practice — unlocks once today's session is finished */}
+          <TodayPracticeCard />
 
           {/* Global stats */}
           <GlobalStats stats={data.stats} />

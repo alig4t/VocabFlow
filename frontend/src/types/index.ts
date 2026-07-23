@@ -301,10 +301,22 @@ export interface StudyToday {
     newCount: number
     dailyGoal: number
     reviewedToday: number
+    /** New words already met today — the size of today's practice pool. */
+    introducedToday: number
     hasPlans: boolean
     direction: ReviewMode
     plans: StudyPlanMeta[]
   }
+}
+
+/**
+ * The words introduced today, replayed by the practice reviewer (`/review-today`).
+ * Manual track only — reviewing them never touches the SM-2 schedule.
+ */
+export interface TodayNewWords {
+  words: Word[]
+  count: number
+  direction: ReviewMode
 }
 
 /** Result of applying an answer to a word. */

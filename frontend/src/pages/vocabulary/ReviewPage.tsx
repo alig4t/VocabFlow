@@ -3,8 +3,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ChevronLeft, ChevronRight, Volume2, VolumeX, SquarePen, BookMarked } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ReviewCard } from '@/components/vocabulary/ReviewCard'
+import { ReviewActions } from '@/components/vocabulary/ReviewActions'
 import { useWords } from '@/hooks/useVocabulary'
-import { useUpdateWordStatus, useWordStatus } from '@/hooks/useProgress'
+import { useUpdateWordStatus } from '@/hooks/useProgress'
 import { useVolumesSimple, useLessonsSimple } from '@/hooks/useBooks'
 import { useWatchlistBooks } from '@/hooks/useDashboard'
 import { cn } from '@/lib/utils'
@@ -68,56 +69,6 @@ function statusToReviewFilter(status: WordStatus | 'ALL'): ReviewFilter {
   if (status === 'NOT_READ') return 'NOT_READ'
   if (status === 'NOT_KNOWN') return 'NOT_KNOWN'
   return 'ALL'
-}
-
-interface ReviewWordRowProps {
-  word: Word
-  mode: ReviewMode
-  onKnown: () => void
-  onNotKnown: () => void
-  onSkip: () => void
-}
-
-/** Compact horizontal action group. The active state is shown by the highlighted button. */
-function ReviewActions({ word, mode, onKnown, onNotKnown, onSkip }: ReviewWordRowProps) {
-  const status = useWordStatus(word, mode)
-
-  return (
-    <div className="flex min-w-0 flex-1 items-center gap-2">
-      <button
-        onClick={onNotKnown}
-        aria-pressed={status === 'NOT_KNOWN'}
-        className={cn(
-          'min-w-0 flex-1 whitespace-nowrap px-2 py-2 rounded-lg text-sm font-semibold border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400',
-          status === 'NOT_KNOWN'
-            ? 'bg-red-500 text-white border-red-500 shadow-sm'
-            : 'border-red-300 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40',
-        )}
-      >
-        نگرفتم
-      </button>
-
-      <button
-        onClick={onSkip}
-        className="min-w-0 flex-1 whitespace-nowrap px-2 py-2 rounded-lg text-sm font-medium text-muted-foreground border border-border hover:bg-accent hover:text-accent-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        رد
-      </button>
-
-      <button
-        onClick={onKnown}
-        aria-pressed={status === 'KNOWN'}
-        className={cn(
-          'min-w-0 flex-1 whitespace-nowrap px-2 py-2 rounded-lg text-sm font-semibold border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-400',
-          status === 'KNOWN'
-            ? 'bg-green-500 text-white border-green-500 shadow-sm'
-            : 'border-green-300 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950/40',
-        )}
-      >
-        گرفتم
-      </button>
-    </div>
-  )
 }
 
 // Remembers the last review position (per filter scope) so returning to the

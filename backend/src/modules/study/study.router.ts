@@ -13,5 +13,6 @@ export const studyRouter = Router()
 studyRouter.use(authenticate)
 
 studyRouter.get('/today', studyController.getToday)
+studyRouter.get('/today-new', studyController.getTodayNew)
 studyRouter.post('/answer', studyController.answer)
 studyRouter.post('/session', studyController.recordSession)

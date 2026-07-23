@@ -123,6 +123,20 @@ export class StudyRepository {
     })
   }
 
+  /**
+   * Every word this user met for the FIRST time today, oldest first — the pool
+   * for the "practice today's new words" free review. Feeds a manual-only
+   * reviewer, so it never touches SM-2 scheduling.
+   */
+  async getIntroducedTodayWords(userId: string, mode: ReviewMode, since: Date) {
+    const rows = await prisma.userWordProgress.findMany({
+      where: { userId, reviewMode: mode, introducedAt: { gte: since } },
+      orderBy: { introducedAt: 'asc' },
+      include: { word: { include: wordInclude(userId, mode) } },
+    })
+    return rows.map((r) => r.word)
+  }
+
   /** Remaining not-introduced words in a volume (for progress/ETA). */
   async countRemainingNew(userId: string, mode: ReviewMode, volumeId: string) {
     return prisma.word.count({

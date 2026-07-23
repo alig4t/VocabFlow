@@ -23,6 +23,7 @@ const BookDetailPage = lazy(() => import('./pages/library/BookDetailPage').then(
 const VocabularyPage = lazy(() => import('./pages/vocabulary/VocabularyPage').then((m) => ({ default: m.VocabularyPage })))
 const ReviewPage = lazy(() => import('./pages/vocabulary/ReviewPage').then((m) => ({ default: m.ReviewPage })))
 const StudySessionPage = lazy(() => import('./pages/study/StudySessionPage').then((m) => ({ default: m.StudySessionPage })))
+const ReviewTodayPage = lazy(() => import('./pages/study/ReviewTodayPage').then((m) => ({ default: m.ReviewTodayPage })))
 const SettingsPage = lazy(() => import('./pages/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 const AboutPage = lazy(() => import('./pages/about/AboutPage').then((m) => ({ default: m.AboutPage })))
 const GuidePage = lazy(() => import('./pages/guide/GuidePage').then((m) => ({ default: m.GuidePage })))
@@ -202,6 +203,16 @@ export default function App() {
                 <ProtectedRoute>
                   <Layout>
                     <StudySessionPage />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/review-today"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ReviewTodayPage />
                   </Layout>
                 </ProtectedRoute>
               }

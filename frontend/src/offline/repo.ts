@@ -20,6 +20,7 @@ import type {
   ReviewQueueItem,
   DashboardGlobalStats,
   StudyToday,
+  TodayNewWords,
   StudyAnswer,
   StudyAnswerResult,
   StudyPlanMeta,
@@ -817,6 +818,7 @@ export async function getStudyToday(): Promise<StudyToday> {
   // New words per plan.
   const newWords: Word[] = []
   const planMeta: StudyPlanMeta[] = []
+  let introducedTodayTotal = 0
   for (const p of plans) {
     const introducedTodayRow = await query<{ c: number }>(
       `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
@@ -824,6 +826,7 @@ export async function getStudyToday(): Promise<StudyToday> {
       [mode, dayStartIso, p.volume_id],
     )
     const introducedToday = introducedTodayRow[0]?.c ?? 0
+    introducedTodayTotal += introducedToday
     const capacity = Math.max(0, p.daily_new_words - introducedToday)
 
     const preview = await query<{ id: string; lesson_id: string | null; l_number: number | null }>(
@@ -877,11 +880,31 @@ export async function getStudyToday(): Promise<StudyToday> {
       newCount: newWords.length,
       dailyGoal: plans.reduce((s, p) => s + p.daily_goal, 0),
       reviewedToday: 0,
+      introducedToday: introducedTodayTotal,
       hasPlans: plans.length > 0,
       direction: mode,
       plans: planMeta,
     },
   }
+}
+
+/**
+ * Words met for the FIRST time today (SM-2 direction), oldest first — the pool
+ * for the practice reviewer. Read-only: no schedule is touched here.
+ */
+export async function getTodayNewWords(): Promise<TodayNewWords> {
+  const settings = await getSettings()
+  const mode = settings.studyDirection
+  const dayStartIso = startOfDay(new Date()).toISOString()
+
+  const rows = await query<{ word_id: string }>(
+    `SELECT word_id FROM progress
+     WHERE review_mode=? AND introduced_at IS NOT NULL AND introduced_at>=?
+     ORDER BY introduced_at ASC`,
+    [mode, dayStartIso],
+  )
+  const words = await wordsByIds(rows.map((r) => r.word_id))
+  return { words, count: words.length, direction: mode }
 }
 
 export async function answerStudy(wordId: string, answer: StudyAnswer): Promise<StudyAnswerResult> {

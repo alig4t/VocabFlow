@@ -37,10 +37,19 @@ export interface StudyToday {
     newCount: number
     dailyGoal: number
     reviewedToday: number
+    /** New words already met today — the size of the "practice" pool on Home. */
+    introducedToday: number
     hasPlans: boolean
     direction: ReviewMode
     plans: StudyPlanMeta[]
   }
+}
+
+/** Today's newly-introduced words, for the manual practice reviewer. */
+export interface TodayNewWords {
+  words: unknown[]
+  count: number
+  direction: ReviewMode
 }
 
 export class StudyService {
@@ -70,6 +79,7 @@ export class StudyService {
     const dueWords: unknown[] = []
     const newWords: unknown[] = []
     const planMeta: StudyPlanMeta[] = []
+    let introducedTodayTotal = 0
 
     for (const plan of plans) {
       const volumeId = plan.volume.id
@@ -83,6 +93,7 @@ export class StudyService {
       dueWords.push(...dueInVolume)
 
       const introducedToday = await this.repo.countIntroducedToday(userId, mode, volumeId, dayStart)
+      introducedTodayTotal += introducedToday
       const capacity = Math.max(0, plan.dailyNewWords - introducedToday)
 
       // Fetch one extra beyond capacity so we can still name the "current lesson"
@@ -125,11 +136,22 @@ export class StudyService {
         newCount: newWords.length,
         dailyGoal: plans.reduce((s, p) => s + p.dailyGoal, 0),
         reviewedToday: 0, // filled by dashboard; not needed for the session itself
+        introducedToday: introducedTodayTotal,
         hasPlans: plans.length > 0,
         direction: mode,
         plans: planMeta,
       },
     }
+  }
+
+  /**
+   * The words introduced today, for the free "practice" reviewer on Home.
+   * Read-only: nothing here writes to the SM-2 schedule.
+   */
+  async getTodayNewWords(userId: string, now = new Date()): Promise<TodayNewWords> {
+    const { mode } = await this.resolveSettings(userId)
+    const words = await this.repo.getIntroducedTodayWords(userId, mode, startOfDay(now))
+    return { words, count: words.length, direction: mode }
   }
 
   /** Apply an answer to a word and return the new schedule (or a skip marker). */
