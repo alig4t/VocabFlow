@@ -237,18 +237,26 @@ export async function getDb(): Promise<SQLiteDBConnection> {
       db = await sqlite.retrieveConnection(DB_NAME, false)
     } else {
       // Security layer 1b — encrypted (SQLCipher) runtime DB. Requires
-      // androidIsEncryption:true in capacitor.config.
-      //  • First launch on this device (no secret yet): store a fresh random
-      //    per-device passphrase in the Keystore-backed secret store, then open
-      //    in mode 'encryption' — which MIGRATES an existing plaintext DB in
-      //    place (no data loss) or creates a new encrypted DB when none exists.
-      //  • Later launches (secret already stored): open in mode 'secret', which
-      //    reads the passphrase from the secure store.
+      // androidIsEncryption:true in capacitor.config. The DB passphrase is a
+      // random per-device value kept in the Keystore-backed secret store, never
+      // in the bundle. Pick the open mode carefully:
+      //  • secret already stored → the DB file is already encrypted → 'secret'.
+      //  • no secret yet + a plaintext DB file EXISTS → migrate it in place
+      //    (no data loss) → 'encryption'.
+      //  • no secret yet + NO DB file (fresh install) → create a new encrypted
+      //    DB → 'secret'. (Mode 'encryption' throws "not found" here, since it
+      //    only encrypts an EXISTING plaintext file — that was the first bug.)
       const secretStored = (await sqlite.isSecretStored()).result
       if (!secretStored) {
         await sqlite.setEncryptionSecret(makePassphrase())
       }
-      const mode = secretStored ? 'secret' : 'encryption'
+      let mode: string
+      if (secretStored) {
+        mode = 'secret'
+      } else {
+        const dbExists = (await sqlite.isDatabase(DB_NAME)).result
+        mode = dbExists ? 'encryption' : 'secret'
+      }
       db = await sqlite.createConnection(DB_NAME, true, mode, DB_VERSION, false)
     }
     if (!(await db.isDBOpen()).result) {
