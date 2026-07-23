@@ -36,12 +36,12 @@ export function PageLoader({ label = 'در حال بارگذاری…' }: { labe
           style={{ animationDuration: '1.8s' }}
         />
         <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-black/5">
-          <img src="/logo/logo-192-192.png" alt="وکب" className="h-full w-full object-contain p-2" draggable={false} />
+          <img src="/logo/logo-flow-192.png" alt="وکب فلو" className="h-full w-full object-contain p-2" draggable={false} />
         </div>
       </div>
 
       <div className="text-center">
-        <p className="text-lg font-extrabold tracking-tight text-foreground">وکب</p>
+        <p className="text-lg font-extrabold tracking-tight text-foreground">وکب فلو</p>
         <p className="mt-0.5 text-xs text-muted-foreground">{label}</p>
       </div>
 

@@ -7,7 +7,7 @@ export function AboutPage() {
     <div dir="rtl" className="mx-auto max-w-xl px-4 py-12 font-persian">
       <div className="flex flex-col items-center text-center">
         <p className="text-xs tracking-wide text-muted-foreground/60">درباره‌ی سازنده</p>
-        <h1 className="mt-2 text-2xl font-bold text-foreground">وکب</h1>
+        <h1 className="mt-2 text-2xl font-bold text-foreground">وکب فلو</h1>
 
         <div className="mt-6 space-y-4 text-[15px] leading-8 text-muted-foreground">
           <p>
@@ -15,7 +15,7 @@ export function AboutPage() {
             چیزی که نگذارد کلمه‌ها فراموش شوند و هر روز کمی جلوتر ببرد.
           </p>
           <p>
-            وقتی چنین ابزاری آن‌طور که می‌خواستم پیدا نکردم، تصمیم گرفتم خودم بسازمش. وکب
+            وقتی چنین ابزاری آن‌طور که می‌خواستم پیدا نکردم، تصمیم گرفتم خودم بسازمش. وکب فلو
             حاصل همان تجربه است: یک همراه کوچک و آفلاین برای مرور روزمره‌ی واژه‌ها، با
             تکرار فاصله‌دار و تمرکز بر ماندگاری بلندمدت در حافظه.
           </p>
@@ -26,7 +26,7 @@ export function AboutPage() {
         <div className="mt-12 flex flex-col items-center gap-1">
           <span className="h-px w-8 bg-border" aria-hidden="true" />
           <p className="pt-2 text-[13px] font-medium tracking-wide text-muted-foreground/50">
-             علی قاسمی
+            ساخته‌ی علی قاسمی
           </p>
         </div>
 

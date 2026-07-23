@@ -216,8 +216,8 @@ function LogoMark({ size = 40 }: { size?: number }) {
       style={{ width: size, height: size }}
     >
       <img
-        src="/logo/logo-192-192.png"
-        alt="وکب"
+        src="/logo/logo-flow-192.png"
+        alt="وکب فلو"
         width={size}
         height={size}
         className="h-full w-full object-contain p-1"
@@ -291,7 +291,7 @@ export default function LandingPage() {
         <Link to="/" className="flex items-center gap-2.5">
           <LogoMark size={36} />
           <div className="leading-none">
-            <span className="block text-[15px] font-extrabold tracking-tight">وکب</span>
+            <span className="block text-[15px] font-extrabold tracking-tight">وکب فلو</span>
             <span className="block text-[10px] text-amber-600 dark:text-amber-300/70">VocabFlow</span>
           </div>
         </Link>
@@ -528,7 +528,7 @@ export default function LandingPage() {
             <p className={`mb-3 text-xs font-semibold uppercase tracking-widest ${cx.eyebrow}`}>سه مسیر، یک هدف</p>
             <h2 className={`mb-4 text-3xl font-bold sm:text-4xl ${cx.heading}`}>فراتر از حفظ کردن لغت</h2>
             <p className={`mx-auto max-w-xl text-sm leading-relaxed ${cx.mutedSoft}`}>
-              زبان طبیعی فقط واژه نیست. وکب سه لایه کلیدی زبان را به شما می‌آموزد تا انگلیسی شما روان و واقعی شود.
+              زبان طبیعی فقط واژه نیست. وکب فلو سه لایه کلیدی زبان را به شما می‌آموزد تا انگلیسی شما روان و واقعی شود.
             </p>
           </div>
 
@@ -599,7 +599,7 @@ export default function LandingPage() {
       <section id="features" className={`${cx.page} py-28`}>
         <div className="mx-auto max-w-6xl px-6 sm:px-10">
           <div className="mb-16 text-center">
-            <p className={`mb-3 text-xs font-semibold uppercase tracking-widest ${cx.eyebrow}`}>چرا وکب؟</p>
+            <p className={`mb-3 text-xs font-semibold uppercase tracking-widest ${cx.eyebrow}`}>چرا وکب فلو؟</p>
             <h2 className={`mb-4 text-3xl font-bold sm:text-4xl ${cx.heading}`}>همه‌چیز برای یادگیری واقعی</h2>
             <p className={`mx-auto max-w-lg text-sm leading-relaxed ${cx.mutedSoft}`}>
               ابزارهایی که یادگیری واژگان را از یک کار خسته‌کننده به عادتی روزانه و لذت‌بخش تبدیل می‌کند.
@@ -781,7 +781,7 @@ export default function LandingPage() {
         <div className="relative z-10 mx-auto max-w-5xl px-6 sm:px-10">
           <div className="mb-16 text-center">
             <p className={`mb-3 text-xs font-semibold uppercase tracking-widest ${cx.eyebrow}`}>نظرات</p>
-            <h2 className={`mb-4 text-3xl font-bold sm:text-4xl ${cx.heading}`}>یادگیرندگان درباره وکب چه می‌گویند؟</h2>
+            <h2 className={`mb-4 text-3xl font-bold sm:text-4xl ${cx.heading}`}>یادگیرندگان درباره وکب فلو چه می‌گویند؟</h2>
           </div>
 
           <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
@@ -873,7 +873,7 @@ export default function LandingPage() {
             <div className="flex items-center gap-2.5">
               <LogoMark size={32} />
               <div className="leading-none">
-                <span className="block text-sm font-bold text-slate-700 dark:text-white/80">وکب</span>
+                <span className="block text-sm font-bold text-slate-700 dark:text-white/80">وکب فلو</span>
                 <span className="block text-[10px] text-slate-500 dark:text-white/35">پلتفرم یادگیری واژگان انگلیسی</span>
               </div>
             </div>

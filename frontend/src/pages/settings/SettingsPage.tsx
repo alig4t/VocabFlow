@@ -250,7 +250,7 @@ function NotificationsCard({ settings }: { settings: UserSettings }) {
           if (!granted) {
             toast({
               title: 'اجازه‌ی اعلان داده نشد',
-              description: 'برای دریافت یادآور، اعلان‌ها را در تنظیمات گوشی برای وکب فعال کنید.',
+              description: 'برای دریافت یادآور، اعلان‌ها را در تنظیمات گوشی برای وکب فلو فعال کنید.',
               variant: 'destructive',
             })
           }

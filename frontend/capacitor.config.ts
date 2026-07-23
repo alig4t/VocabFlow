@@ -20,7 +20,7 @@ const config: CapacitorConfig = {
     },
     LocalNotifications: {
       // Status-bar icon: a white open-book silhouette (res/drawable-*/ic_stat_notify.png),
-      // matching the book element in the وکب logo. Replaces the default "!" icon.
+      // matching the book element in the وکب فلو logo. Replaces the default "!" icon.
       // PNGs (not a vector) because minSdk=22 and vector notification icons are
       // buggy before API 24.
       smallIcon: 'ic_stat_notify',

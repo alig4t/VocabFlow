@@ -89,10 +89,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           <Link to={'/'}>
         <div className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-white ring-1 ring-border">
-              <img src="/logo/logo-192-192.png" alt="وکب" className="h-full w-full object-contain p-0.5" draggable={false} />
+              <img src="/logo/logo-flow-192.png" alt="وکب فلو" className="h-full w-full object-contain p-0.5" draggable={false} />
             </div>
             <div className="leading-tight">
-              <p className="text-sm font-bold text-foreground">وکب</p>
+              <p className="text-sm font-bold text-foreground">وکب فلو</p>
               <p className="text-xs text-muted-foreground">یادگیری زبان</p>
             </div>
         </div>

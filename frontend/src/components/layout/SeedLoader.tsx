@@ -6,7 +6,7 @@ export function SeedLoader({ progress, label }: { progress: number; label: strin
       dir="rtl"
       className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-background px-8 font-persian text-foreground"
     >
-      <img src="/logo/logo-192-192.png" alt="VocabFlow" className="h-20 w-20 rounded-2xl shadow-lg" />
+      <img src="/logo/logo-flow-192.png" alt="VocabFlow" className="h-20 w-20 rounded-2xl shadow-lg" />
       <div className="text-center">
         <p className="text-lg font-bold">در حال آماده‌سازی واژه‌ها…</p>
         <p className="mt-1 text-sm text-muted-foreground">{label || 'اولین اجرا کمی طول می‌کشد'}</p>
