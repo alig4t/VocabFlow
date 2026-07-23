@@ -76,7 +76,8 @@ getWords(filters) {
 
 | فایل | نقش |
 |------|-----|
-| `db.ts` | باز کردن اتصال SQLite + اسکیمای جداول (آینه‌ی مدل Prisma، ولی تک‌کاربره بدون `userId`) + `migrateSchema()` (افزودن ستون‌های SM-2 به نصب‌های قدیمی) + هلپرهای `query/run` |
+| `db.ts` | باز کردن اتصال SQLite **رمزشده با SQLCipher** (لایه‌ی امنیتی ۱b) + اسکیمای جداول (آینه‌ی مدل Prisma، ولی تک‌کاربره بدون `userId`) + `migrateSchema()` (افزودن ستون‌های SM-2 به نصب‌های قدیمی) + هلپرهای `query/run`. گذرواژه‌ی DB رندومِ هر دستگاه است و در Keystore ذخیره می‌شود (`androidIsEncryption:true` در `capacitor.config.ts`)؛ نصب‌های plaintextِ قدیمی خودکار مهاجرت می‌شوند. |
+| `seed-crypto.ts` | رمزگشایی AES-256-GCM فایل‌های `seed-enc/*.enc` با Web Crypto (لایه‌ی امنیتی ۱)؛ کلید از `VITE_SEED_SECRET`. |
 | `seed.ts` | seed اولیه از JSONها؛ منطق پارس مثل `backend/prisma/import-all.ts`؛ idempotent با فلگ `meta.seed_version` |
 | `repo.ts` | همه‌ی توابع کوئری (words+فیلترها، progress، books/volumes/lessons، watchlist، ویرایش لغت، داشبورد، synonyms، مطالعه‌ی امروز/پاسخ/سشن، برنامه‌های یادگیری، تنظیمات) با **همان شکل خروجیِ** سرویس‌های HTTP |
 | `srs.ts` | آینه‌ی نیتیو موتور SM-2 (مثل `backend/src/modules/study/srs.ts`) — تابع `schedule` و هلپرهای روز |

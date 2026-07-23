@@ -10,6 +10,14 @@ const config: CapacitorConfig = {
     allowMixedContent: true,
   },
   plugins: {
+    // Security layer 1b: encrypt the runtime SQLite DB with SQLCipher. Enabling
+    // this makes the plugin store the DB passphrase in Keystore-backed
+    // EncryptedSharedPreferences (AES256_GCM MasterKey). The passphrase itself
+    // is a random per-device value generated in db.ts — never in the bundle.
+    // See SECURITY-REVIEW.md.
+    CapacitorSQLite: {
+      androidIsEncryption: true,
+    },
     LocalNotifications: {
       // Status-bar icon: a white open-book silhouette (res/drawable-*/ic_stat_notify.png),
       // matching the book element in the وکب logo. Replaces the default "!" icon.

@@ -216,14 +216,41 @@ async function migrateSchema(db: SQLiteDBConnection): Promise<void> {
   await addMissingColumns(db, 'user_settings', USER_SETTINGS_ADDED_COLUMNS)
 }
 
+/**
+ * Random 256-bit passphrase (hex) for the SQLCipher database. Generated ONCE
+ * per install and handed to the plugin's Keystore-backed secret store, so it
+ * never lives in the JS bundle or on plaintext disk.
+ */
+function makePassphrase(): string {
+  const bytes = new Uint8Array(32)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+}
+
 /** Open (or reuse) the single app database connection and ensure the schema. */
 export async function getDb(): Promise<SQLiteDBConnection> {
   if (dbPromise) return dbPromise
   dbPromise = (async () => {
     const isConn = (await sqlite.isConnection(DB_NAME, false)).result
-    const db = isConn
-      ? await sqlite.retrieveConnection(DB_NAME, false)
-      : await sqlite.createConnection(DB_NAME, false, 'no-encryption', DB_VERSION, false)
+    let db: SQLiteDBConnection
+    if (isConn) {
+      db = await sqlite.retrieveConnection(DB_NAME, false)
+    } else {
+      // Security layer 1b — encrypted (SQLCipher) runtime DB. Requires
+      // androidIsEncryption:true in capacitor.config.
+      //  • First launch on this device (no secret yet): store a fresh random
+      //    per-device passphrase in the Keystore-backed secret store, then open
+      //    in mode 'encryption' — which MIGRATES an existing plaintext DB in
+      //    place (no data loss) or creates a new encrypted DB when none exists.
+      //  • Later launches (secret already stored): open in mode 'secret', which
+      //    reads the passphrase from the secure store.
+      const secretStored = (await sqlite.isSecretStored()).result
+      if (!secretStored) {
+        await sqlite.setEncryptionSecret(makePassphrase())
+      }
+      const mode = secretStored ? 'secret' : 'encryption'
+      db = await sqlite.createConnection(DB_NAME, true, mode, DB_VERSION, false)
+    }
     if (!(await db.isDBOpen()).result) {
       await db.open()
     }
