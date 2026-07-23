@@ -67,7 +67,7 @@ export class PlanService {
     const otherTotal = await this.repo.sumActiveDailyNewWordsExcluding(userId, volumeId)
     if (otherTotal + dailyNewWords > MAX_TOTAL_DAILY_NEW) {
       throw new ValidationError(
-        `مجموع لغات جدید روزانه در همه‌ی برنامه‌های فعال نمی‌تواند از ${MAX_TOTAL_DAILY_NEW} بیشتر شود`,
+        `مجموع واژگان جدید روزانه در همه‌ی برنامه‌های فعال نمی‌تواند از ${MAX_TOTAL_DAILY_NEW} بیشتر شود`,
       )
     }
 
@@ -93,7 +93,7 @@ export class PlanService {
       const otherTotal = await this.repo.sumActiveDailyNewWordsExcluding(userId, plan.volumeId)
       if (otherTotal + dailyNewWords > MAX_TOTAL_DAILY_NEW) {
         throw new ValidationError(
-          `مجموع لغات جدید روزانه در همه‌ی برنامه‌های فعال نمی‌تواند از ${MAX_TOTAL_DAILY_NEW} بیشتر شود`,
+          `مجموع واژگان جدید روزانه در همه‌ی برنامه‌های فعال نمی‌تواند از ${MAX_TOTAL_DAILY_NEW} بیشتر شود`,
         )
       }
     }
