@@ -185,25 +185,25 @@ const PILLARS = [
 // ─── Features ─────────────────────────────────────────────────────────────────
 const FEATURES = [
   { icon: Layers, title: 'فلش‌کارت دو طرفه', desc: 'انگلیسی به فارسی یا فارسی به انگلیسی — حالت مرور را خودتان انتخاب کنید.' },
-  { icon: Target, title: 'فیلتر هوشمند', desc: 'فقط لغاتی که هنوز یاد نگرفته‌اید را با تمرکز بیشتر مرور کنید.' },
+  { icon: Target, title: 'فیلتر هوشمند', desc: 'فقط واژه‌هایی که هنوز یاد نگرفته‌اید را با تمرکز بیشتر مرور کنید.' },
   { icon: BarChart3, title: 'داشبورد پیشرفت', desc: 'نوار پیشرفت هر کتاب، آمار روزانه و درصد تسلط شما همیشه پیش چشم است.' },
-  { icon: Brain, title: 'مترادف و متضاد', desc: 'برای هر لغت، هم‌معنی‌ها و متضادها را ببینید و دایره واژگان را گسترش دهید.' },
-  { icon: BookOpen, title: 'مثال‌های واقعی', desc: 'هر لغت، عبارت و باهم‌آیی با جمله مثال انگلیسی و ترجمه فارسی همراه است.' },
+  { icon: Brain, title: 'مترادف و متضاد', desc: 'برای هر واژه، هم‌معنی‌ها و متضادها را ببینید و دایره واژگان را گسترش دهید.' },
+  { icon: BookOpen, title: 'مثال‌های واقعی', desc: 'هر واژه، عبارت و باهم‌آیی با جمله مثال انگلیسی و ترجمه فارسی همراه است.' },
   { icon: CalendarCheck, title: 'نقشه فعالیت', desc: 'مثل گیت‌هاب، روزهای مطالعه‌تان را ببینید و رشته یادگیری‌تان را حفظ کنید.' },
-  { icon: Repeat, title: 'مرور فاصله‌دار', desc: 'صف مرور هوشمند، لغات را دقیقاً زمانی که در آستانه فراموشی هستند برمی‌گرداند.' },
+  { icon: Repeat, title: 'مرور فاصله‌دار', desc: 'صف مرور هوشمند، واژگان را دقیقاً زمانی که در آستانه فراموشی هستند برمی‌گرداند.' },
   { icon: Users, title: 'حساب مستقل', desc: 'پیشرفت، آمار و کتاب‌های هر کاربر کاملاً جدا و شخصی نگه‌داری می‌شود.' },
 ]
 
 // ─── Steps ────────────────────────────────────────────────────────────────────
 const STEPS = [
   { num: '۱', title: 'ثبت‌نام رایگان', desc: 'در چند ثانیه حساب بسازید. هیچ پرداختی لازم نیست.' },
-  { num: '۲', title: 'کتاب‌ها را انتخاب کنید', desc: 'از میان لغات، افعال عبارتی و باهم‌آیی‌ها، مسیر خود را بچینید.' },
+  { num: '۲', title: 'کتاب‌ها را انتخاب کنید', desc: 'از میان واژه‌ها، افعال عبارتی و باهم‌آیی‌ها، مسیر خود را بچینید.' },
   { num: '۳', title: 'هر روز مرور کنید', desc: 'چند دقیقه در روز مرور کنید و پیشرفت واقعی‌تان را در داشبورد ببینید.' },
 ]
 
 // ─── Testimonials ─────────────────────────────────────────────────────────────
 const TESTIMONIALS = [
-  { name: 'نیلوفر احمدی', role: 'دانشجوی کارشناسی ارشد', avatar: 'ن', text: 'بهترین روش برای یادگیری لغات تخصصی. با این پلتفرم ظرف سه ماه واژگانم دو برابر شد.' },
+  { name: 'نیلوفر احمدی', role: 'دانشجوی کارشناسی ارشد', avatar: 'ن', text: 'بهترین روش برای یادگیری واژه‌های تخصصی. با این پلتفرم ظرف سه ماه واژگانم دو برابر شد.' },
   { name: 'رضا مرادی', role: 'مترجم حرفه‌ای', avatar: 'ر', text: 'بخش افعال عبارتی و باهم‌آیی‌ها فوق‌العاده‌ست؛ حالا انگلیسی‌ام خیلی طبیعی‌تر شده.' },
   { name: 'سارا کریمی', role: 'زبان‌آموز آیلتس', avatar: 'س', text: 'نوار پیشرفت و فیلتر «هنوز یاد نگرفتم» کمکم کرد دقیقاً روی نقاط ضعفم تمرکز کنم.' },
 ]
@@ -454,7 +454,7 @@ export default function LandingPage() {
             </h1>
 
             <p className="mb-9 max-w-md text-[1.05rem] leading-[1.9] text-slate-600 dark:text-white/55">
-              لغات، افعال عبارتی و باهم‌آیی‌ها را با فلش‌کارت دوطرفه، مثال‌های واقعی
+              واژه‌ها، افعال عبارتی و باهم‌آیی‌ها را با فلش‌کارت دوطرفه، مثال‌های واقعی
               و داشبورد پیشرفت شخصی مرور کنید — همه در یک پلتفرم فارسی.
             </p>
 
@@ -475,7 +475,7 @@ export default function LandingPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-5">
-              <StatPill value="۲۰٬۰۰۰+" label="لغت و عبارت" />
+              <StatPill value="۲۰٬۰۰۰+" label="واژه و عبارت" />
               <div className="h-8 w-px bg-slate-300 dark:bg-white/10" />
               <StatPill value="۱۳+" label="کتاب مرجع" />
               <div className="h-8 w-px bg-slate-300 dark:bg-white/10" />
@@ -507,7 +507,7 @@ export default function LandingPage() {
           <p className="mb-6 text-center text-xs uppercase tracking-widest text-slate-400 dark:text-white/30">یک کتابخانه کامل در جیب شما</p>
           <div className="grid grid-cols-2 gap-6 text-center sm:grid-cols-4">
             {[
-              ['۲۰٬۰۰۰+', 'لغت و عبارت'],
+              ['۲۰٬۰۰۰+', 'واژه و عبارت'],
               ['۱۳+', 'کتاب مرجع'],
               ['۳ مسیر', 'واژه · عبارت · باهم‌آیی'],
               ['۲ حالت', 'مرور دوطرفه'],
@@ -526,7 +526,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-6xl px-6 sm:px-10">
           <div className="mb-16 text-center">
             <p className={`mb-3 text-xs font-semibold uppercase tracking-widest ${cx.eyebrow}`}>سه مسیر، یک هدف</p>
-            <h2 className={`mb-4 text-3xl font-bold sm:text-4xl ${cx.heading}`}>فراتر از حفظ کردن لغت</h2>
+            <h2 className={`mb-4 text-3xl font-bold sm:text-4xl ${cx.heading}`}>فراتر از حفظ کردن واژه</h2>
             <p className={`mx-auto max-w-xl text-sm leading-relaxed ${cx.mutedSoft}`}>
               زبان طبیعی فقط واژه نیست. وکب فلو سه لایه کلیدی زبان را به شما می‌آموزد تا انگلیسی شما روان و واقعی شود.
             </p>
@@ -569,7 +569,7 @@ export default function LandingPage() {
             <p className={`mb-3 text-xs font-semibold uppercase tracking-widest ${cx.eyebrow}`}>کتابخانه</p>
             <h2 className={`mb-4 text-3xl font-bold sm:text-4xl ${cx.heading}`}>معتبرترین منابع واژگان، یک‌جا</h2>
             <p className={`mx-auto max-w-lg text-sm leading-relaxed ${cx.mutedSoft}`}>
-              از ۴۰۰۰ لغت ضروری و Oxford Word Skills تا افعال عبارتی، باهم‌آیی‌ها و واژگان تخصصی آزمون‌ها — همه به‌صورت فلش‌کارت آماده مرور.
+              از ۴۰۰۰ واژه ضروری و Oxford Word Skills تا افعال عبارتی، باهم‌آیی‌ها و واژگان تخصصی آزمون‌ها — همه به‌صورت فلش‌کارت آماده مرور.
             </p>
           </div>
 
@@ -631,12 +631,12 @@ export default function LandingPage() {
               <p className={`mb-3 text-xs font-semibold uppercase tracking-widest ${cx.eyebrow}`}>داشبورد شخصی</p>
               <h2 className={`mb-5 text-3xl font-bold sm:text-4xl ${cx.heading}`}>پیشرفتت را می‌بینی، پس ادامه می‌دهی</h2>
               <p className={`mb-8 text-sm leading-relaxed ${cx.muted}`}>
-                هر کتاب نوار پیشرفت مخصوص خودش را دارد. رشته یادگیری، آمار روزانه، لغات آماده مرور و درصد تسلط — همه در یک نگاه.
+                هر کتاب نوار پیشرفت مخصوص خودش را دارد. رشته یادگیری، آمار روزانه، واژگان آماده مرور و درصد تسلط — همه در یک نگاه.
               </p>
               <ul className="space-y-3.5">
                 {[
-                  ['نوار پیشرفت هر کتاب', 'درصد لغات یادگرفته‌شده را زنده دنبال کنید.'],
-                  ['صف مرور هوشمند', 'دقیقاً بدانید امروز کدام لغات را باید مرور کنید.'],
+                  ['نوار پیشرفت هر کتاب', 'درصد واژگان یادگرفته‌شده را زنده دنبال کنید.'],
+                  ['صف مرور هوشمند', 'دقیقاً بدانید امروز کدام واژگان را باید مرور کنید.'],
                   ['نقشه فعالیت و رشته', 'انگیزه‌تان را با حفظ رشته روزهای مطالعه بالا نگه دارید.'],
                 ].map(([t, d]) => (
                   <li key={t} className="flex items-start gap-3 text-right">
@@ -659,7 +659,7 @@ export default function LandingPage() {
                 <div className="mb-4 grid grid-cols-3 gap-3">
                   {[
                     { icon: Flame, v: '۱۲', l: 'روز رشته' },
-                    { icon: Trophy, v: '۸۴۰', l: 'لغت آموخته' },
+                    { icon: Trophy, v: '۸۴۰', l: 'واژه آموخته' },
                     { icon: Target, v: '۷۳٪', l: 'دقت مرور' },
                   ].map((s, i) => (
                     <div key={i} className="rounded-xl bg-slate-50 p-3 text-center ring-1 ring-inset ring-slate-200/70 dark:bg-white/[0.045] dark:ring-white/[0.04]">

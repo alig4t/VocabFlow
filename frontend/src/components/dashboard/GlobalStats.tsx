@@ -20,7 +20,7 @@ export function GlobalStats({ stats }: GlobalStatsProps) {
       <StatTile
         icon={GraduationCap}
         accent="success"
-        label="لغات یادگرفته"
+        label="واژگان یادگرفته"
         value={faNum(stats.totalWordsLearned)}
       />
       <StatTile

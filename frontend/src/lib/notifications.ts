@@ -46,9 +46,9 @@ const OVERDUE_DAYS = REMINDER_DAYS.filter((d) => d >= OVERDUE_AFTER_DAYS)
  * "friendly and motivational, not demanding or stressful".
  */
 const OVERDUE_MESSAGES: { title: string; body: string }[] = [
-  { title: '📚 چند روزه ندیدیمت', body: 'هر وقت فرصت داشتی، لغت‌هات همین‌جا منتظرتن.' },
+  { title: '📚 چند روزه ندیدیمت', body: 'هر وقت فرصت داشتی، واژه‌هات همین‌جا منتظرتن.' },
   { title: '🌱 یه مرور کوتاه کافیه', body: 'چند دقیقه وقت بذار و پشتکارت رو دوباره بساز.' },
-  { title: '✨ هر وقت آماده بودی، از همون‌جا ادامه بده', body: 'شروع دوباره سخت نیست؛ از همون لغت بعدی.' },
+  { title: '✨ هر وقت آماده بودی، از همون‌جا ادامه بده', body: 'شروع دوباره سخت نیست؛ از همون واژه بعدی.' },
 ]
 
 type Kind = 'daily' | 'overdue' | 'streak'
@@ -97,15 +97,15 @@ function messageFor(kind: Kind, s: NotificationStatus, day: number): { title: st
   }
   // daily — use exact counts only for today (future-day counts are unknown).
   if (exact && s.dueCount > 0 && s.newCount > 0) {
-    return { title: '🔥 جلسه‌ی امروزت آماده‌ست', body: 'مرورها و لغت‌های جدید منتظرتن.' }
+    return { title: '🔥 جلسه‌ی امروزت آماده‌ست', body: 'مرورها و واژه‌های جدید منتظرتن.' }
   }
   if (exact && s.dueCount > 0) {
-    return { title: '📚 مرور امروزت آماده‌ست', body: `${faNum(s.dueCount)} لغت منتظر مرورن.` }
+    return { title: '📚 مرور امروزت آماده‌ست', body: `${faNum(s.dueCount)} واژه منتظر مرورن.` }
   }
   if (exact && s.newCount > 0) {
     return {
-      title: '✨ لغت‌های جدید امروز',
-      body: `${faNum(s.newCount)} لغت جدید برای یادگیری داری. چند دقیقه وقت بذار.`,
+      title: '✨ واژه‌های جدید امروز',
+      body: `${faNum(s.newCount)} واژه جدید برای یادگیری داری. چند دقیقه وقت بذار.`,
     }
   }
   return { title: '📚 وقت مروره', body: 'چند دقیقه برای مرور امروزت وقت بذار.' }
@@ -184,7 +184,7 @@ export async function ensureNotificationPermission(): Promise<boolean> {
       await LocalNotifications.createChannel({
         id: CHANNEL_ID,
         name: 'یادآور مطالعه',
-        description: 'یادآوری روزانه‌ی مرور و لغت‌های جدید',
+        description: 'یادآوری روزانه‌ی مرور و واژه‌های جدید',
         importance: 4, // HIGH — heads-up
       })
     } catch {

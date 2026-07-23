@@ -200,7 +200,7 @@ export function BookFormPage() {
               <Label htmlFor="title">عنوان کتاب *</Label>
               <Input
                 id="title"
-                placeholder="مثال: ۴۰۰۰ لغت ضروری انگلیسی"
+                placeholder="مثال: ۴۰۰۰ واژه ضروری انگلیسی"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required

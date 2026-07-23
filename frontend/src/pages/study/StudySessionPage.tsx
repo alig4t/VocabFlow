@@ -35,12 +35,33 @@ function loadMuted(): boolean {
 // exact same card instead of re-fetching and losing position. Cleared on
 // finish/restart. sessionStorage (not localStorage) so a stale session never
 // survives a full app close+reopen days later.
-const SESSION_KEY = 'vocab_study_session_v1'
+// v2: the tally switched from button presses to per-word outcomes, so a session
+// persisted by the old build can't be resumed — bumping the key drops it.
+const SESSION_KEY = 'vocab_study_session_v2'
+
+/**
+ * Per-word outcome sets. The summary counts WORDS, not button presses:
+ * - a word answered wrong and then right later is ONE wrong word (not one wrong
+ *   + one correct), so درست + نادرست always equals the words studied;
+ * - the first "خواندم" on a brand-new word is not an outcome at all — it sends
+ *   AGAIN to the SM-2 scheduler (the word must return today) but the user was
+ *   never asked to recall it, so it must not count as a mistake.
+ */
+interface SessionOutcomes {
+  /** Answered EASY or HARD at least once. */
+  rated: string[]
+  /** Got a real "بلد نیستم" — a first-exposure read does NOT land here. */
+  wrong: string[]
+  /** Answered HARD at least once (overlaps `rated`). */
+  hard: string[]
+  /** Skipped at least once. */
+  skipped: string[]
+}
 
 interface PersistedSession {
   queue: QueueItem[]
   index: number
-  counters: { easy: number; hard: number; again: number; skip: number }
+  outcomes: SessionOutcomes
   introducedNew: string[]
   seenNewOnce: string[]
   startedAt: string
@@ -147,7 +168,7 @@ function ReadBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
     'whitespace-nowrap rounded-lg border px-2 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2'
   return (
     <div className="flex items-stretch gap-2">
-      <Tooltip label="این لغت جدید را خواندم" className="flex-1">
+      <Tooltip label="این واژه جدید را خواندم" className="flex-1">
         <button
           onClick={() => onAnswer('AGAIN')}
           className={cn(
@@ -194,12 +215,34 @@ export function StudySessionPage() {
   const [saving, setSaving] = useState(false)
 
   const startedAtRef = useRef<Date>(new Date())
-  const counters = useRef({ easy: 0, hard: 0, again: 0, skip: 0 })
+  // Per-word outcome sets (see SessionOutcomes) — one classification per word,
+  // no matter how many times it comes back around in this session.
+  const ratedWords = useRef<Set<string>>(new Set())
+  const wrongWords = useRef<Set<string>>(new Set())
+  const hardWords = useRef<Set<string>>(new Set())
+  const skippedWords = useRef<Set<string>>(new Set())
   const introducedNew = useRef<Set<string>>(new Set())
   // New words the user has already been shown once this session. A new word gets
   // the Read/Skip bar only on its FIRST appearance; once seen (even if requeued
   // by Read/Again), it uses the standard AnswerBar.
   const seenNewOnce = useRef<Set<string>>(new Set())
+
+  /** Snapshot the live session (queue position + every outcome set) to storage. */
+  const persist = useCallback((q: QueueItem[], i: number) => {
+    savePersistedSession({
+      queue: q,
+      index: i,
+      outcomes: {
+        rated: [...ratedWords.current],
+        wrong: [...wrongWords.current],
+        hard: [...hardWords.current],
+        skipped: [...skippedWords.current],
+      },
+      introducedNew: [...introducedNew.current],
+      seenNewOnce: [...seenNewOnce.current],
+      startedAt: startedAtRef.current.toISOString(),
+    })
+  }, [])
 
   // Resume an in-progress session if one was left mid-way (see SESSION_KEY);
   // otherwise freeze a fresh queue once today's data lands — but only when
@@ -212,7 +255,10 @@ export function StudySessionPage() {
     if (persisted && persisted.queue.length > 0) {
       setQueue(persisted.queue)
       setIndex(persisted.index)
-      counters.current = { ...persisted.counters }
+      ratedWords.current = new Set(persisted.outcomes?.rated ?? [])
+      wrongWords.current = new Set(persisted.outcomes?.wrong ?? [])
+      hardWords.current = new Set(persisted.outcomes?.hard ?? [])
+      skippedWords.current = new Set(persisted.outcomes?.skipped ?? [])
       introducedNew.current = new Set(persisted.introducedNew)
       seenNewOnce.current = new Set(persisted.seenNewOnce)
       startedAtRef.current = new Date(persisted.startedAt)
@@ -226,18 +272,9 @@ export function StudySessionPage() {
       ]
       setQueue(initial)
       startedAtRef.current = new Date()
-      if (initial.length > 0) {
-        savePersistedSession({
-          queue: initial,
-          index: 0,
-          counters: counters.current,
-          introducedNew: [],
-          seenNewOnce: [],
-          startedAt: startedAtRef.current.toISOString(),
-        })
-      }
+      if (initial.length > 0) persist(initial, 0)
     }
-  }, [today, queue, isFetching])
+  }, [today, queue, isFetching, persist])
 
   // Leaving the session (even mid-way) → refresh the dashboard + today counts so
   // due/new numbers reflect the answers just given.
@@ -255,14 +292,24 @@ export function StudySessionPage() {
   const isFirstExposure = !!current?.isNew && !seenNewOnce.current.has(current.word.id)
 
   const finish = useCallback(() => {
-    const c = counters.current
+    // Word counts, not press counts: a word that slipped once and was answered
+    // correctly later is wrong (it needed a second look) and is NOT also counted
+    // as correct — so correct + wrong is exactly the number of words studied.
+    // This also drives the dashboard accuracy rate via the recorded session row.
+    const wrong = wrongWords.current
+    const correctCount = [...ratedWords.current].filter((id) => !wrong.has(id)).length
+    // A word only counts as skipped if it never got a real answer afterwards.
+    const skippedCount = [...skippedWords.current].filter(
+      (id) => !ratedWords.current.has(id) && !wrong.has(id),
+    ).length
+
     const stats: SessionStats = {
-      correctCount: c.easy + c.hard,
-      wrongCount: c.again,
-      hardCount: c.hard,
-      skippedCount: c.skip,
+      correctCount,
+      wrongCount: wrong.size,
+      hardCount: hardWords.current.size,
+      skippedCount,
       newCount: introducedNew.current.size,
-      reviewedCount: c.easy + c.hard + c.again,
+      reviewedCount: correctCount + wrong.size,
       durationSec: Math.max(0, Math.round((Date.now() - startedAtRef.current.getTime()) / 1000)),
     }
     setSummary(stats)
@@ -270,7 +317,7 @@ export function StudySessionPage() {
     stopPronunciation()
 
     // Only record a session if the user actually did something.
-    if (stats.reviewedCount + stats.skippedCount > 0) {
+    if (stats.reviewedCount + stats.skippedCount + stats.newCount > 0) {
       setSaving(true)
       studyService
         .recordSession({
@@ -305,11 +352,21 @@ export function StudySessionPage() {
         void studyService.answer(cur.word.id, a).catch((e) => console.error('answer failed', e))
       }
 
-      // Tally.
-      if (a === 'EASY') counters.current.easy += 1
-      else if (a === 'HARD') counters.current.hard += 1
-      else if (a === 'AGAIN') counters.current.again += 1
-      else counters.current.skip += 1
+      // Recomputed here (not read off the render-scoped `isFirstExposure`) so the
+      // tally can never disagree with the button the user actually saw.
+      const firstExposure = cur.isNew && !seenNewOnce.current.has(cur.word.id)
+
+      // Record this word's outcome. Sets, so repeats within the session collapse:
+      // the first "خواندم" on a new word is a read, not a mistake, and only a
+      // later real "بلد نیستم" marks the word wrong.
+      const id = cur.word.id
+      if (a === 'EASY') ratedWords.current.add(id)
+      else if (a === 'HARD') {
+        ratedWords.current.add(id)
+        hardWords.current.add(id)
+      } else if (a === 'AGAIN') {
+        if (!firstExposure) wrongWords.current.add(id)
+      } else skippedWords.current.add(id)
       if (a !== 'SKIP' && cur.isNew) introducedNew.current.add(cur.word.id)
       // After this answer the word is no longer on its first exposure, so any
       // later appearance (e.g. an Again/Read requeue) uses the standard buttons.
@@ -327,17 +384,10 @@ export function StudySessionPage() {
       } else {
         setIndex(nextIndex)
         setFlipped(false)
-        savePersistedSession({
-          queue: nextQueue,
-          index: nextIndex,
-          counters: { ...counters.current },
-          introducedNew: [...introducedNew.current],
-          seenNewOnce: [...seenNewOnce.current],
-          startedAt: startedAtRef.current.toISOString(),
-        })
+        persist(nextQueue, nextIndex)
       }
     },
-    [current, queue, index, finish],
+    [current, queue, index, finish, persist],
   )
 
   const toggleFlip = useCallback(() => setFlipped((f) => !f), [])
@@ -357,7 +407,10 @@ export function StudySessionPage() {
 
   const restart = useCallback(() => {
     clearPersistedSession()
-    counters.current = { easy: 0, hard: 0, again: 0, skip: 0 }
+    ratedWords.current = new Set()
+    wrongWords.current = new Set()
+    hardWords.current = new Set()
+    skippedWords.current = new Set()
     introducedNew.current = new Set()
     seenNewOnce.current = new Set()
     setSummary(null)
@@ -480,7 +533,7 @@ export function StudySessionPage() {
         </div>
         <p className="text-lg font-semibold text-foreground">برای امروز کاری نمانده! 🎉</p>
         <p className="text-sm text-muted-foreground">
-          همه‌ی مرورها و لغات جدید امروز را تمام کردید. فردا برگردید.
+          همه‌ی مرورها و واژگان جدید امروز را تمام کردید. فردا برگردید.
         </p>
         <Button className="mt-2" onClick={() => navigate('/dashboard')}>
           بازگشت به خانه
@@ -532,7 +585,7 @@ export function StudySessionPage() {
             </span>
             {current?.isNew && (
               <span className="rounded-full bg-primary px-2 py-0.5 text-primary-foreground">
-                لغت جدید
+                واژه جدید
               </span>
             )}
           </span>

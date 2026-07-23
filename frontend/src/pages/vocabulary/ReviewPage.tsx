@@ -410,7 +410,7 @@ export function ReviewPage() {
         <div className="min-w-0 space-y-0.5">
           <p className="text-sm font-bold text-blue-900 dark:text-blue-200">مرور آزاد — مسیری جدا از برنامه</p>
           <p className="text-xs leading-relaxed text-blue-800/90 dark:text-blue-300/90">
-            اینجا فقط لغت‌ها را «بلدم / بلد نیستم» علامت می‌زنید؛ این کار روی زمان‌بندی «مطالعه
+            اینجا فقط واژه‌ها را «بلدم / بلد نیستم» علامت می‌زنید؛ این کار روی زمان‌بندی «مطالعه
             امروز» تأثیری ندارد. مناسب کسانی که می‌خواهند سریع‌تر و بدون برنامه‌ی مرور پیش بروند.
           </p>
         </div>
@@ -579,7 +579,7 @@ export function ReviewPage() {
         <div className="h-72 rounded-2xl bg-muted animate-pulse" />
       ) : isError ? (
         <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-6 py-12 text-center">
-          <p className="text-sm text-destructive font-medium">خطا در بارگذاری لغات.</p>
+          <p className="text-sm text-destructive font-medium">خطا در بارگذاری واژگان.</p>
         </div>
       ) : !hasScope ? (
         <div className="rounded-2xl border border-border bg-card px-6 py-14 text-center space-y-3">
@@ -593,16 +593,16 @@ export function ReviewPage() {
         </div>
       ) : total === 0 ? (
         <div className="rounded-2xl border border-border bg-card px-6 py-14 text-center space-y-3">
-          <p className="text-lg font-semibold text-foreground">لغتی برای مرور وجود ندارد</p>
+          <p className="text-lg font-semibold text-foreground">واژه‌ای برای مرور وجود ندارد</p>
           <p className="text-sm text-muted-foreground">
             {reviewFilter === 'NOT_READ'
-              ? 'آفرین! همه لغات این حالت را خواندید.'
+              ? 'آفرین! همه واژگان این حالت را خواندید.'
               : reviewFilter === 'NOT_KNOWN'
-                ? 'لغت «یاد نگرفتم» در این حالت ندارید. ادامه بدید!'
-                : 'لغتی یافت نشد.'}
+                ? 'واژه‌ای با وضعیت «یاد نگرفتم» در این حالت ندارید. ادامه بدید!'
+                : 'واژه‌ای یافت نشد.'}
           </p>
           <Button variant="outline" onClick={() => setReviewFilter('ALL')} className="mt-2">
-            نمایش همه لغات
+            نمایش همه واژگان
           </Button>
         </div>
       ) : currentWord ? (

@@ -21,7 +21,7 @@ const mainItems: NavItem[] = [
   { to: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, label: 'داشبورد' },
   { to: '/study', icon: <GraduationCap className="h-5 w-5" />, label: 'مطالعه امروز' },
   { to: '/library', icon: <Compass className="h-5 w-5" />, label: 'کتابخانه' },
-  { to: '/vocabulary', icon: <Book className="h-5 w-5" />, label: 'لغات' },
+  { to: '/vocabulary', icon: <Book className="h-5 w-5" />, label: 'واژگان' },
   { to: '/vocabulary/review', icon: <Play className="h-5 w-5" />, label: 'مرور آزاد' },
 ]
 
@@ -36,7 +36,7 @@ const adminItems: NavItem[] = [
   { to: '/admin', icon: <Settings className="h-5 w-5" />, label: 'پنل مدیریت' },
   { to: '/admin/users', icon: <Users className="h-5 w-5" />, label: 'کاربران' },
   { to: '/admin/books', icon: <Library className="h-5 w-5" />, label: 'کتاب‌ها' },
-  { to: '/admin/words/new', icon: <FilePlus2 className="h-5 w-5" />, label: 'افزودن لغت' },
+  { to: '/admin/words/new', icon: <FilePlus2 className="h-5 w-5" />, label: 'افزودن واژه' },
 ]
 
 export function Sidebar({ open, onClose }: SidebarProps) {
@@ -47,7 +47,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   // On the offline app there is no server/admin: only word editing is offered,
   // and the server-only management pages (users/books/admin panel) are hidden.
   const primaryItems: NavItem[] = native
-    ? [...mainItems, { to: '/admin/words/new', icon: <FilePlus2 className="h-5 w-5" />, label: 'افزودن لغت' }]
+    ? [...mainItems, { to: '/admin/words/new', icon: <FilePlus2 className="h-5 w-5" />, label: 'افزودن واژه' }]
     : mainItems
 
   function renderLink(item: NavItem, accent: 'primary' | 'admin') {

@@ -32,7 +32,7 @@ export function ContinueLearning({ queue }: ContinueLearningProps) {
           </p>
           <p className="text-2xl font-bold">
             {totalDue > 0 ? (
-              <>{faNum(totalDue)} لغت آماده مرور است</>
+              <>{faNum(totalDue)} واژه آماده مرور است</>
             ) : (
               <>فعلاً مروری در انتظار نیست</>
             )}

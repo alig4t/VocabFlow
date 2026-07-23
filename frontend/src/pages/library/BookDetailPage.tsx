@@ -119,7 +119,7 @@ export function BookDetailPage() {
                 )}
                 <span className="inline-flex items-center gap-1.5">
                   <BookText className="h-4 w-4" aria-hidden="true" />
-                  {faNum(book.totalWords)} لغت
+                  {faNum(book.totalWords)} واژه
                 </span>
               </div>
 

@@ -159,11 +159,11 @@ export function VocabularyPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
             <BookOpen className="h-6 w-6 text-primary" />
-            ۴۰۰۰ لغت ضروری انگلیسی
+            ۴۰۰۰ واژه ضروری انگلیسی
           </h1>
           {meta && (
             <p className="text-sm text-muted-foreground mt-1">
-              {meta.total.toLocaleString()} لغت در مجموع
+              {meta.total.toLocaleString()} واژه در مجموع
             </p>
           )}
         </div>
@@ -225,13 +225,13 @@ export function VocabularyPage() {
         </div>
       ) : isError ? (
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-6 py-10 text-center">
-          <p className="text-sm text-destructive font-medium">خطا در بارگذاری لغات.</p>
+          <p className="text-sm text-destructive font-medium">خطا در بارگذاری واژگان.</p>
           <p className="text-xs text-muted-foreground mt-1">لطفاً بعداً دوباره تلاش کنید.</p>
         </div>
       ) : words.length === 0 ? (
         <div className="rounded-lg border border-border bg-card px-6 py-16 text-center">
           <BookOpen className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-40" />
-          <p className="text-base font-medium text-foreground">لغتی یافت نشد</p>
+          <p className="text-base font-medium text-foreground">واژه‌ای یافت نشد</p>
           <p className="text-sm text-muted-foreground mt-1">
             فیلترها یا عبارت جستجو را تغییر دهید.
           </p>
@@ -251,7 +251,7 @@ export function VocabularyPage() {
           {meta && (
             <p className="text-xs text-muted-foreground">
               نمایش {(page - 1) * LIMIT + 1}–{Math.min(page * LIMIT, meta.total)} از{' '}
-              {meta.total.toLocaleString()} لغت
+              {meta.total.toLocaleString()} واژه
             </p>
           )}
         </div>

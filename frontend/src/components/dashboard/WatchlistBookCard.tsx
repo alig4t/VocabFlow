@@ -72,7 +72,7 @@ export function WatchlistBookCard({ book }: WatchlistBookCardProps) {
         </div>
         <Progress value={progress} label={`پیشرفت ${book.title}`} />
         <p className="text-[11px] text-muted-foreground">
-          {faNum(book.knownWords)} از {faNum(book.totalWords)} لغت
+          {faNum(book.knownWords)} از {faNum(book.totalWords)} واژه
         </p>
       </div>
 
@@ -95,7 +95,7 @@ export function WatchlistBookCard({ book }: WatchlistBookCardProps) {
         <div className="text-xs text-muted-foreground">
           {book.dueCount > 0 ? (
             <span className="font-medium text-foreground">
-              {faNum(book.dueCount)} لغت آماده مرور
+              {faNum(book.dueCount)} واژه آماده مرور
             </span>
           ) : (
             <span>همه مرورها انجام شد</span>

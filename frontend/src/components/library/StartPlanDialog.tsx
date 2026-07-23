@@ -72,7 +72,7 @@ export function StartPlanDialog({ book, open, onOpenChange, initialVolumeId }: S
         onSuccess: () => {
           toast({
             title: alreadyPlanned ? 'برنامه به‌روزرسانی شد' : 'به برنامه‌ی یادگیری اضافه شد',
-            description: `${dailyNewWords} لغت جدید در روز`,
+            description: `${dailyNewWords} واژه جدید در روز`,
             variant: 'success',
           })
           onOpenChange(false)
@@ -158,7 +158,7 @@ export function StartPlanDialog({ book, open, onOpenChange, initialVolumeId }: S
 
           {/* Daily new-words picker */}
           <div className="space-y-2">
-            <p className="text-sm font-medium text-foreground">هر روز چند لغت جدید؟</p>
+            <p className="text-sm font-medium text-foreground">هر روز چند واژه جدید؟</p>
             <div className="flex flex-wrap gap-2">
               {DAILY_OPTIONS.map((n) => (
                 <button
@@ -176,7 +176,7 @@ export function StartPlanDialog({ book, open, onOpenChange, initialVolumeId }: S
               ))}
             </div>
             <p className="text-xs text-muted-foreground">
-              لغات جدید به‌تدریج و بر اساس این سقف روزانه وارد چرخه‌ی یادگیری می‌شوند.
+              واژگان جدید به‌تدریج و بر اساس این سقف روزانه وارد چرخه‌ی یادگیری می‌شوند.
             </p>
           </div>
         </div>

@@ -51,7 +51,7 @@ export function DiscoveryBookCard({ book, onStartPlan }: DiscoveryBookCardProps)
             >
               {meta.level}
             </span>
-            <span className="text-xs text-muted-foreground">{faNum(book.totalWords)} لغت</span>
+            <span className="text-xs text-muted-foreground">{faNum(book.totalWords)} واژه</span>
           </div>
         </div>
       </header>

@@ -1002,7 +1002,7 @@ const MAX_DAILY_GOAL = 500
 const MAX_TOTAL_DAILY_NEW = 200
 
 function assertDailyGoal(dailyNewWords: number, dailyGoal: number) {
-  if (dailyGoal < dailyNewWords) throw new Error('هدف روزانه نمی‌تواند از لغات جدید روزانه کمتر باشد')
+  if (dailyGoal < dailyNewWords) throw new Error('هدف روزانه نمی‌تواند از واژگان جدید روزانه کمتر باشد')
   if (dailyGoal < MIN_DAILY_GOAL || dailyGoal > MAX_DAILY_GOAL) {
     throw new Error(`هدف روزانه باید بین ${MIN_DAILY_GOAL} و ${MAX_DAILY_GOAL} باشد`)
   }
@@ -1023,7 +1023,7 @@ export async function createPlan(input: {
   dailyGoal?: number
 }): Promise<{ id: string; volumeId: string }> {
   if (!ALLOWED_DAILY_NEW.includes(input.dailyNewWords)) {
-    throw new Error(`لغات جدید روزانه باید یکی از این مقادیر باشد: ${ALLOWED_DAILY_NEW.join(', ')}`)
+    throw new Error(`واژگان جدید روزانه باید یکی از این مقادیر باشد: ${ALLOWED_DAILY_NEW.join(', ')}`)
   }
   const dailyGoal = input.dailyGoal ?? input.dailyNewWords * 3
   assertDailyGoal(input.dailyNewWords, dailyGoal)
@@ -1031,7 +1031,7 @@ export async function createPlan(input: {
   const otherTotal = await sumActiveDailyNewWordsExcluding(input.volumeId)
   if (otherTotal + input.dailyNewWords > MAX_TOTAL_DAILY_NEW) {
     throw new Error(
-      `مجموع لغات جدید روزانه در همه‌ی برنامه‌های فعال نمی‌تواند از ${MAX_TOTAL_DAILY_NEW} بیشتر شود`,
+      `مجموع واژگان جدید روزانه در همه‌ی برنامه‌های فعال نمی‌تواند از ${MAX_TOTAL_DAILY_NEW} بیشتر شود`,
     )
   }
 
@@ -1066,7 +1066,7 @@ export async function updatePlan(
   if (!row) throw new Error('برنامه یادگیری یافت نشد')
 
   if (input.dailyNewWords !== undefined && !ALLOWED_DAILY_NEW.includes(input.dailyNewWords)) {
-    throw new Error(`لغات جدید روزانه باید یکی از این مقادیر باشد: ${ALLOWED_DAILY_NEW.join(', ')}`)
+    throw new Error(`واژگان جدید روزانه باید یکی از این مقادیر باشد: ${ALLOWED_DAILY_NEW.join(', ')}`)
   }
   const dailyNewWords = input.dailyNewWords ?? row.daily_new_words
   const dailyGoal = input.dailyGoal ?? row.daily_goal
@@ -1077,7 +1077,7 @@ export async function updatePlan(
     const otherTotal = await sumActiveDailyNewWordsExcluding(row.volume_id)
     if (otherTotal + dailyNewWords > MAX_TOTAL_DAILY_NEW) {
       throw new Error(
-        `مجموع لغات جدید روزانه در همه‌ی برنامه‌های فعال نمی‌تواند از ${MAX_TOTAL_DAILY_NEW} بیشتر شود`,
+        `مجموع واژگان جدید روزانه در همه‌ی برنامه‌های فعال نمی‌تواند از ${MAX_TOTAL_DAILY_NEW} بیشتر شود`,
       )
     }
   }

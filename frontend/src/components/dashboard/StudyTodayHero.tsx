@@ -48,7 +48,7 @@ export function StudyTodayHero() {
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 font-semibold text-emerald-700 dark:text-emerald-300">
                 <Sparkles className="h-3.5 w-3.5" />
-                {newCount} لغت جدید
+                {newCount} واژه جدید
               </span>
             </div>
           ) : (

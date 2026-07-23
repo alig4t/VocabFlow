@@ -59,7 +59,7 @@ function DeleteConfirmDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent dir="rtl" className="font-persian">
         <DialogHeader>
-          <DialogTitle>حذف لغت</DialogTitle>
+          <DialogTitle>حذف واژه</DialogTitle>
           <DialogDescription>
             آیا مطمئنید که می‌خواهید{' '}
             <span className="font-semibold text-foreground">«{word?.eng}»</span> را حذف کنید؟ این عمل قابل بازگشت نیست و تمام مثال‌ها و پیشرفت‌های مرتبط نیز حذف خواهند شد.
@@ -164,7 +164,7 @@ export function AdminPage() {
 
       {/* آمار */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard icon={BookOpen} label="مجموع لغات" value={totalWords} />
+        <StatCard icon={BookOpen} label="مجموع واژگان" value={totalWords} />
         <StatCard icon={Library} label="کتاب‌ها" value={totalBooks} />
         <StatCard icon={Users} label="کاربران" value="—" />
         <StatCard icon={Layers} label="ماژول‌ها" value={totalModules} />
@@ -211,13 +211,13 @@ export function AdminPage() {
         </CardContent>
       </Card>
 
-      {/* مدیریت لغات */}
+      {/* مدیریت واژگان */}
       <Card>
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <CardTitle>مدیریت لغات</CardTitle>
+          <CardTitle>مدیریت واژگان</CardTitle>
           <Button onClick={() => navigate('/admin/words/new')}>
             <Plus className="h-4 w-4 ml-2" />
-            افزودن لغت جدید
+            افزودن واژه جدید
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -227,7 +227,7 @@ export function AdminPage() {
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
                 className="pr-9"
-                placeholder="جستجو در لغات..."
+                placeholder="جستجو در واژگان..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
               />
@@ -248,7 +248,7 @@ export function AdminPage() {
               <thead>
                 <tr className="border-b border-border bg-muted/50">
                   <th className="px-4 py-3 text-right font-medium text-muted-foreground">
-                    لغت انگلیسی
+                    واژه انگلیسی
                   </th>
                   <th className="px-4 py-3 text-right font-medium text-muted-foreground">
                     معنی فارسی
@@ -276,7 +276,7 @@ export function AdminPage() {
                     <td colSpan={7} className="px-4 py-12 text-center">
                       <div className="flex items-center justify-center gap-2 text-muted-foreground">
                         <Loader2 className="h-5 w-5 animate-spin" />
-                        <span>در حال بارگذاری لغات...</span>
+                        <span>در حال بارگذاری واژگان...</span>
                       </div>
                     </td>
                   </tr>
@@ -287,8 +287,8 @@ export function AdminPage() {
                       className="px-4 py-12 text-center text-muted-foreground"
                     >
                       {search
-                        ? `هیچ لغتی برای «${search}» یافت نشد.`
-                        : 'هنوز لغتی اضافه نشده است. برای شروع یک لغت اضافه کنید.'}
+                        ? `هیچ واژه‌ای برای «${search}» یافت نشد.`
+                        : 'هنوز واژه‌ای اضافه نشده است. برای شروع یک واژه اضافه کنید.'}
                     </td>
                   </tr>
                 ) : (
@@ -350,7 +350,7 @@ export function AdminPage() {
           {!isLoading && totalPages > 1 && (
             <div className="flex items-center justify-between pt-2">
               <p className="text-sm text-muted-foreground">
-                صفحه {page} از {totalPages} — {totalWords} لغت در کل
+                صفحه {page} از {totalPages} — {totalWords} واژه در کل
               </p>
               <div className="flex items-center gap-2">
                 <Button

@@ -252,7 +252,7 @@ export function WordFilters({ filters, onChange, className }: WordFiltersProps) 
         <div className="relative flex-1 min-w-[200px]">
           <Input
             type="text"
-            placeholder="جستجو در لغات..."
+            placeholder="جستجو در واژگان..."
             value={searchValue}
             onChange={handleSearchChange}
             className="pr-8"

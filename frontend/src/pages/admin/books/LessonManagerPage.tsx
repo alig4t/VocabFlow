@@ -100,7 +100,7 @@ function LessonRow({
           {lesson.title ? ` — ${lesson.title}` : ''}
         </span>
         <span className="text-sm text-muted-foreground mr-2">
-          ({lesson._count?.words ?? 0} لغت)
+          ({lesson._count?.words ?? 0} واژه)
         </span>
       </div>
       <div className="flex items-center gap-1.5 shrink-0">
@@ -111,7 +111,7 @@ function LessonRow({
           onClick={onAddWord}
         >
           <PenLine className="h-3.5 w-3.5" />
-          افزودن لغت
+          افزودن واژه
         </Button>
         <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onEdit} aria-label="ویرایش">
           <Pencil className="h-3.5 w-3.5" />

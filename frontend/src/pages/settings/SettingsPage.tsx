@@ -137,7 +137,7 @@ function PlanCard({ plan }: { plan: LearningPlan }) {
           <p className="truncate text-sm font-bold text-foreground">
             {plan.bookTitle} — {plan.volumeTitle}
           </p>
-          <p className="text-xs text-muted-foreground">{faNum(plan.totalWords)} لغت</p>
+          <p className="text-xs text-muted-foreground">{faNum(plan.totalWords)} واژه</p>
         </div>
         <Tooltip label="حذف برنامه یادگیری" side="top">
           <Button
@@ -163,7 +163,7 @@ function PlanCard({ plan }: { plan: LearningPlan }) {
             <DialogDescription className="leading-relaxed">
               برنامه‌ی <span className="font-semibold text-foreground">{plan.bookTitle} — {plan.volumeTitle}</span>{' '}
               حذف می‌شود و <span className="font-semibold text-foreground">پیشرفت مرور و زمان‌بندی SM-2</span> شما
-              برای لغات این جلد نیز پاک خواهد شد. این عمل قابل بازگشت نیست.
+              برای واژگان این جلد نیز پاک خواهد شد. این عمل قابل بازگشت نیست.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-2">
@@ -184,7 +184,7 @@ function PlanCard({ plan }: { plan: LearningPlan }) {
       </Dialog>
 
       <div className="mt-3 space-y-1">
-        <p className="text-xs font-medium text-muted-foreground">لغات جدید در روز</p>
+        <p className="text-xs font-medium text-muted-foreground">واژگان جدید در روز</p>
         <div className="flex flex-wrap gap-1.5">
           {DAILY_OPTIONS.map((n) => (
             <button
@@ -268,7 +268,7 @@ function NotificationsCard({ settings }: { settings: UserSettings }) {
         <SettingRow
           icon={<Bell className="h-5 w-5" />}
           title="یادآور روزانه‌ی مطالعه"
-          description="اگر امروز مطالعه نکرده باشید و مرور یا لغت جدید داشته باشید، یادآوری می‌شوید."
+          description="اگر امروز مطالعه نکرده باشید و مرور یا واژه جدید داشته باشید، یادآوری می‌شوید."
         >
           <Switch
             checked={enabled}
@@ -296,7 +296,7 @@ function NotificationsCard({ settings }: { settings: UserSettings }) {
             <SettingRow
               icon={<BookMarked className="h-5 w-5" />}
               title="یادآور مطالعه‌ی روزانه"
-              description="پیام آماده‌بودن مرورها و لغت‌های جدیدِ امروز."
+              description="پیام آماده‌بودن مرورها و واژه‌های جدیدِ امروز."
             >
               <Switch
                 checked={settings.notifyDailyStudy !== false}
@@ -366,7 +366,7 @@ export function SettingsPage() {
               <SettingRow
                 icon={<ArrowLeftRight className="h-5 w-5" />}
                 title="جهت مطالعه"
-                description="لغات به کدام جهت مرور و زمان‌بندی شوند."
+                description="واژگان به کدام جهت مرور و زمان‌بندی شوند."
                 stacked
               >
                 <Segmented<ReviewMode>
@@ -382,7 +382,7 @@ export function SettingsPage() {
               <SettingRow
                 icon={<Volume2 className="h-5 w-5" />}
                 title="پخش خودکار تلفظ"
-                description="هنگام نمایش هر لغت، تلفظ به‌طور خودکار پخش شود."
+                description="هنگام نمایش هر واژه، تلفظ به‌طور خودکار پخش شود."
               >
                 <Switch
                   checked={settings.autoPlayAudio}
@@ -415,7 +415,7 @@ export function SettingsPage() {
               <SettingRow
                 icon={<Shuffle className="h-5 w-5" />}
                 title="ترتیب کارت‌ها"
-                description="ترتیب نمایش لغات جدید."
+                description="ترتیب نمایش واژگان جدید."
                 stacked
               >
                 <Segmented<CardOrder>

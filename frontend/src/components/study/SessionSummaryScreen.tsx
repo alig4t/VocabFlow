@@ -1,12 +1,26 @@
 import { CheckCircle2, XCircle, AlertTriangle, SkipForward, Clock, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
+/**
+ * Every count here is a number of WORDS, not of button presses — one outcome per
+ * word however many times it came around in the session.
+ */
 export interface SessionStats {
+  /** Words that got a real answer = `correctCount + wrongCount`. */
   reviewedCount: number
+  /** Words answered right without ever slipping. */
   correctCount: number
+  /**
+   * Words that needed a second look ("بلد نیستم" at least once). Reading a
+   * brand-new word for the first time ("خواندم") is NOT a mistake, even though
+   * it sends AGAIN to the SM-2 scheduler — it counts in `newCount` instead.
+   */
   wrongCount: number
+  /** Words answered "سخت" at least once (a subset of the answered words). */
   hardCount: number
+  /** Words skipped and never answered afterwards. */
   skippedCount: number
+  /** Brand-new words introduced (read) in this session. */
   newCount: number
   durationSec: number
 }
@@ -38,9 +52,9 @@ function StatTile({
   value: string | number
   tone: string
   /**
-   * A short word shown after the number (e.g. "بار") to make it clear this
-   * counts ANSWER EVENTS, not distinct words — a word answered wrong then
-   * right again shows up as two separate counts, one in each tile.
+   * A short word shown after the number (e.g. "واژه") to make it clear this
+   * counts DISTINCT WORDS, not button presses — a word answered wrong and then
+   * right again is counted once, as wrong.
    */
   unit?: string
 }) {
@@ -72,8 +86,14 @@ export function SessionSummaryScreen({ stats, onHome, onAgain, saving }: Session
 
       {/* Success ring */}
       <div className="rounded-2xl border border-border bg-card px-6 py-6">
-        <div className="text-5xl font-extrabold tabular-nums text-primary">{successPercent}٪</div>
-        <div className="mt-1 text-sm text-muted-foreground">درصد موفقیت</div>
+        {/* A session of only new-word reads has nothing to score — show a dash
+            instead of a discouraging 0٪. */}
+        <div className="text-5xl font-extrabold tabular-nums text-primary">
+          {answered > 0 ? `${successPercent}٪` : '—'}
+        </div>
+        <div className="mt-1 text-sm text-muted-foreground">
+          {answered > 0 ? 'درصد موفقیت' : 'فقط واژه جدید خواندید'}
+        </div>
         <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-muted">
           <div
             className="h-full rounded-full bg-primary transition-all"
@@ -87,33 +107,33 @@ export function SessionSummaryScreen({ stats, onHome, onAgain, saving }: Session
           icon={<CheckCircle2 className="h-5 w-5" />}
           label="درست"
           value={stats.correctCount}
-          unit="بار"
+          unit="واژه"
           tone="text-green-500"
         />
         <StatTile
           icon={<XCircle className="h-5 w-5" />}
           label="نادرست"
           value={stats.wrongCount}
-          unit="بار"
+          unit="واژه"
           tone="text-red-500"
         />
         <StatTile
           icon={<AlertTriangle className="h-5 w-5" />}
           label="سخت"
           value={stats.hardCount}
-          unit="بار"
+          unit="واژه"
           tone="text-amber-500"
         />
         <StatTile
           icon={<SkipForward className="h-5 w-5" />}
           label="رد شده"
           value={stats.skippedCount}
-          unit="بار"
+          unit="واژه"
           tone="text-muted-foreground"
         />
         <StatTile
           icon={<Sparkles className="h-5 w-5" />}
-          label="لغت جدید"
+          label="واژه جدید (خوانده‌شده)"
           value={stats.newCount}
           tone="text-primary"
         />
@@ -126,7 +146,7 @@ export function SessionSummaryScreen({ stats, onHome, onAgain, saving }: Session
       </div>
 
       <p className="text-sm text-muted-foreground">
-        مجموع مرور شده: <span className="font-semibold text-foreground">{stats.reviewedCount}</span> بار
+        مجموع واژگان مرورشده: <span className="font-semibold text-foreground">{stats.reviewedCount}</span> واژه
       </p>
 
       <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">

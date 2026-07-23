@@ -29,7 +29,7 @@ import { toast } from '@/components/ui/use-toast'
 import { isNative } from '@/lib/platform'
 
 const wordSchema = z.object({
-  eng: z.string().min(1, 'لغت انگلیسی الزامی است'),
+  eng: z.string().min(1, 'واژه انگلیسی الزامی است'),
   per: z.string().min(1, 'معنی فارسی الزامی است'),
   description: z.string().optional(),
   descriptionPer: z.string().optional(),
@@ -259,7 +259,7 @@ export function WordFormPage() {
     try {
       if (isEditMode && id) {
         await updateWordMutation.mutateAsync({ id, data: payload })
-        toast({ title: 'لغت با موفقیت ویرایش شد', variant: 'success' })
+        toast({ title: 'واژه با موفقیت ویرایش شد', variant: 'success' })
         goBack()
       } else {
         const created = await createWordMutation.mutateAsync(payload)
@@ -271,13 +271,13 @@ export function WordFormPage() {
             order: i,
           })
         }
-        toast({ title: 'لغت با موفقیت اضافه شد', variant: 'success' })
+        toast({ title: 'واژه با موفقیت اضافه شد', variant: 'success' })
         goBack()
       }
     } catch (err: any) {
-      const message = err?.response?.data?.message ?? err?.message ?? 'خطا در ذخیره لغت'
+      const message = err?.response?.data?.message ?? err?.message ?? 'خطا در ذخیره واژه'
       setSubmitError(message)
-      toast({ title: 'خطا در ذخیره لغت', description: message, variant: 'destructive' })
+      toast({ title: 'خطا در ذخیره واژه', description: message, variant: 'destructive' })
     }
   }
 
@@ -297,19 +297,19 @@ export function WordFormPage() {
         <Button variant="ghost" size="icon" onClick={() => goBack()}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-2xl font-bold">{isEditMode ? 'ویرایش لغت' : 'افزودن لغت'}</h1>
+        <h1 className="text-2xl font-bold">{isEditMode ? 'ویرایش واژه' : 'افزودن واژه'}</h1>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 
-        {/* ── جزئیات لغت ── */}
+        {/* ── جزئیات واژه ── */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">جزئیات لغت</CardTitle>
+            <CardTitle className="text-base">جزئیات واژه</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="eng">لغت انگلیسی *</Label>
+              <Label htmlFor="eng">واژه انگلیسی *</Label>
               <Input id="eng" placeholder="eloquent" dir="ltr" {...register('eng')} />
               {errors.eng && <p className="text-xs text-destructive">{errors.eng.message}</p>}
             </div>
@@ -405,7 +405,7 @@ export function WordFormPage() {
           <CardContent className="space-y-4">
             {isLessonPrefilled ? (
               <div className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 space-y-2">
-                <p className="text-xs font-medium text-primary">این لغت به درس زیر اضافه می‌شود:</p>
+                <p className="text-xs font-medium text-primary">این واژه به درس زیر اضافه می‌شود:</p>
                 <div className="flex flex-wrap gap-2 text-sm font-medium text-foreground">
                   {selectedBook && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-background border border-border px-2.5 py-0.5 text-xs">
@@ -428,7 +428,7 @@ export function WordFormPage() {
             ) : (
               <>
                 <p className="text-xs text-muted-foreground">
-                  اگر این لغت به درس خاصی تعلق دارد آن را انتخاب کنید.
+                  اگر این واژه به درس خاصی تعلق دارد آن را انتخاب کنید.
                 </p>
                 {books && books.length > 0 ? (
                   <>
@@ -555,7 +555,7 @@ export function WordFormPage() {
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? (
               <><Loader2 className="h-4 w-4 animate-spin ml-2" />در حال ذخیره...</>
-            ) : isEditMode ? 'ویرایش لغت' : 'ذخیره لغت'}
+            ) : isEditMode ? 'ویرایش واژه' : 'ذخیره واژه'}
           </Button>
         </div>
       </form>
