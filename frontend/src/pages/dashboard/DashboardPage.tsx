@@ -40,7 +40,7 @@ export function DashboardPage() {
   return (
     <div dir="rtl" className="font-persian mx-auto max-w-6xl space-y-6">
       {/* Greeting header */}
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <header className="flex flex-col pr-1.5 gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-foreground">
             <LayoutDashboard className="h-6 w-6 text-primary" aria-hidden="true" />
