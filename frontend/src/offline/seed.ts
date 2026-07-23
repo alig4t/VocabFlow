@@ -1,4 +1,5 @@
 import { getDb, getMeta, setMeta, uid } from './db'
+import { decryptSeedJson } from './seed-crypto'
 import type { SQLiteDBConnection } from '@capacitor-community/sqlite'
 
 // ── Book / volume title maps (mirrors backend import-all.ts) ──────────────────
@@ -213,7 +214,7 @@ export async function seedIfNeeded(onProgress?: (p: number, label: string) => vo
   if ((await getMeta('seed_version')) === SEED_VERSION) return
 
   const base = import.meta.env.BASE_URL || '/'
-  const manifestRes = await fetch(`${base}seed/manifest.json`)
+  const manifestRes = await fetch(`${base}seed-enc/manifest.json`)
   const files: string[] = await manifestRes.json()
 
   const rows: Rows = {
@@ -223,8 +224,8 @@ export async function seedIfNeeded(onProgress?: (p: number, label: string) => vo
 
   for (let i = 0; i < files.length; i++) {
     onProgress?.(i / (files.length + 1), `در حال خواندن ${files[i]}`)
-    const res = await fetch(`${base}seed/${files[i]}`)
-    const data = (await res.json()) as BookFile
+    const res = await fetch(`${base}seed-enc/${files[i]}.enc`)
+    const data = (await decryptSeedJson(await res.arrayBuffer())) as BookFile
     collectFile(files[i], data, bookIdByTitle, rows)
   }
 

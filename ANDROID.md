@@ -94,8 +94,17 @@ getWords(filters) {
 
 ### ۳.۳. seed اولیه
 
-- فایل‌های کتاب در `frontend/public/seed/*.json` + `manifest.json` (لیست فایل‌ها) قرار دارند.
-- هنگام `cap sync` این‌ها داخل assets اپ بسته‌بندی می‌شوند.
+> **🔒 امنیت داده (لایه‌ی ۱ — رمزگذاری asset):** فایل‌های خامِ JSON دیگر داخل APK نیستند.
+> منبعِ plaintext در `frontend/seed-src/` است (بیرون از `public/`، پس بسته‌بندی نمی‌شود). اسکریپت
+> `scripts/encrypt-seed.mjs` (با `npm run seed:encrypt`) آن‌ها را با **AES-256-GCM** رمز می‌کند و
+> به‌صورت `public/seed-enc/*.enc` می‌گذارد؛ همین‌ها در APK می‌روند. زمان اجرا،
+> `src/offline/seed-crypto.ts` با Web Crypto رمزگشایی می‌کند. کلید از `VITE_SEED_SECRET`
+> (در `frontend/.env`) مشتق می‌شود و در باندل JS جاسازی می‌شود — پس این **سطح obfuscation** است:
+> حمله‌ی «unzip و خواندن JSON» را می‌بندد، نه یک ریورسِ مصمم. جزئیات و لایه‌های بعدی در `SECURITY-REVIEW.md`.
+> ⚠️ `frontend/.env` را از دست نده و بین دو سیستم یکسان نگه‌دار، وگرنه encهای قدیمی باز نمی‌شوند.
+
+- منبعِ خامِ کتاب‌ها در `frontend/seed-src/*.json` + `manifest.json` است؛ نسخه‌ی رمزشده در `frontend/public/seed-enc/*.enc` (+ `manifest.json` که plaintext می‌ماند، چون فقط لیست نام فایل‌هاست).
+- هنگام `cap sync` فقط `seed-enc` (رمزشده) داخل assets اپ بسته‌بندی می‌شود.
 - در **اولین اجرا** `App.tsx` صفحه‌ی `SeedLoader` (نوار پیشرفت) را نشان می‌دهد و `seedIfNeeded()` همه‌ی JSONها را می‌خواند و ~۱۷هزار واژه را در SQLite درج می‌کند (در یک transaction). بعد از آن اپ کاملاً آفلاین است.
 - idempotent با فلگ `meta.seed_version`؛ با بالا رفتن `SEED_VERSION` جدول‌های داده پاک و دوباره seed می‌شوند (تنظیمات/برنامه‌ها دست‌نخورده می‌مانند).
 
@@ -136,6 +145,11 @@ cd frontend
 
 # ۱) نصب وابستگی‌ها (یک‌بار)
 npm install
+
+# ۱.۵) رمزگذاری داده‌ی seed (⚠ لازم؛ هر بار که seed-src عوض شد دوباره اجرا کن)
+#   plaintext از frontend/seed-src خوانده و AES-256-GCM رمز می‌شود → public/seed-enc/*.enc
+#   نیازمند frontend/.env با VITE_SEED_SECRET (کلید مشترکِ رمز/رمزگشایی)
+npm run seed:encrypt
 
 # ۲) بیلد وب‌اپ  (⚠ از vite مستقیم استفاده کن، نه `npm run build`)
 npx vite build
