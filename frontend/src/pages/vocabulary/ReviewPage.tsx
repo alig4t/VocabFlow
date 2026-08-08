@@ -145,7 +145,13 @@ export function ReviewPage() {
   // word updates its status in place (and on the server) but never drops it from
   // the list mid-session, so the counter advances one step per action
   // (۱/۵۰۰ → ۲/۵۰۰ → …) instead of collapsing words off the front of the list.
-  const sessionKey = `${mode}|${reviewFilter}|${bookId ?? ''}|${volumeId ?? ''}|${lessonId ?? ''}`
+  // When no single book is pinned, the session spans the whole watchlist union —
+  // so the key must include watchlist membership too. Otherwise adding/removing
+  // a book leaves `sessionKey` unchanged, and the frozen snapshot + remembered
+  // position (`lastReviewPos`) get silently reused against a now-different word
+  // list on the next visit.
+  const watchlistKey = bookId ? '' : watchlistBookIds.slice().sort().join(',')
+  const sessionKey = `${mode}|${reviewFilter}|${bookId ?? ''}|${volumeId ?? ''}|${lessonId ?? ''}|${watchlistKey}`
   const [session, setSession] = useState<{ key: string; words: Word[] }>({ key: '', words: [] })
   const sessionReady = hasScope && session.key === sessionKey
 

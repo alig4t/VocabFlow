@@ -46,11 +46,6 @@ export function StartPlanDialog({ book, open, onOpenChange, initialVolumeId }: S
     [plans],
   )
 
-  // Auto-select when there is exactly one volume.
-  useEffect(() => {
-    if (open && volumes && volumes.length === 1) setVolumeId(volumes[0].id)
-  }, [open, volumes])
-
   // Reset selection each time the dialog opens for a new book. When the caller
   // pre-selects a volume (from the detail page), honour it instead of clearing.
   useEffect(() => {
@@ -59,6 +54,16 @@ export function StartPlanDialog({ book, open, onOpenChange, initialVolumeId }: S
       setDailyNewWords(20)
     }
   }, [open, book?.id, initialVolumeId])
+
+  // Auto-select when there is exactly one volume. Declared AFTER the reset
+  // effect above: when `volumes` is already cache-warm both effects fire in
+  // the same commit, in declaration order — if this ran first, the reset
+  // effect would immediately clobber the auto-picked id back to '', leaving
+  // single-volume books with no selectable volume and a permanently
+  // disabled "شروع یادگیری" button.
+  useEffect(() => {
+    if (open && volumes && volumes.length === 1) setVolumeId(volumes[0].id)
+  }, [open, volumes])
 
   const singleVolume = volumes?.length === 1
   const canConfirm = Boolean(volumeId) && !createPlan.isPending

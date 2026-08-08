@@ -35,7 +35,9 @@ function Metric({
 export function WatchlistBookCard({ book }: WatchlistBookCardProps) {
   const navigate = useNavigate()
   const progress = book.totalWords > 0 ? (book.knownWords / book.totalWords) * 100 : 0
-  const mood = motivation(progress)
+  const mood = motivation(progress, book.notReadWords, book.dueCount)
+  // Nothing left for this book at all — every word read AND no review due.
+  const bookComplete = book.notReadWords === 0 && book.dueCount === 0
 
   return (
     <Card className="flex flex-col gap-4 p-5 shadow-soft transition-shadow hover:shadow-md overflow-x-hidden">
@@ -105,11 +107,24 @@ export function WatchlistBookCard({ book }: WatchlistBookCardProps) {
         </div>
         <Button
           size="sm"
+          variant={bookComplete ? 'outline' : 'default'}
           className="gap-1.5"
-          onClick={() => navigate(`/vocabulary?bookId=${book.bookId}`)}
+          disabled={bookComplete}
+          // Was pointing at /vocabulary (the word-list/browse page) instead of
+          // the actual review flow.
+          onClick={() => navigate(`/vocabulary/review?bookId=${book.bookId}`)}
         >
-          <Play className="h-3.5 w-3.5" />
-          ادامه مطالعه
+          {bookComplete ? (
+            <>
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              کامل شد
+            </>
+          ) : (
+            <>
+              <Play className="h-3.5 w-3.5" />
+              ادامه مطالعه
+            </>
+          )}
         </Button>
       </footer>
     </Card>
