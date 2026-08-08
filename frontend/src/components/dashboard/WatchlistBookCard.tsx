@@ -99,6 +99,12 @@ export function WatchlistBookCard({ book }: WatchlistBookCardProps) {
             <span className="font-medium text-foreground">
               {faNum(book.dueCount)} واژه آماده مرور
             </span>
+          ) : book.notReadWords === book.totalWords ? (
+            // Nothing has ever been introduced for this book (freshly added) —
+            // "همه مرورها انجام شد" would falsely imply reviews existed and got
+            // finished. notReadWords===totalWords is equivalent to
+            // introducedWords===0 on both the offline and backend computations.
+            <span>هنوز واژه‌ای برای مرور نداری</span>
           ) : (
             <span>همه مرورها انجام شد</span>
           )}
