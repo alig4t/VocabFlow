@@ -7,7 +7,7 @@ import { Tooltip } from '@/components/ui/tooltip'
 import { ReviewCard } from '@/components/vocabulary/ReviewCard'
 import { SessionSummaryScreen, type SessionStats } from '@/components/study/SessionSummaryScreen'
 import { useStudyToday } from '@/hooks/useStudy'
-import { useWatchlistBooks } from '@/hooks/useDashboard'
+import { usePlans } from '@/hooks/usePlans'
 import { useSettings } from '@/hooks/useSettings'
 import { studyService } from '@/services/study.service'
 import { cn } from '@/lib/utils'
@@ -67,14 +67,16 @@ interface PersistedSession {
   seenNewOnce: string[]
   startedAt: string
   /**
-   * Watchlist book ids at the moment this queue was built (sorted). Compared
-   * against the CURRENT watchlist before resuming: checking only "did a
-   * queued word's book get removed" misses the opposite case — a book ADDED
-   * after the queue was built contributes zero words to it, so nothing in
-   * the queue looks stale even though "امروز" should now include more.
-   * Comparing the full id set catches both directions.
+   * Active learning-PLAN ids at the moment this queue was built (sorted).
+   * Compared against the CURRENT plan list before resuming. Deliberately
+   * plan-level, not book-level: `useWatchlistBooks()` dedupes by book, so two
+   * volumes of the SAME book (e.g. "4000 Essential Words" vol 1 + vol 2) show
+   * up as one watchlist entry — adding/removing one of those volumes leaves
+   * the book-id set unchanged and would go undetected. Plan ids are 1:1 with
+   * volumes, so this also catches "book added" (contributes nothing to the
+   * queue yet, so nothing in it looks stale on its own).
    */
-  watchlistBookIds?: string[]
+  planIds?: string[]
 }
 
 function loadPersistedSession(): PersistedSession | null {
@@ -209,7 +211,7 @@ export function StudySessionPage() {
   const queryClient = useQueryClient()
   const { data: today, isLoading, isError, isFetching, refetch } = useStudyToday()
   const { data: settings } = useSettings()
-  const { data: books } = useWatchlistBooks()
+  const { data: plans, isFetching: isPlansFetching } = usePlans()
 
   const mode: ReviewMode = today?.meta.direction ?? settings?.studyDirection ?? 'EN_TO_FA'
   const autoPlay = settings?.autoPlayAudio ?? true
@@ -238,14 +240,14 @@ export function StudySessionPage() {
   // by Read/Again), it uses the standard AnswerBar.
   const seenNewOnce = useRef<Set<string>>(new Set())
 
-  // Mirrors `books` (current watchlist ids, sorted) into a ref so `persist`
-  // can snapshot it without depending on `books` directly — `persist`'s
+  // Mirrors `plans` (current active plan ids, sorted) into a ref so `persist`
+  // can snapshot it without depending on `plans` directly — `persist`'s
   // identity is used as a dep elsewhere and doesn't need to change every time
-  // the watchlist query refetches.
-  const watchlistBookIdsRef = useRef<string[]>([])
+  // the plans query refetches.
+  const planIdsRef = useRef<string[]>([])
   useEffect(() => {
-    if (books) watchlistBookIdsRef.current = books.map((b) => b.id).sort()
-  }, [books])
+    if (plans) planIdsRef.current = plans.map((p) => p.id).sort()
+  }, [plans])
 
   /** Snapshot the live session (queue position + every outcome set) to storage. */
   const persist = useCallback((q: QueueItem[], i: number) => {
@@ -261,7 +263,7 @@ export function StudySessionPage() {
       introducedNew: [...introducedNew.current],
       seenNewOnce: [...seenNewOnce.current],
       startedAt: startedAtRef.current.toISOString(),
-      watchlistBookIds: watchlistBookIdsRef.current,
+      planIds: planIdsRef.current,
     })
   }, [])
 
@@ -271,18 +273,20 @@ export function StudySessionPage() {
   // missed and the session doesn't freeze an empty "nothing today" list.
   useEffect(() => {
     if (queue !== null) return
-    // Wait for the watchlist before deciding whether to resume — the
-    // watchlist can have changed since the queue was persisted (a book added
-    // OR removed), and once resumed there's no second chance to catch it
+    // Wait for the plan list to be loaded AND settled before deciding whether
+    // to resume — it can have changed since the queue was persisted (a volume
+    // added OR removed), and `data` can be a stale cached list the instant
+    // this page mounts while a background refetch (triggered by that change)
+    // is still in flight. Once resumed there's no second chance to catch it
     // (the guard above short-circuits on every later run).
-    if (books === undefined) return
+    if (plans === undefined || isPlansFetching) return
 
-    const currentIds = books.map((b) => b.id).sort()
+    const currentIds = plans.map((p) => p.id).sort()
     const persisted = loadPersistedSession()
     if (persisted && persisted.queue.length > 0) {
-      const persistedIds = persisted.watchlistBookIds
-      // Compare the FULL watchlist id set, not just "did a queued word's book
-      // get removed" — a book ADDED after the queue was built contributes no
+      const persistedIds = persisted.planIds
+      // Compare the FULL plan id set, not just "did a queued word's plan get
+      // removed" — a plan ADDED after the queue was built contributes no
       // words to it, so nothing in the queue looks stale even though "امروز"
       // should now include more. A missing snapshot (older persisted session,
       // pre-dating this field) is treated as stale too, so it self-heals once.
@@ -302,8 +306,8 @@ export function StudySessionPage() {
         startedAtRef.current = new Date(persisted.startedAt)
         return
       }
-      // Watchlist composition changed since this queue was built — discard
-      // and fetch fresh.
+      // Plan composition changed since this queue was built — discard and
+      // fetch fresh.
       clearPersistedSession()
     }
 
@@ -316,7 +320,7 @@ export function StudySessionPage() {
       startedAtRef.current = new Date()
       if (initial.length > 0) persist(initial, 0)
     }
-  }, [today, queue, isFetching, persist, books])
+  }, [today, queue, isFetching, persist, plans, isPlansFetching])
 
   // Leaving the session (even mid-way) → refresh the dashboard + today counts so
   // due/new numbers reflect the answers just given.
