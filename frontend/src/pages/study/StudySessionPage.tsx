@@ -7,6 +7,7 @@ import { Tooltip } from '@/components/ui/tooltip'
 import { ReviewCard } from '@/components/vocabulary/ReviewCard'
 import { SessionSummaryScreen, type SessionStats } from '@/components/study/SessionSummaryScreen'
 import { useStudyToday } from '@/hooks/useStudy'
+import { useWatchlistBooks } from '@/hooks/useDashboard'
 import { useSettings } from '@/hooks/useSettings'
 import { studyService } from '@/services/study.service'
 import { cn } from '@/lib/utils'
@@ -199,6 +200,7 @@ export function StudySessionPage() {
   const queryClient = useQueryClient()
   const { data: today, isLoading, isError, isFetching, refetch } = useStudyToday()
   const { data: settings } = useSettings()
+  const { data: books } = useWatchlistBooks()
 
   const mode: ReviewMode = today?.meta.direction ?? settings?.studyDirection ?? 'EN_TO_FA'
   const autoPlay = settings?.autoPlayAudio ?? true
@@ -250,19 +252,32 @@ export function StudySessionPage() {
   // missed and the session doesn't freeze an empty "nothing today" list.
   useEffect(() => {
     if (queue !== null) return
+    // Wait for the watchlist before deciding whether to resume — a persisted
+    // queue can outlive its book's watchlist membership (plan deleted
+    // mid-session), and once resumed there's no second chance to catch it
+    // (the guard above short-circuits on every later run).
+    if (books === undefined) return
 
     const persisted = loadPersistedSession()
     if (persisted && persisted.queue.length > 0) {
-      setQueue(persisted.queue)
-      setIndex(persisted.index)
-      ratedWords.current = new Set(persisted.outcomes?.rated ?? [])
-      wrongWords.current = new Set(persisted.outcomes?.wrong ?? [])
-      hardWords.current = new Set(persisted.outcomes?.hard ?? [])
-      skippedWords.current = new Set(persisted.outcomes?.skipped ?? [])
-      introducedNew.current = new Set(persisted.introducedNew)
-      seenNewOnce.current = new Set(persisted.seenNewOnce)
-      startedAtRef.current = new Date(persisted.startedAt)
-      return
+      const stale = persisted.queue.some((item) => {
+        const bookId = item.word.lesson?.volume.book.id
+        return bookId ? !books.some((b) => b.id === bookId) : false
+      })
+      if (!stale) {
+        setQueue(persisted.queue)
+        setIndex(persisted.index)
+        ratedWords.current = new Set(persisted.outcomes?.rated ?? [])
+        wrongWords.current = new Set(persisted.outcomes?.wrong ?? [])
+        hardWords.current = new Set(persisted.outcomes?.hard ?? [])
+        skippedWords.current = new Set(persisted.outcomes?.skipped ?? [])
+        introducedNew.current = new Set(persisted.introducedNew)
+        seenNewOnce.current = new Set(persisted.seenNewOnce)
+        startedAtRef.current = new Date(persisted.startedAt)
+        return
+      }
+      // A queued word's book left the watchlist — discard and fetch fresh.
+      clearPersistedSession()
     }
 
     if (today && !isFetching) {
@@ -274,7 +289,7 @@ export function StudySessionPage() {
       startedAtRef.current = new Date()
       if (initial.length > 0) persist(initial, 0)
     }
-  }, [today, queue, isFetching, persist])
+  }, [today, queue, isFetching, persist, books])
 
   // Leaving the session (even mid-way) → refresh the dashboard + today counts so
   // due/new numbers reflect the answers just given.
