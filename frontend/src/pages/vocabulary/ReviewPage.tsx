@@ -114,6 +114,22 @@ export function ReviewPage() {
   const { data: volumes } = useVolumesSimple(bookId ?? '')
   const { data: lessons } = useLessonsSimple(bookId ?? '', volumeId ?? '')
 
+  // A pinned book (from "ادامه مطالعه" or a past visit, restored via
+  // localStorage) can outlive its watchlist membership — its plan may have
+  // been deleted since. Without this, `bookId` keeps pointing at a book no
+  // longer in `books`, its words keep getting fetched/frozen forever, and
+  // (since `sessionKey` below only reacts to watchlist composition when NO
+  // book is pinned) the session/counter never resets either. Drop the pin
+  // once the watchlist has loaded and no longer contains it, falling back to
+  // the whole-watchlist scope.
+  useEffect(() => {
+    if (bookId && books && !books.some((b) => b.id === bookId)) {
+      setBookId(undefined)
+      setVolumeId(undefined)
+      setLessonId(undefined)
+    }
+  }, [bookId, books])
+
   function handleBookChange(id: string) {
     setBookId(id || undefined)
     setVolumeId(undefined)
