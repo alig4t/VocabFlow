@@ -44,7 +44,7 @@ function loadMuted(): boolean {
  */
 export function ReviewTodayPage() {
   const navigate = useNavigate()
-  const { data, isLoading, isError, refetch } = useTodayNewWords()
+  const { data, isLoading, isError, isFetching, refetch } = useTodayNewWords()
   const { data: settings } = useSettings()
   const { mutate: updateStatus } = useUpdateWordStatus()
 
@@ -60,9 +60,15 @@ export function ReviewTodayPage() {
   const [mode, setMode] = useState<ReviewMode | null>(null)
   const activeMode: ReviewMode = mode ?? data?.direction ?? settings?.studyDirection ?? 'EN_TO_FA'
 
+  // Wait for `isFetching` to settle before freezing — `refetchOnMount:'always'`
+  // means `data` can be truthy from a stale cache entry the instant this page
+  // remounts, WHILE a background refetch (triggered by e.g. a plan just
+  // deleted) is still in flight. Freezing that stale snapshot immediately
+  // would keep showing a book that was just removed from the watchlist, with
+  // no second chance once `words` is non-null (same contract as ReviewPage).
   useEffect(() => {
-    if (words === null && data) setWords(data.words)
-  }, [data, words])
+    if (words === null && data && !isFetching) setWords(data.words)
+  }, [data, words, isFetching])
 
   const total = words?.length ?? 0
   const currentWord = words && index < total ? words[index] : null

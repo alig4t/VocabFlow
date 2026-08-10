@@ -18,6 +18,10 @@ function useInvalidatePlanViews() {
     qc.invalidateQueries({ queryKey: ['discovery-books'] })
     qc.invalidateQueries({ queryKey: ['watchlist', 'books'] })
     qc.invalidateQueries({ queryKey: ['study', 'today'] })
+    // Separate query/cache key from ['study','today'] — same underlying data
+    // source (today's watchlist-scoped words), so it needs the same
+    // invalidation or ReviewTodayPage keeps serving a pre-change cached list.
+    qc.invalidateQueries({ queryKey: ['study', 'today-new'] })
   }
 }
 
