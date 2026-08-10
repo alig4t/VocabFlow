@@ -66,6 +66,15 @@ interface PersistedSession {
   introducedNew: string[]
   seenNewOnce: string[]
   startedAt: string
+  /**
+   * Watchlist book ids at the moment this queue was built (sorted). Compared
+   * against the CURRENT watchlist before resuming: checking only "did a
+   * queued word's book get removed" misses the opposite case — a book ADDED
+   * after the queue was built contributes zero words to it, so nothing in
+   * the queue looks stale even though "امروز" should now include more.
+   * Comparing the full id set catches both directions.
+   */
+  watchlistBookIds?: string[]
 }
 
 function loadPersistedSession(): PersistedSession | null {
@@ -229,6 +238,15 @@ export function StudySessionPage() {
   // by Read/Again), it uses the standard AnswerBar.
   const seenNewOnce = useRef<Set<string>>(new Set())
 
+  // Mirrors `books` (current watchlist ids, sorted) into a ref so `persist`
+  // can snapshot it without depending on `books` directly — `persist`'s
+  // identity is used as a dep elsewhere and doesn't need to change every time
+  // the watchlist query refetches.
+  const watchlistBookIdsRef = useRef<string[]>([])
+  useEffect(() => {
+    if (books) watchlistBookIdsRef.current = books.map((b) => b.id).sort()
+  }, [books])
+
   /** Snapshot the live session (queue position + every outcome set) to storage. */
   const persist = useCallback((q: QueueItem[], i: number) => {
     savePersistedSession({
@@ -243,6 +261,7 @@ export function StudySessionPage() {
       introducedNew: [...introducedNew.current],
       seenNewOnce: [...seenNewOnce.current],
       startedAt: startedAtRef.current.toISOString(),
+      watchlistBookIds: watchlistBookIdsRef.current,
     })
   }, [])
 
@@ -252,18 +271,25 @@ export function StudySessionPage() {
   // missed and the session doesn't freeze an empty "nothing today" list.
   useEffect(() => {
     if (queue !== null) return
-    // Wait for the watchlist before deciding whether to resume — a persisted
-    // queue can outlive its book's watchlist membership (plan deleted
-    // mid-session), and once resumed there's no second chance to catch it
+    // Wait for the watchlist before deciding whether to resume — the
+    // watchlist can have changed since the queue was persisted (a book added
+    // OR removed), and once resumed there's no second chance to catch it
     // (the guard above short-circuits on every later run).
     if (books === undefined) return
 
+    const currentIds = books.map((b) => b.id).sort()
     const persisted = loadPersistedSession()
     if (persisted && persisted.queue.length > 0) {
-      const stale = persisted.queue.some((item) => {
-        const bookId = item.word.lesson?.volume.book.id
-        return bookId ? !books.some((b) => b.id === bookId) : false
-      })
+      const persistedIds = persisted.watchlistBookIds
+      // Compare the FULL watchlist id set, not just "did a queued word's book
+      // get removed" — a book ADDED after the queue was built contributes no
+      // words to it, so nothing in the queue looks stale even though "امروز"
+      // should now include more. A missing snapshot (older persisted session,
+      // pre-dating this field) is treated as stale too, so it self-heals once.
+      const stale =
+        !persistedIds ||
+        persistedIds.length !== currentIds.length ||
+        persistedIds.some((id, i) => id !== currentIds[i])
       if (!stale) {
         setQueue(persisted.queue)
         setIndex(persisted.index)
@@ -276,7 +302,8 @@ export function StudySessionPage() {
         startedAtRef.current = new Date(persisted.startedAt)
         return
       }
-      // A queued word's book left the watchlist — discard and fetch fresh.
+      // Watchlist composition changed since this queue was built — discard
+      // and fetch fresh.
       clearPersistedSession()
     }
 
