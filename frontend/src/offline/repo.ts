@@ -19,6 +19,10 @@ import type {
   HeatmapDay,
   ReviewQueueItem,
   DashboardGlobalStats,
+  MemoryBreakdown,
+  UpcomingDay,
+  HardWordItem,
+  GrowthPoint,
   StudyToday,
   TodayNewWords,
   StudyAnswer,
@@ -727,7 +731,127 @@ export async function getDashboard(): Promise<DashboardData> {
     heatmap.push({ date: iso, count: counts.get(iso) ?? 0 })
   }
 
-  return { stats, watchlist, heatmap, queue }
+  const { memory, upcoming, hardWords, growth } = await getMemoryInsights(
+    mode,
+    startOfDay(now),
+    endOfDay(now),
+  )
+
+  return { stats, watchlist, heatmap, queue, memory, upcoming, hardWords, growth }
+}
+
+// ── Memory insights (mirrors backend dashboard.repository/service) ─────────────
+
+/** Interval (days) at which a word counts as "پایدار" — matches the backend. */
+const STABLE_INTERVAL_DAYS = 21
+const LEARNING_MIN_REPETITIONS = 2
+const GROWTH_DAYS = 30
+const UPCOMING_DAYS = 7
+const HARD_WORDS_LIMIT = 5
+
+/**
+ * Memory buckets, review forecast, hardest words and the (approximate) growth
+ * curve. Mirrors `backend/src/modules/dashboard/dashboard.service.ts` — including
+ * the growth reconstruction: no history is stored, so a word that is stable now
+ * is assumed to have become stable at its last review.
+ */
+async function getMemoryInsights(
+  mode: ReviewMode,
+  dayStart: Date,
+  dayEnd: Date,
+): Promise<{
+  memory: MemoryBreakdown
+  upcoming: UpcomingDay[]
+  hardWords: HardWordItem[]
+  growth: GrowthPoint[]
+}> {
+  const growthSince = new Date(dayStart)
+  growthSince.setDate(growthSince.getDate() - (GROWTH_DAYS - 1))
+  const upcomingUntil = new Date(dayEnd)
+  upcomingUntil.setDate(upcomingUntil.getDate() + (UPCOMING_DAYS - 1))
+
+  const introduced = 'review_mode=? AND introduced_at IS NOT NULL'
+  const [freshRow, learningRow, stableRow, stableDates, dueRows, hardRows] = await Promise.all([
+    query<{ c: number }>(
+      `SELECT COUNT(*) AS c FROM progress WHERE ${introduced} AND interval_days<? AND repetitions<?`,
+      [mode, STABLE_INTERVAL_DAYS, LEARNING_MIN_REPETITIONS],
+    ),
+    query<{ c: number }>(
+      `SELECT COUNT(*) AS c FROM progress WHERE ${introduced} AND interval_days<? AND repetitions>=?`,
+      [mode, STABLE_INTERVAL_DAYS, LEARNING_MIN_REPETITIONS],
+    ),
+    query<{ c: number }>(
+      `SELECT COUNT(*) AS c FROM progress WHERE ${introduced} AND interval_days>=?`,
+      [mode, STABLE_INTERVAL_DAYS],
+    ),
+    query<{ last_reviewed_at: string }>(
+      `SELECT last_reviewed_at FROM progress
+       WHERE review_mode=? AND interval_days>=? AND last_reviewed_at IS NOT NULL AND last_reviewed_at>=?`,
+      [mode, STABLE_INTERVAL_DAYS, growthSince.toISOString()],
+    ),
+    query<{ next_review_at: string }>(
+      `SELECT next_review_at FROM progress
+       WHERE ${introduced} AND next_review_at IS NOT NULL AND next_review_at<=?`,
+      [mode, upcomingUntil.toISOString()],
+    ),
+    query<{ id: string; eng: string; per: string; hard_count: number; wrong_count: number }>(
+      `SELECT w.id, w.eng, w.per, pr.hard_count, pr.wrong_count
+       FROM progress pr JOIN words w ON pr.word_id=w.id
+       WHERE pr.review_mode=? AND pr.introduced_at IS NOT NULL
+         AND (pr.hard_count>0 OR pr.wrong_count>0)
+       ORDER BY pr.hard_count DESC, pr.wrong_count DESC
+       LIMIT ?`,
+      [mode, HARD_WORDS_LIMIT],
+    ),
+  ])
+
+  const fresh = freshRow[0]?.c ?? 0
+  const learning = learningRow[0]?.c ?? 0
+  const stable = stableRow[0]?.c ?? 0
+  const memory: MemoryBreakdown = { total: fresh + learning + stable, fresh, learning, stable }
+
+  // Forecast — everything overdue folds into day 0 (what the queue serves today).
+  const upcoming: UpcomingDay[] = []
+  for (let i = 0; i < UPCOMING_DAYS; i++) {
+    const d = new Date(dayStart)
+    d.setDate(d.getDate() + i)
+    upcoming.push({ date: isoDayLocal(d), count: 0 })
+  }
+  for (const row of dueRows) {
+    const due = new Date(row.next_review_at)
+    if (due <= dayEnd) {
+      upcoming[0].count++
+      continue
+    }
+    const offset = Math.floor((due.getTime() - dayEnd.getTime()) / 86_400_000) + 1
+    if (offset >= 0 && offset < UPCOMING_DAYS) upcoming[offset].count++
+  }
+
+  // Growth — walk backwards from today's stable count.
+  const perDay = new Map<string, number>()
+  for (const row of stableDates) {
+    const key = isoDayLocal(new Date(row.last_reviewed_at))
+    perDay.set(key, (perDay.get(key) ?? 0) + 1)
+  }
+  const growth: GrowthPoint[] = new Array(GROWTH_DAYS)
+  let running = stable
+  for (let i = GROWTH_DAYS - 1; i >= 0; i--) {
+    const d = new Date(dayStart)
+    d.setDate(d.getDate() - (GROWTH_DAYS - 1 - i))
+    const key = isoDayLocal(d)
+    growth[i] = { date: key, count: Math.max(0, running) }
+    running -= perDay.get(key) ?? 0
+  }
+
+  const hardWords: HardWordItem[] = hardRows.map((r) => ({
+    wordId: r.id,
+    eng: r.eng,
+    per: r.per,
+    hardCount: r.hard_count,
+    wrongCount: r.wrong_count,
+  }))
+
+  return { memory, upcoming, hardWords, growth }
 }
 
 // ── Daily learning system (mirrors backend study/plans/settings modules) ───────

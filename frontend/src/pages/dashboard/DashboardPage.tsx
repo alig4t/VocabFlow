@@ -1,5 +1,13 @@
 import { useNavigate } from 'react-router-dom'
-import { LayoutDashboard, CalendarDays, BarChart3, Library, Compass } from 'lucide-react'
+import {
+  LayoutDashboard,
+  CalendarDays,
+  BarChart3,
+  Library,
+  Compass,
+  CalendarClock,
+  AlertTriangle,
+} from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -10,6 +18,9 @@ import { WatchlistBookCard } from '@/components/dashboard/WatchlistBookCard'
 import { ContinueLearning } from '@/components/dashboard/ContinueLearning'
 import { ActivityHeatmap } from '@/components/dashboard/ActivityHeatmap'
 import { BookComparison } from '@/components/dashboard/BookComparison'
+import { MemoryOverview } from '@/components/dashboard/MemoryOverview'
+import { UpcomingReviews } from '@/components/dashboard/UpcomingReviews'
+import { HardWords } from '@/components/dashboard/HardWords'
 import { useDashboard } from '@/hooks/useDashboard'
 import { useAuthStore } from '@/store/authStore'
 import { isNative } from '@/lib/platform'
@@ -17,8 +28,9 @@ import { isNative } from '@/lib/platform'
 function DashboardSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        {[...Array(6)].map((_, i) => (
+      <Skeleton className="h-64 rounded-xl" />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {[...Array(4)].map((_, i) => (
           <Skeleton key={i} className="h-[76px] rounded-xl" />
         ))}
       </div>
@@ -71,11 +83,41 @@ export function DashboardPage() {
           {/* Practice — unlocks once today's session is finished */}
           <TodayPracticeCard />
 
+          {/* Memory: the SM-2 story — where every word stands, and the 30-day trend */}
+          <MemoryOverview memory={data.memory} growth={data.growth} />
+
           {/* Global stats */}
           <GlobalStats stats={data.stats} />
 
           {/* Smart review queue */}
           <ContinueLearning queue={data.queue} />
+
+          {/* What's coming, and what keeps going wrong */}
+          <section className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <CalendarClock className="h-5 w-5 text-primary" aria-hidden="true" />
+                  مرورهای پیش رو
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <UpcomingReviews days={data.upcoming} />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <AlertTriangle className="h-5 w-5 text-warning" aria-hidden="true" />
+                  نیاز به توجه بیشتر
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <HardWords words={data.hardWords} />
+              </CardContent>
+            </Card>
+          </section>
 
           {/* Watchlist */}
           <section className="space-y-3">

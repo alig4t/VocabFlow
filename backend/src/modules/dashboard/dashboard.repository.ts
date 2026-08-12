@@ -14,6 +14,20 @@ export interface VolumeStats {
   lastStudiedAt: Date | null
 }
 
+/**
+ * SM-2 memory-strength buckets (Anki's young/mature convention):
+ * a word is "پایدار" once its scheduling interval reaches three weeks, and
+ * "در حال یادگیری" once it has survived at least two successful repetitions.
+ */
+export const STABLE_INTERVAL_DAYS = 21
+export const LEARNING_MIN_REPETITIONS = 2
+
+export interface MemoryBuckets {
+  fresh: number
+  learning: number
+  stable: number
+}
+
 export class DashboardRepository {
   async getUserSettings(userId: string) {
     return prisma.userSettings.findUnique({ where: { userId } })
@@ -118,6 +132,79 @@ export class DashboardRepository {
       where: { userId },
       select: { startedAt: true },
       orderBy: { startedAt: 'desc' },
+    })
+  }
+
+  /**
+   * Memory-strength split over every *introduced* word in a direction.
+   * Buckets are mutually exclusive, so fresh + learning + stable = introduced.
+   */
+  async getMemoryBuckets(userId: string, mode: ReviewMode): Promise<MemoryBuckets> {
+    const base = { userId, reviewMode: mode, introducedAt: { not: null } }
+    const young = { intervalDays: { lt: STABLE_INTERVAL_DAYS } }
+    const [fresh, learning, stable] = await Promise.all([
+      prisma.userWordProgress.count({
+        where: { ...base, ...young, repetitions: { lt: LEARNING_MIN_REPETITIONS } },
+      }),
+      prisma.userWordProgress.count({
+        where: { ...base, ...young, repetitions: { gte: LEARNING_MIN_REPETITIONS } },
+      }),
+      prisma.userWordProgress.count({
+        where: { ...base, intervalDays: { gte: STABLE_INTERVAL_DAYS } },
+      }),
+    ])
+    return { fresh, learning, stable }
+  }
+
+  /**
+   * `lastReviewedAt` of the currently-stable words reviewed since `since`.
+   * The growth curve is reconstructed backwards from these (see the service):
+   * the schema keeps no history, so "when did this word become stable" is
+   * approximated by the last review that pushed it there.
+   */
+  async getStableReviewDates(userId: string, mode: ReviewMode, since: Date) {
+    const rows = await prisma.userWordProgress.findMany({
+      where: {
+        userId,
+        reviewMode: mode,
+        intervalDays: { gte: STABLE_INTERVAL_DAYS },
+        lastReviewedAt: { gte: since },
+      },
+      select: { lastReviewedAt: true },
+    })
+    return rows.map((r) => r.lastReviewedAt).filter((d): d is Date => d !== null)
+  }
+
+  /** Due dates of every scheduled word up to `until` (for the forecast chart). */
+  async getUpcomingDue(userId: string, mode: ReviewMode, until: Date) {
+    const rows = await prisma.userWordProgress.findMany({
+      where: {
+        userId,
+        reviewMode: mode,
+        introducedAt: { not: null },
+        nextReviewAt: { not: null, lte: until },
+      },
+      select: { nextReviewAt: true },
+    })
+    return rows.map((r) => r.nextReviewAt).filter((d): d is Date => d !== null)
+  }
+
+  /** The words the user struggles with most: answered HARD or wrong the most. */
+  async getHardWords(userId: string, mode: ReviewMode, limit: number) {
+    return prisma.userWordProgress.findMany({
+      where: {
+        userId,
+        reviewMode: mode,
+        introducedAt: { not: null },
+        OR: [{ hardCount: { gt: 0 } }, { wrongCount: { gt: 0 } }],
+      },
+      orderBy: [{ hardCount: 'desc' }, { wrongCount: 'desc' }],
+      take: limit,
+      select: {
+        hardCount: true,
+        wrongCount: true,
+        word: { select: { id: true, eng: true, per: true } },
+      },
     })
   }
 }

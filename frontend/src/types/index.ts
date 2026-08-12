@@ -241,11 +241,47 @@ export interface ReviewQueueItem {
   dueCount: number
 }
 
+/**
+ * SM-2 memory-strength split across every introduced word (mutually exclusive
+ * buckets, so fresh + learning + stable === total). "پایدار" = interval ≥ ۲۱ روز.
+ */
+export interface MemoryBreakdown {
+  total: number
+  fresh: number
+  learning: number
+  stable: number
+}
+
+/** One day of the review forecast — day 0 is today and includes overdue words. */
+export interface UpcomingDay {
+  date: string
+  count: number
+}
+
+/** A word the user keeps marking "سخت" or answering wrong. */
+export interface HardWordItem {
+  wordId: string
+  eng: string
+  per: string
+  hardCount: number
+  wrongCount: number
+}
+
+/** One point of the (approximate) "stable words over time" curve. */
+export interface GrowthPoint {
+  date: string
+  count: number
+}
+
 export interface DashboardData {
   stats: DashboardGlobalStats
   watchlist: WatchlistBook[]
   heatmap: HeatmapDay[]
   queue: ReviewQueueItem[]
+  memory: MemoryBreakdown
+  upcoming: UpcomingDay[]
+  hardWords: HardWordItem[]
+  growth: GrowthPoint[]
 }
 
 /** A book in the discovery/library view, with watchlist membership flag. */

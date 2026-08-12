@@ -6,12 +6,20 @@ interface ActivityHeatmapProps {
   days: HeatmapDay[]
 }
 
-/** Map a session count to one of five intensity buckets. */
+/**
+ * Map a day's reviewed-word count to one of five intensity buckets.
+ *
+ * The thresholds are spread wide (1–5 / 6–15 / 16–30 / 31+) on purpose: a
+ * learner with a fixed daily quota would otherwise paint every active day the
+ * same shade, and the map would carry no information. Counting *reviews* (not
+ * new words) is what makes the spread real — an intense catch-up day looks
+ * different from a light one.
+ */
 function level(count: number): 0 | 1 | 2 | 3 | 4 {
   if (count <= 0) return 0
-  if (count < 5) return 1
-  if (count < 10) return 2
-  if (count < 16) return 3
+  if (count <= 5) return 1
+  if (count <= 15) return 2
+  if (count <= 30) return 3
   return 4
 }
 
@@ -23,15 +31,32 @@ export function ActivityHeatmap({ days }: ActivityHeatmapProps) {
     return out
   }, [days])
 
-  const totalSessions = useMemo(() => days.reduce((s, d) => s + d.count, 0), [days])
+  const totalReviews = useMemo(() => days.reduce((s, d) => s + d.count, 0), [days])
   const activeDays = useMemo(() => days.filter((d) => d.count > 0).length, [days])
+  const bestDay = useMemo(() => days.reduce((m, d) => Math.max(m, d.count), 0), [days])
 
   return (
     <figure className="m-0">
       {/* Accessible summary — the cells themselves are decorative. */}
-      <figcaption className="sr-only">
-        نقشه فعالیت {faNum(days.length)} روز گذشته: {faNum(activeDays)} روز فعال و{' '}
-        {faNum(totalSessions)} جلسه مرور.
+      <figcaption className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        <span>
+          <span className="font-semibold tabular-nums text-foreground">{faNum(activeDays)}</span> روز
+          فعال
+        </span>
+        <span aria-hidden="true" className="opacity-40">
+          ·
+        </span>
+        <span>
+          <span className="font-semibold tabular-nums text-foreground">{faNum(totalReviews)}</span>{' '}
+          مرور
+        </span>
+        <span aria-hidden="true" className="opacity-40">
+          ·
+        </span>
+        <span>
+          پرکارترین روز{' '}
+          <span className="font-semibold tabular-nums text-foreground">{faNum(bestDay)}</span> مرور
+        </span>
       </figcaption>
 
       {/* Cells flex to fill the card width (newest week on the right, RTL-friendly). */}

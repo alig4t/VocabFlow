@@ -1,4 +1,4 @@
-import { Flame, GraduationCap, Repeat2, Library, Clock, Target } from 'lucide-react'
+import { Flame, Repeat2, Clock, Target } from 'lucide-react'
 import { StatTile } from './StatTile'
 import { faNum, faPercent } from '../../lib/format'
 import type { DashboardGlobalStats } from '../../types'
@@ -7,9 +7,14 @@ interface GlobalStatsProps {
   stats: DashboardGlobalStats
 }
 
+/**
+ * Four "how am I doing" tiles. Deliberately *not* six: the learned-words count
+ * now lives (with far more meaning) in the memory breakdown, and the book count
+ * is already obvious from the "کتاب‌های من" section below.
+ */
 export function GlobalStats({ stats }: GlobalStatsProps) {
   return (
-    <section aria-label="آمار کلی" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+    <section aria-label="آمار کلی" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       <StatTile
         icon={Flame}
         accent="warning"
@@ -18,10 +23,10 @@ export function GlobalStats({ stats }: GlobalStatsProps) {
         hint="روزهای متوالی"
       />
       <StatTile
-        icon={GraduationCap}
+        icon={Target}
         accent="success"
-        label="واژگان یادگرفته"
-        value={faNum(stats.totalWordsLearned)}
+        label="دقت"
+        value={faPercent(stats.accuracyRate)}
       />
       <StatTile
         icon={Repeat2}
@@ -30,23 +35,11 @@ export function GlobalStats({ stats }: GlobalStatsProps) {
         value={faNum(stats.reviewsToday)}
       />
       <StatTile
-        icon={Library}
-        accent="chart-5"
-        label="کتاب‌های من"
-        value={faNum(stats.watchlistCount)}
-      />
-      <StatTile
         icon={Clock}
-        accent="primary"
+        accent="chart-5"
         label="میانگین مطالعه"
         value={`${faNum(stats.avgStudyMinutes)} دقیقه`}
-        hint="در روز"
-      />
-      <StatTile
-        icon={Target}
-        accent="success"
-        label="دقت"
-        value={faPercent(stats.accuracyRate)}
+        hint="در هر جلسه"
       />
     </section>
   )

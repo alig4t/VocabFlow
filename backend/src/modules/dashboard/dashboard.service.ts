@@ -40,14 +40,51 @@ export interface ReviewQueueItem {
   dueCount: number
 }
 
+/** SM-2 memory-strength split across every introduced word. */
+export interface MemoryBreakdown {
+  /** fresh + learning + stable (i.e. all introduced words). */
+  total: number
+  fresh: number
+  learning: number
+  stable: number
+}
+
+/** One day of the review forecast (day 0 = today, includes overdue). */
+export interface UpcomingDay {
+  date: string
+  count: number
+}
+
+/** A word the user keeps getting wrong / marking as hard. */
+export interface HardWordItem {
+  wordId: string
+  eng: string
+  per: string
+  hardCount: number
+  wrongCount: number
+}
+
+/** One point of the "stable words over time" curve. */
+export interface GrowthPoint {
+  date: string
+  count: number
+}
+
 export interface DashboardData {
   stats: DashboardGlobalStats
   watchlist: WatchlistBook[]
   heatmap: HeatmapDay[]
   queue: ReviewQueueItem[]
+  memory: MemoryBreakdown
+  upcoming: UpcomingDay[]
+  hardWords: HardWordItem[]
+  growth: GrowthPoint[]
 }
 
 const HEATMAP_DAYS = 126
+const GROWTH_DAYS = 30
+const UPCOMING_DAYS = 7
+const HARD_WORDS_LIMIT = 5
 
 /**
  * Local YYYY-MM-DD bucket for a date (heatmap/streak buckets are day-granular).
@@ -153,7 +190,91 @@ export class DashboardService {
       .filter((b) => b.dueCount > 0)
       .map((b) => ({ bookId: b.bookId, title: b.title, dueCount: b.dueCount }))
 
-    return { stats, watchlist, heatmap, queue }
+    // ── Memory / forecast / hard words / growth ───────────────────────────────
+    const growthSince = new Date(dayStart)
+    growthSince.setDate(growthSince.getDate() - (GROWTH_DAYS - 1))
+    const upcomingUntil = new Date(dayEnd)
+    upcomingUntil.setDate(upcomingUntil.getDate() + (UPCOMING_DAYS - 1))
+
+    const buckets = await this.repo.getMemoryBuckets(userId, mode)
+    const [stableReviewDates, dueDates, hardRows] = await Promise.all([
+      this.repo.getStableReviewDates(userId, mode, growthSince),
+      this.repo.getUpcomingDue(userId, mode, upcomingUntil),
+      this.repo.getHardWords(userId, mode, HARD_WORDS_LIMIT),
+    ])
+
+    const memory: MemoryBreakdown = {
+      total: buckets.fresh + buckets.learning + buckets.stable,
+      ...buckets,
+    }
+
+    const upcoming = this.buildForecast(dueDates, dayStart, dayEnd)
+    const growth = this.buildGrowth(stableReviewDates, buckets.stable, dayStart)
+
+    const hardWords: HardWordItem[] = hardRows.map((r) => ({
+      wordId: r.word.id,
+      eng: r.word.eng,
+      per: r.word.per,
+      hardCount: r.hardCount,
+      wrongCount: r.wrongCount,
+    }))
+
+    return { stats, watchlist, heatmap, queue, memory, upcoming, hardWords, growth }
+  }
+
+  /**
+   * Words due per day for the next `UPCOMING_DAYS`. Everything already overdue
+   * folds into day 0 — that is exactly what the study queue will serve today.
+   */
+  private buildForecast(dueDates: Date[], dayStart: Date, dayEnd: Date): UpcomingDay[] {
+    const days: UpcomingDay[] = []
+    for (let i = 0; i < UPCOMING_DAYS; i++) {
+      const d = new Date(dayStart)
+      d.setDate(d.getDate() + i)
+      days.push({ date: isoDay(d), count: 0 })
+    }
+    for (const due of dueDates) {
+      if (due <= dayEnd) {
+        days[0].count++
+        continue
+      }
+      // endOfDay(dayStart + i) — the first bucket whose boundary is past `due`.
+      const offset = Math.floor((due.getTime() - dayEnd.getTime()) / 86_400_000) + 1
+      if (offset >= 0 && offset < UPCOMING_DAYS) days[offset].count++
+    }
+    return days
+  }
+
+  /**
+   * Approximate "stable words over the last 30 days".
+   *
+   * `user_word_progress` keeps no history, so the curve is reconstructed
+   * backwards from today's stable set: a word that is stable now and was last
+   * reviewed on day D is assumed to have *become* stable on day D. Words last
+   * reviewed before the window were already stable throughout it. The result is
+   * monotonically non-decreasing and always ends at the real current count.
+   */
+  private buildGrowth(stableReviewDates: Date[], stableTotal: number, dayStart: Date): GrowthPoint[] {
+    const perDay = new Map<string, number>()
+    for (const d of stableReviewDates) {
+      const key = isoDay(d)
+      perDay.set(key, (perDay.get(key) ?? 0) + 1)
+    }
+
+    const keys: string[] = []
+    for (let i = GROWTH_DAYS - 1; i >= 0; i--) {
+      const d = new Date(dayStart)
+      d.setDate(d.getDate() - i)
+      keys.push(isoDay(d))
+    }
+
+    const points: GrowthPoint[] = new Array(GROWTH_DAYS)
+    let running = stableTotal
+    for (let i = GROWTH_DAYS - 1; i >= 0; i--) {
+      points[i] = { date: keys[i], count: Math.max(0, running) }
+      running -= perDay.get(keys[i]) ?? 0
+    }
+    return points
   }
 
   /** Consecutive days ending today (or yesterday) that have a study session. */
