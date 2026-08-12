@@ -23,6 +23,11 @@ import type {
   UpcomingDay,
   HardWordItem,
   GrowthPoint,
+  LearningStats,
+  StatTotals,
+  ModeAccuracy,
+  DailyStat,
+  StatRecords,
   StudyToday,
   TodayNewWords,
   StudyAnswer,
@@ -783,6 +788,29 @@ export async function getHardWords(): Promise<HardWordItem[]> {
   return queryHardWords(settings.studyDirection, HARD_WORDS_PAGE_LIMIT)
 }
 
+/** SM-2 memory-strength split — same definition as the backend. */
+async function memoryBuckets(mode: ReviewMode): Promise<MemoryBreakdown> {
+  const introduced = 'review_mode=? AND introduced_at IS NOT NULL'
+  const [freshRow, learningRow, stableRow] = await Promise.all([
+    query<{ c: number }>(
+      `SELECT COUNT(*) AS c FROM progress WHERE ${introduced} AND interval_days<? AND repetitions<?`,
+      [mode, STABLE_INTERVAL_DAYS, LEARNING_MIN_REPETITIONS],
+    ),
+    query<{ c: number }>(
+      `SELECT COUNT(*) AS c FROM progress WHERE ${introduced} AND interval_days<? AND repetitions>=?`,
+      [mode, STABLE_INTERVAL_DAYS, LEARNING_MIN_REPETITIONS],
+    ),
+    query<{ c: number }>(
+      `SELECT COUNT(*) AS c FROM progress WHERE ${introduced} AND interval_days>=?`,
+      [mode, STABLE_INTERVAL_DAYS],
+    ),
+  ])
+  const fresh = freshRow[0]?.c ?? 0
+  const learning = learningRow[0]?.c ?? 0
+  const stable = stableRow[0]?.c ?? 0
+  return { total: fresh + learning + stable, fresh, learning, stable }
+}
+
 /**
  * Memory buckets, review forecast, hardest words and the (approximate) growth
  * curve. Mirrors `backend/src/modules/dashboard/dashboard.service.ts` — including
@@ -805,19 +833,8 @@ async function getMemoryInsights(
   upcomingUntil.setDate(upcomingUntil.getDate() + (UPCOMING_DAYS - 1))
 
   const introduced = 'review_mode=? AND introduced_at IS NOT NULL'
-  const [freshRow, learningRow, stableRow, stableDates, dueRows, hardWords] = await Promise.all([
-    query<{ c: number }>(
-      `SELECT COUNT(*) AS c FROM progress WHERE ${introduced} AND interval_days<? AND repetitions<?`,
-      [mode, STABLE_INTERVAL_DAYS, LEARNING_MIN_REPETITIONS],
-    ),
-    query<{ c: number }>(
-      `SELECT COUNT(*) AS c FROM progress WHERE ${introduced} AND interval_days<? AND repetitions>=?`,
-      [mode, STABLE_INTERVAL_DAYS, LEARNING_MIN_REPETITIONS],
-    ),
-    query<{ c: number }>(
-      `SELECT COUNT(*) AS c FROM progress WHERE ${introduced} AND interval_days>=?`,
-      [mode, STABLE_INTERVAL_DAYS],
-    ),
+  const [memory, stableDates, dueRows, hardWords] = await Promise.all([
+    memoryBuckets(mode),
     query<{ last_reviewed_at: string }>(
       `SELECT last_reviewed_at FROM progress
        WHERE review_mode=? AND interval_days>=? AND last_reviewed_at IS NOT NULL AND last_reviewed_at>=?`,
@@ -830,11 +847,6 @@ async function getMemoryInsights(
     ),
     queryHardWords(mode, HARD_WORDS_LIMIT),
   ])
-
-  const fresh = freshRow[0]?.c ?? 0
-  const learning = learningRow[0]?.c ?? 0
-  const stable = stableRow[0]?.c ?? 0
-  const memory: MemoryBreakdown = { total: fresh + learning + stable, fresh, learning, stable }
 
   // Forecast — everything overdue folds into day 0 (what the queue serves today).
   const upcoming: UpcomingDay[] = []
@@ -860,7 +872,7 @@ async function getMemoryInsights(
     perDay.set(key, (perDay.get(key) ?? 0) + 1)
   }
   const growth: GrowthPoint[] = new Array(GROWTH_DAYS)
-  let running = stable
+  let running = memory.stable
   for (let i = GROWTH_DAYS - 1; i >= 0; i--) {
     const d = new Date(dayStart)
     d.setDate(d.getDate() - (GROWTH_DAYS - 1 - i))
@@ -870,6 +882,266 @@ async function getMemoryInsights(
   }
 
   return { memory, upcoming, hardWords, growth }
+}
+
+// ── Statistics (mirrors backend/src/modules/stats) ─────────────────────────────
+
+const STATS_GROWTH_DAYS = 90
+const STATS_DAILY_DAYS = 30
+const STATS_HEATMAP_DAYS = 126
+const STATS_HARDEST_LIMIT = 10
+const DAY_MS = 86_400_000
+
+interface EventRow {
+  word_id: string
+  review_mode: ReviewMode
+  answer: string
+  interval_days: number
+  is_first: number
+  is_lapse: number
+  reviewed_at: string
+}
+
+/** The `count` most recent day keys, oldest first, ending at `dayStart`. */
+function recentDayKeys(dayStart: Date, count: number): string[] {
+  const keys: string[] = []
+  for (let i = count - 1; i >= 0; i--) {
+    const d = new Date(dayStart)
+    d.setDate(d.getDate() - i)
+    keys.push(isoDayLocal(d))
+  }
+  return keys
+}
+
+/**
+ * Everything the statistics page shows, replayed from the `review_events` log.
+ * Byte-for-byte equivalent to `backend/src/modules/stats/stats.service.ts` —
+ * the two must not drift.
+ */
+export async function getLearningStats(): Promise<LearningStats> {
+  const nowDate = new Date()
+  const dayStart = startOfDay(nowDate)
+  const settings = await getSettings()
+  const mode = settings.studyDirection
+
+  const [events, sessions, memory, hardestWords] = await Promise.all([
+    query<EventRow>(
+      `SELECT word_id, review_mode, answer, interval_days, is_first, is_lapse, reviewed_at
+       FROM review_events ORDER BY reviewed_at ASC`,
+      [],
+    ),
+    query<{ started_at: string | null; duration_sec: number }>(
+      'SELECT started_at, duration_sec FROM study_sessions ORDER BY started_at ASC',
+      [],
+    ),
+    memoryBuckets(mode),
+    queryHardWords(mode, STATS_HARDEST_LIMIT),
+  ])
+
+  // ── Per-day aggregates ──────────────────────────────────────────────────────
+  const reviewsPerDay = new Map<string, number>()
+  const correctPerDay = new Map<string, number>()
+  const minutesPerDay = new Map<string, number>()
+
+  let correct = 0
+  let wrong = 0
+  let hard = 0
+  let easy = 0
+  let lapses = 0
+  let newIntroduced = 0
+  const forgotten = new Set<string>()
+  const perMode = new Map<ReviewMode, { reviews: number; correct: number }>()
+
+  for (const e of events) {
+    const key = isoDayLocal(new Date(e.reviewed_at))
+    reviewsPerDay.set(key, (reviewsPerDay.get(key) ?? 0) + 1)
+
+    const ok = e.answer !== 'AGAIN'
+    if (ok) {
+      correct++
+      correctPerDay.set(key, (correctPerDay.get(key) ?? 0) + 1)
+    } else {
+      wrong++
+    }
+    if (e.answer === 'HARD') hard++
+    if (e.answer === 'EASY') easy++
+    if (e.is_lapse) {
+      lapses++
+      forgotten.add(e.word_id)
+    }
+    if (e.is_first) newIntroduced++
+
+    const m = perMode.get(e.review_mode) ?? { reviews: 0, correct: 0 }
+    m.reviews++
+    if (ok) m.correct++
+    perMode.set(e.review_mode, m)
+  }
+
+  let studySeconds = 0
+  for (const s of sessions) {
+    const key = dayOf(s.started_at)
+    if (key) minutesPerDay.set(key, (minutesPerDay.get(key) ?? 0) + s.duration_sec / 60)
+    studySeconds += s.duration_sec
+  }
+
+  const activeDayKeys = new Set<string>([...reviewsPerDay.keys(), ...minutesPerDay.keys()])
+
+  const totals: StatTotals = {
+    reviews: events.length,
+    correct,
+    wrong,
+    hard,
+    easy,
+    lapses,
+    newIntroduced,
+    sessions: sessions.length,
+    studyMinutes: Math.round(studySeconds / 60),
+    activeDays: activeDayKeys.size,
+  }
+
+  const accuracy = events.length > 0 ? Math.round((correct / events.length) * 100) : 0
+
+  const byMode: ModeAccuracy[] = (['EN_TO_FA', 'FA_TO_EN'] as ReviewMode[]).map((m) => {
+    const row = perMode.get(m)
+    return {
+      mode: m,
+      reviews: row?.reviews ?? 0,
+      accuracy: row && row.reviews > 0 ? Math.round((row.correct / row.reviews) * 100) : 0,
+    }
+  })
+
+  const daily: DailyStat[] = recentDayKeys(dayStart, STATS_DAILY_DAYS).map((date) => ({
+    date,
+    reviews: reviewsPerDay.get(date) ?? 0,
+    correct: correctPerDay.get(date) ?? 0,
+    minutes: Math.round(minutesPerDay.get(date) ?? 0),
+  }))
+
+  const heatmap: HeatmapDay[] = recentDayKeys(dayStart, STATS_HEATMAP_DAYS).map((date) => ({
+    date,
+    count: reviewsPerDay.get(date) ?? 0,
+  }))
+
+  return {
+    hasEvents: events.length > 0,
+    direction: mode,
+    totals,
+    accuracy,
+    byMode,
+    memory,
+    forgottenWords: forgotten.size,
+    avgReviewsToStable: avgReviewsToStable(events, mode),
+    hardestWords,
+    records: buildRecords(reviewsPerDay, minutesPerDay, activeDayKeys, dayStart),
+    growth: buildGrowthFromEvents(events, mode, dayStart),
+    daily,
+    heatmap,
+  }
+}
+
+/**
+ * Exact stable-word count per day, by replaying the log: every event carries the
+ * interval the word had *after* that answer, so keeping the latest interval per
+ * word gives the true stable set at any instant — lapses included. Events older
+ * than the window are replayed first to establish the baseline.
+ */
+function buildGrowthFromEvents(
+  events: EventRow[],
+  mode: ReviewMode,
+  dayStart: Date,
+): GrowthPoint[] {
+  const keys = recentDayKeys(dayStart, STATS_GROWTH_DAYS)
+  const windowStart = new Date(dayStart)
+  windowStart.setDate(windowStart.getDate() - (STATS_GROWTH_DAYS - 1))
+
+  const interval = new Map<string, number>()
+  let stable = 0
+  const apply = (e: EventRow) => {
+    const was = (interval.get(e.word_id) ?? 0) >= STABLE_INTERVAL_DAYS
+    interval.set(e.word_id, e.interval_days)
+    const is = e.interval_days >= STABLE_INTERVAL_DAYS
+    if (!was && is) stable++
+    else if (was && !is) stable--
+  }
+
+  const scoped = events.filter((e) => e.review_mode === mode)
+  let i = 0
+  while (i < scoped.length && new Date(scoped[i].reviewed_at) < windowStart) apply(scoped[i++])
+
+  const points: GrowthPoint[] = []
+  for (let d = 0; d < keys.length; d++) {
+    const boundary = new Date(windowStart)
+    boundary.setDate(boundary.getDate() + d + 1)
+    while (i < scoped.length && new Date(scoped[i].reviewed_at) < boundary) apply(scoped[i++])
+    points.push({ date: keys[d], count: stable })
+  }
+  return points
+}
+
+/** Mean answers a word needed before its interval first reached 21 days. */
+function avgReviewsToStable(events: EventRow[], mode: ReviewMode): number {
+  const seen = new Map<string, number>()
+  const settled = new Map<string, number>()
+  for (const e of events) {
+    if (e.review_mode !== mode) continue
+    if (settled.has(e.word_id)) continue
+    const count = (seen.get(e.word_id) ?? 0) + 1
+    seen.set(e.word_id, count)
+    if (e.interval_days >= STABLE_INTERVAL_DAYS) settled.set(e.word_id, count)
+  }
+  if (settled.size === 0) return 0
+  let sum = 0
+  for (const c of settled.values()) sum += c
+  return Math.round((sum / settled.size) * 10) / 10
+}
+
+/** Personal bests: busiest day, longest session day, best week, longest streak. */
+function buildRecords(
+  reviewsPerDay: Map<string, number>,
+  minutesPerDay: Map<string, number>,
+  activeDayKeys: Set<string>,
+  dayStart: Date,
+): StatRecords {
+  let bestDayReviews: StatRecords['bestDayReviews'] = null
+  for (const [date, count] of reviewsPerDay) {
+    if (count > 0 && (!bestDayReviews || count > bestDayReviews.count)) {
+      bestDayReviews = { date, count }
+    }
+  }
+
+  let bestDayMinutes: StatRecords['bestDayMinutes'] = null
+  for (const [date, mins] of minutesPerDay) {
+    const minutes = Math.round(mins)
+    if (minutes > 0 && (!bestDayMinutes || minutes > bestDayMinutes.minutes)) {
+      bestDayMinutes = { date, minutes }
+    }
+  }
+
+  // Best rolling 7-day window over the last year — a fixed calendar week would
+  // split a strong streak across two buckets and understate it.
+  const yearKeys = recentDayKeys(dayStart, 365)
+  let bestWeekReviews: StatRecords['bestWeekReviews'] = null
+  let window = 0
+  for (let i = 0; i < yearKeys.length; i++) {
+    window += reviewsPerDay.get(yearKeys[i]) ?? 0
+    if (i >= 7) window -= reviewsPerDay.get(yearKeys[i - 7]) ?? 0
+    if (window > 0 && (!bestWeekReviews || window > bestWeekReviews.count)) {
+      bestWeekReviews = { weekStart: yearKeys[Math.max(0, i - 6)], count: window }
+    }
+  }
+
+  const sorted = [...activeDayKeys].sort()
+  let longestStreak = 0
+  let run = 0
+  let prev: number | null = null
+  for (const key of sorted) {
+    const t = new Date(`${key}T12:00:00`).getTime()
+    run = prev !== null && Math.round((t - prev) / DAY_MS) === 1 ? run + 1 : 1
+    if (run > longestStreak) longestStreak = run
+    prev = t
+  }
+
+  return { bestDayReviews, bestDayMinutes, bestWeekReviews, longestStreak }
 }
 
 // ── Daily learning system (mirrors backend study/plans/settings modules) ───────
@@ -1109,6 +1381,20 @@ export async function answerStudy(wordId: string, answer: StudyAnswer): Promise<
       ],
     )
   }
+
+  // Append to the review log (mirrors backend study.service.answer). `isFirst`
+  // is decided from the state *before* this answer stamped introduced_at.
+  await run(
+    `INSERT INTO review_events (id, word_id, review_mode, answer, repetitions, interval_days,
+       ease_factor, is_first, is_lapse, reviewed_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      uid(), wordId, mode, answer, res.repetitions, res.intervalDays, res.easeFactor,
+      existing?.introduced_at ? 0 : 1,
+      !res.correct && (existing?.repetitions ?? 0) > 0 ? 1 : 0,
+      nowIso,
+    ],
+  )
 
   return {
     wordId,

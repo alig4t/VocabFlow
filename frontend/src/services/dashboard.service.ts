@@ -1,7 +1,13 @@
 import api from '@/lib/axios'
 import { API_ENDPOINTS } from '@/config/api'
 import { isNative } from '@/lib/platform'
-import type { BookSimple, DashboardData, DiscoveryBook, HardWordItem } from '@/types'
+import type {
+  BookSimple,
+  DashboardData,
+  DiscoveryBook,
+  HardWordItem,
+  LearningStats,
+} from '@/types'
 
 const off = () => import('@/offline/repo')
 
@@ -26,6 +32,17 @@ export const dashboardService = {
   getHardWords(): Promise<HardWordItem[]> {
     if (isNative()) return off().then((o) => o.getHardWords())
     return api.get<HardWordItem[]>(API_ENDPOINTS.dashboard.hardWords).then((r) => r.data)
+  },
+
+  /**
+   * The statistics page aggregate. Both sides replay the `review_events` log —
+   * the API on Postgres, native on the local SQLite mirror.
+   */
+  getStats(): Promise<LearningStats> {
+    // NB: the offline export is `getLearningStats` — `getStats` is already
+    // taken there by the vocabulary progress counters.
+    if (isNative()) return off().then((o) => o.getLearningStats())
+    return api.get<LearningStats>(API_ENDPOINTS.stats.get).then((r) => r.data)
   },
 
   // ── Real watchlist endpoints ──────────────────────────────────────────────

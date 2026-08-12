@@ -1,11 +1,25 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { dashboardService } from '@/services/dashboard.service'
-import type { BookSimple, DashboardData, DiscoveryBook, HardWordItem } from '@/types'
+import type {
+  BookSimple,
+  DashboardData,
+  DiscoveryBook,
+  HardWordItem,
+  LearningStats,
+} from '@/types'
 
 export function useDashboard() {
   return useQuery<DashboardData, Error>({
     queryKey: ['dashboard'],
     queryFn: () => dashboardService.getDashboard(),
+  })
+}
+
+/** The statistics page aggregate (replayed from the review log). */
+export function useStats() {
+  return useQuery<LearningStats, Error>({
+    queryKey: ['stats'],
+    queryFn: () => dashboardService.getStats(),
   })
 }
 

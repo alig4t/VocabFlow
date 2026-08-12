@@ -16,6 +16,7 @@ import { studyRouter } from './modules/study/study.router'
 import { planRouter } from './modules/plans/plan.router'
 import { settingsRouter } from './modules/settings/settings.router'
 import { dashboardRouter } from './modules/dashboard/dashboard.router'
+import { statsRouter } from './modules/stats/stats.router'
 import { errorMiddleware } from './shared/middleware/error.middleware'
 
 const app = express()
@@ -40,6 +41,7 @@ app.use('/api/study', studyRouter)
 app.use('/api/plans', planRouter)
 app.use('/api/settings', settingsRouter)
 app.use('/api/dashboard', dashboardRouter)
+app.use('/api/stats', statsRouter)
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date() })

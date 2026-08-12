@@ -19,6 +19,7 @@ const LoginPage = lazy(() => import('./pages/auth/LoginPage').then((m) => ({ def
 const RegisterPage = lazy(() => import('./pages/auth/RegisterPage').then((m) => ({ default: m.RegisterPage })))
 const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })))
 const HardWordsPage = lazy(() => import('./pages/dashboard/HardWordsPage').then((m) => ({ default: m.HardWordsPage })))
+const StatisticsPage = lazy(() => import('./pages/stats/StatisticsPage').then((m) => ({ default: m.StatisticsPage })))
 const LibraryPage = lazy(() => import('./pages/library/LibraryPage').then((m) => ({ default: m.LibraryPage })))
 const BookDetailPage = lazy(() => import('./pages/library/BookDetailPage').then((m) => ({ default: m.BookDetailPage })))
 const VocabularyPage = lazy(() => import('./pages/vocabulary/VocabularyPage').then((m) => ({ default: m.VocabularyPage })))
@@ -154,6 +155,16 @@ export default function App() {
                 <ProtectedRoute>
                   <Layout>
                     <DashboardPage />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/statistics"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <StatisticsPage />
                   </Layout>
                 </ProtectedRoute>
               }

@@ -22,6 +22,7 @@ model User {
   plans         LearningPlan[]
   sessions      StudySession[]
   settings      UserSettings?
+  reviewEvents  ReviewEvent[]
 
   @@map("users")
 }
@@ -138,11 +139,12 @@ model Word {
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
 
-  module   LearningModule     @relation(fields: [moduleId], references: [id])
-  lesson   Lesson?            @relation(fields: [lessonId], references: [id])
-  examples WordExample[]
-  phrases  WordPhrase[]
-  progress UserWordProgress[]
+  module       LearningModule     @relation(fields: [moduleId], references: [id])
+  lesson       Lesson?            @relation(fields: [lessonId], references: [id])
+  examples     WordExample[]
+  phrases      WordPhrase[]
+  progress     UserWordProgress[]
+  reviewEvents ReviewEvent[]
 
   @@index([moduleId])
   @@index([chapter, unit])
@@ -270,6 +272,47 @@ model StudySession {
 
   @@index([userId, startedAt])
   @@map("study_sessions")
+}
+
+/// One row per answered card in the daily program — the append-only history
+/// that the aggregate counters on `user_word_progress` cannot reconstruct.
+///
+/// `user_word_progress` only ever holds the *current* state of a word, so
+/// questions like "how many words were stable last month", "how many words did
+/// I forget", or "how many reviews does a word need before it sticks" are
+/// unanswerable from it. Every answer is appended here instead, and the
+/// statistics page replays the log. SKIP is never recorded: it changes nothing.
+model ReviewEvent {
+  id         String       @id @default(cuid())
+  userId     String       @map("user_id")
+  wordId     String       @map("word_id")
+  reviewMode ReviewMode   @map("review_mode")
+  answer     ReviewAnswer
+  /// SM-2 state AFTER this answer was applied.
+  repetitions  Int
+  intervalDays Int   @map("interval_days")
+  easeFactor   Float @map("ease_factor")
+  /// This answer introduced the word (its very first review).
+  isFirst Boolean @default(false) @map("is_first")
+  /// A word that had already been recalled at least once was answered AGAIN —
+  /// i.e. it was forgotten. The signal behind "واژه‌های فراموش‌شده".
+  isLapse    Boolean  @default(false) @map("is_lapse")
+  reviewedAt DateTime @map("reviewed_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  word Word @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@index([userId, reviewMode, reviewedAt])
+  @@index([userId, wordId, reviewMode])
+  @@map("review_events")
+}
+
+/// The three schedule-changing answers. SKIP is absent on purpose — it never
+/// produces an event.
+enum ReviewAnswer {
+  EASY
+  HARD
+  AGAIN
 }
 
 /// Per-user global preferences. `dailyNewWords`/`dailyGoal` live on

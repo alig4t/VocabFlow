@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma, ReviewMode, WordStatus } from '@prisma/client'
+import { PrismaClient, Prisma, ReviewAnswer, ReviewMode, WordStatus } from '@prisma/client'
 import { SrsResult } from './srs'
 
 const prisma = new PrismaClient()
@@ -206,6 +206,37 @@ export class StudyRepository {
         lastReviewedAt: now,
         nextReviewAt: result.nextReviewAt,
         introducedAt,
+      },
+    })
+  }
+
+  /**
+   * Append one row to the review log. Called on every schedule-changing answer
+   * (never for SKIP) — see the `ReviewEvent` model for why the aggregate
+   * counters on `user_word_progress` are not enough.
+   */
+  async recordReviewEvent(input: {
+    userId: string
+    wordId: string
+    mode: ReviewMode
+    answer: ReviewAnswer
+    result: SrsResult
+    isFirst: boolean
+    isLapse: boolean
+    now: Date
+  }) {
+    return prisma.reviewEvent.create({
+      data: {
+        userId: input.userId,
+        wordId: input.wordId,
+        reviewMode: input.mode,
+        answer: input.answer,
+        repetitions: input.result.repetitions,
+        intervalDays: input.result.intervalDays,
+        easeFactor: input.result.easeFactor,
+        isFirst: input.isFirst,
+        isLapse: input.isLapse,
+        reviewedAt: input.now,
       },
     })
   }

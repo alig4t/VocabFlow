@@ -284,6 +284,64 @@ export interface DashboardData {
   growth: GrowthPoint[]
 }
 
+// ─── Statistics page (backed by the review_events log) ────────────────────────
+
+export interface StatTotals {
+  reviews: number
+  correct: number
+  wrong: number
+  hard: number
+  easy: number
+  /** Words forgotten: an already-recalled word answered «دوباره». */
+  lapses: number
+  /** Answers that introduced a brand-new word. */
+  newIntroduced: number
+  sessions: number
+  studyMinutes: number
+  activeDays: number
+}
+
+export interface ModeAccuracy {
+  mode: ReviewMode
+  reviews: number
+  accuracy: number
+}
+
+export interface DailyStat {
+  date: string
+  reviews: number
+  correct: number
+  minutes: number
+}
+
+export interface StatRecords {
+  bestDayReviews: { date: string; count: number } | null
+  bestDayMinutes: { date: string; minutes: number } | null
+  /** Best rolling 7-day window, keyed by its first day. */
+  bestWeekReviews: { weekStart: string; count: number } | null
+  longestStreak: number
+}
+
+export interface LearningStats {
+  /** False when the review log is empty — the UI explains that stats start now. */
+  hasEvents: boolean
+  direction: ReviewMode
+  totals: StatTotals
+  accuracy: number
+  byMode: ModeAccuracy[]
+  memory: MemoryBreakdown
+  /** Distinct words forgotten at least once. */
+  forgottenWords: number
+  /** Mean number of reviews a word needed before reaching a ≥۲۱-day interval. */
+  avgReviewsToStable: number
+  hardestWords: HardWordItem[]
+  records: StatRecords
+  /** Exact stable-word count per day, replayed from the log. */
+  growth: GrowthPoint[]
+  daily: DailyStat[]
+  heatmap: HeatmapDay[]
+}
+
 /** A book in the discovery/library view, with watchlist membership flag. */
 export interface DiscoveryBook {
   id: string

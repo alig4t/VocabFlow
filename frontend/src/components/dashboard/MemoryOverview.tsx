@@ -8,6 +8,13 @@ import type { GrowthPoint, MemoryBreakdown } from '../../types'
 interface MemoryOverviewProps {
   memory: MemoryBreakdown
   growth: GrowthPoint[]
+  /** Window the curve covers, for the caption. Defaults to the dashboard's 30. */
+  growthDays?: number
+  /**
+   * The dashboard's curve is reconstructed backwards and only approximate; the
+   * statistics page replays `review_events` and is exact. Drops the hedge.
+   */
+  growthExact?: boolean
 }
 
 const BUCKETS = [
@@ -85,7 +92,12 @@ function GrowthSparkline({ points }: { points: GrowthPoint[] }) {
  * keeps no per-day history), so it is an approximation — accurate at "today"
  * and increasingly conservative the further back it goes.
  */
-export function MemoryOverview({ memory, growth }: MemoryOverviewProps) {
+export function MemoryOverview({
+  memory,
+  growth,
+  growthDays = 30,
+  growthExact = false,
+}: MemoryOverviewProps) {
   const total = memory.total
   const gained = growth.length > 1 ? growth[growth.length - 1].count - growth[0].count : 0
 
@@ -162,7 +174,10 @@ export function MemoryOverview({ memory, growth }: MemoryOverviewProps) {
             <div className="space-y-1.5 rounded-xl bg-muted/50 p-3">
               <div className="flex items-center gap-2 text-xs">
                 <TrendingUp className="h-4 w-4 text-success" aria-hidden="true" />
-                <span className="text-muted-foreground">روند واژه‌های پایدار (۳۰ روز اخیر)</span>
+                <span className="text-muted-foreground">
+                  روند واژه‌های پایدار ({faNum(growthDays)} روز اخیر
+                  {growthExact ? '' : ' — تقریبی'})
+                </span>
                 <span
                   className={cn(
                     'mr-auto font-bold tabular-nums',

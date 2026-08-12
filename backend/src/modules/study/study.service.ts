@@ -1,4 +1,4 @@
-import { CardOrder, ReviewMode } from '@prisma/client'
+import { CardOrder, ReviewAnswer, ReviewMode } from '@prisma/client'
 import { NotFoundError } from '../../shared/errors'
 import { StudyRepository, SessionInput } from './study.repository'
 import { schedule, startOfDay, endOfDay, StudyAnswer } from './srs'
@@ -169,6 +169,20 @@ export class StudyService {
     }
 
     await this.repo.saveSchedule(userId, wordId, mode, result, now, existing?.introducedAt ?? null)
+
+    // Append to the review log. `isFirst` is decided from the state *before*
+    // saveSchedule stamped introducedAt; `isLapse` means a word that had
+    // already been recalled at least once was forgotten.
+    await this.repo.recordReviewEvent({
+      userId,
+      wordId,
+      mode,
+      answer: answer as ReviewAnswer,
+      result,
+      isFirst: existing?.introducedAt == null,
+      isLapse: !result.correct && (existing?.repetitions ?? 0) > 0,
+      now,
+    })
 
     return {
       wordId,

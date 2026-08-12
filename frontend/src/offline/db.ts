@@ -129,6 +129,26 @@ CREATE TABLE IF NOT EXISTS study_sessions (
   created_at TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_sessions_started ON study_sessions(started_at);
+-- Append-only review log (mirrors the ReviewEvent model). One row per
+-- schedule-changing answer; SKIP is never recorded. The statistics page replays
+-- this log for anything the progress table cannot answer (history, lapses, growth).
+-- Note this table is new in a later release, so on upgraded installs it is
+-- created empty by this DDL — statistics start from the first answer after the
+-- update, which the UI states explicitly.
+CREATE TABLE IF NOT EXISTS review_events (
+  id TEXT PRIMARY KEY NOT NULL,
+  word_id TEXT NOT NULL,
+  review_mode TEXT NOT NULL,
+  answer TEXT NOT NULL,
+  repetitions INTEGER NOT NULL DEFAULT 0,
+  interval_days INTEGER NOT NULL DEFAULT 0,
+  ease_factor REAL NOT NULL DEFAULT 2.5,
+  is_first INTEGER NOT NULL DEFAULT 0,
+  is_lapse INTEGER NOT NULL DEFAULT 0,
+  reviewed_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_events_reviewed ON review_events(review_mode, reviewed_at);
+CREATE INDEX IF NOT EXISTS idx_events_word ON review_events(word_id, review_mode);
 -- Single-row (local user) settings.
 CREATE TABLE IF NOT EXISTS user_settings (
   id TEXT PRIMARY KEY NOT NULL,

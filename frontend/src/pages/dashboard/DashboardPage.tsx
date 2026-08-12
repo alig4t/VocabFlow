@@ -62,10 +62,16 @@ export function DashboardPage() {
             خلاصه‌ای از مسیر یادگیری شخصی شما
           </p>
         </div>
-        <Button variant="outline" className="gap-2 self-start sm:self-auto" onClick={() => navigate('/library')}>
-          <Compass className="h-4 w-4" aria-hidden="true" />
-          کاوش کتاب‌ها
-        </Button>
+        <div className="flex gap-2 self-start sm:self-auto">
+          <Button variant="outline" className="gap-2" onClick={() => navigate('/statistics')}>
+            <BarChart3 className="h-4 w-4" aria-hidden="true" />
+            آمار یادگیری
+          </Button>
+          <Button variant="outline" className="gap-2" onClick={() => navigate('/library')}>
+            <Compass className="h-4 w-4" aria-hidden="true" />
+            کاوش کتاب‌ها
+          </Button>
+        </div>
       </header>
 
       {isLoading ? (
