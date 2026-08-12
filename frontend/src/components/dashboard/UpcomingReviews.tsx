@@ -35,25 +35,38 @@ export function UpcomingReviews({ days }: UpcomingReviewsProps) {
     <figure className="m-0 space-y-3">
       <figcaption className="text-xs text-muted-foreground">
         مجموع {faNum(total)} مرور در ۷ روز آینده
+        {days[0].count > 0 && (
+          <span className="block pt-0.5 text-[11px]">
+            ستون «امروز» مرورهای عقب‌افتاده را هم در خود دارد.
+          </span>
+        )}
       </figcaption>
 
-      {/* Bars grow upward; RTL order puts "امروز" on the right. */}
-      <div className="flex h-32 items-end gap-1.5 sm:gap-2">
+      {/*
+        Bars grow upward; RTL order puts "امروز" on the right.
+        NOTE: no `items-end` on this row — that would stop the day columns from
+        stretching to h-32, collapsing the bar track to zero height and making
+        every bar invisible. The track below is a fixed-height, `relative` box
+        so each bar's percentage height has a definite containing block.
+      */}
+      <div className="flex gap-1.5 sm:gap-2">
         {days.map((day, i) => {
-          const height = day.count > 0 ? Math.max(6, (day.count / max) * 100) : 2
+          const height = day.count > 0 ? Math.max(4, (day.count / max) * 100) : 0
           return (
             <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
               <span className="text-[11px] font-semibold tabular-nums text-foreground">
                 {day.count > 0 ? faNum(day.count) : '—'}
               </span>
-              <div className="flex w-full flex-1 items-end">
+              <div
+                className="relative h-28 w-full overflow-hidden rounded-md bg-muted/40"
+                title={`${day.date} — ${day.count} مرور`}
+              >
                 <span
                   className={cn(
-                    'w-full rounded-t-md transition-[height]',
-                    i === 0 ? 'bg-primary' : day.count > 0 ? 'bg-primary/35' : 'bg-muted',
+                    'absolute inset-x-0 bottom-0 block rounded-t-md transition-[height]',
+                    i === 0 ? 'bg-primary' : 'bg-primary/40',
                   )}
                   style={{ height: `${height}%` }}
-                  title={`${day.date} — ${day.count} مرور`}
                 />
               </div>
               <span className="w-full truncate text-center text-[11px] text-muted-foreground">
