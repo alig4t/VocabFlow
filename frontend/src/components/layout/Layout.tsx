@@ -19,7 +19,16 @@ export function Layout({ children }: LayoutProps) {
   // so there's no visible jump. Search-param-only changes (filters, paging)
   // are deliberately excluded — those pages scroll themselves.
   useLayoutEffect(() => {
-    mainRef.current?.scrollTo({ top: 0 })
+    const reset = () => {
+      if (mainRef.current) mainRef.current.scrollTop = 0
+      // Some WebView/landing cases scroll the document instead of <main>.
+      if (window.scrollY) window.scrollTo(0, 0)
+    }
+    reset()
+    // A page whose content lands after this commit (cached query data, images,
+    // fonts) can leave the box scrolled, so reset once more on the next frame.
+    const raf = requestAnimationFrame(reset)
+    return () => cancelAnimationFrame(raf)
   }, [pathname])
 
   return (
@@ -45,7 +54,7 @@ export function Layout({ children }: LayoutProps) {
         <main
           id={SCROLL_CONTAINER_ID}
           ref={mainRef}
-          className="flex-1 transform-gpu overflow-y-auto px-2 py-4 [backface-visibility:hidden] sm:p-4 md:p-6 lg:p-8"
+          className="flex-1 transform-gpu overflow-y-auto px-2 py-4 [backface-visibility:hidden] [overflow-anchor:none] sm:p-4 md:p-6 lg:p-8"
         >
           {children}
         </main>
