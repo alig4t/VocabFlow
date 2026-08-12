@@ -6,6 +6,7 @@ import { WordCard } from '@/components/vocabulary/WordCard'
 import { WordFilters, type WordFiltersState } from '@/components/vocabulary/WordFilters'
 import { useWords } from '@/hooks/useVocabulary'
 import { useProgressStats } from '@/hooks/useProgress'
+import { scrollToTop } from '@/lib/scroll'
 import {
   parseVocabParams,
   serializeVocabParams,
@@ -73,7 +74,7 @@ export function VocabularyPage() {
   const handleFiltersChange = useCallback(
     (newFilters: WordFiltersState) => {
       setSearchParams(serializeVocabParams(newFilters, 1))
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      scrollToTop('smooth')
     },
     [setSearchParams],
   )
@@ -91,7 +92,7 @@ export function VocabularyPage() {
 
   function goToPage(p: number) {
     setSearchParams(serializeVocabParams(filters, p))
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    scrollToTop('smooth')
   }
 
   function renderPageButtons() {
