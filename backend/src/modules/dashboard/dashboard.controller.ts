@@ -8,4 +8,9 @@ export class DashboardController {
     const data = await this.service.getDashboard(req.user!.sub)
     res.json({ success: true, data })
   }
+
+  getHardWords = async (req: Request, res: Response): Promise<void> => {
+    const data = await this.service.getHardWords(req.user!.sub)
+    res.json({ success: true, data })
+  }
 }

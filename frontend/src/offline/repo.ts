@@ -748,6 +748,40 @@ const LEARNING_MIN_REPETITIONS = 2
 const GROWTH_DAYS = 30
 const UPCOMING_DAYS = 7
 const HARD_WORDS_LIMIT = 5
+/** The standalone "واژه‌های سخت" page shows the full list, not just the top 5. */
+const HARD_WORDS_PAGE_LIMIT = 100
+
+/** Words answered HARD or wrong the most, hardest first. */
+async function queryHardWords(mode: ReviewMode, limit: number): Promise<HardWordItem[]> {
+  const rows = await query<{
+    id: string
+    eng: string
+    per: string
+    hard_count: number
+    wrong_count: number
+  }>(
+    `SELECT w.id, w.eng, w.per, pr.hard_count, pr.wrong_count
+     FROM progress pr JOIN words w ON pr.word_id=w.id
+     WHERE pr.review_mode=? AND pr.introduced_at IS NOT NULL
+       AND (pr.hard_count>0 OR pr.wrong_count>0)
+     ORDER BY pr.hard_count DESC, pr.wrong_count DESC
+     LIMIT ?`,
+    [mode, limit],
+  )
+  return rows.map((r) => ({
+    wordId: r.id,
+    eng: r.eng,
+    per: r.per,
+    hardCount: r.hard_count,
+    wrongCount: r.wrong_count,
+  }))
+}
+
+/** Full "needs more attention" list for the dedicated page. */
+export async function getHardWords(): Promise<HardWordItem[]> {
+  const settings = await getSettings()
+  return queryHardWords(settings.studyDirection, HARD_WORDS_PAGE_LIMIT)
+}
 
 /**
  * Memory buckets, review forecast, hardest words and the (approximate) growth
@@ -771,7 +805,7 @@ async function getMemoryInsights(
   upcomingUntil.setDate(upcomingUntil.getDate() + (UPCOMING_DAYS - 1))
 
   const introduced = 'review_mode=? AND introduced_at IS NOT NULL'
-  const [freshRow, learningRow, stableRow, stableDates, dueRows, hardRows] = await Promise.all([
+  const [freshRow, learningRow, stableRow, stableDates, dueRows, hardWords] = await Promise.all([
     query<{ c: number }>(
       `SELECT COUNT(*) AS c FROM progress WHERE ${introduced} AND interval_days<? AND repetitions<?`,
       [mode, STABLE_INTERVAL_DAYS, LEARNING_MIN_REPETITIONS],
@@ -794,15 +828,7 @@ async function getMemoryInsights(
        WHERE ${introduced} AND next_review_at IS NOT NULL AND next_review_at<=?`,
       [mode, upcomingUntil.toISOString()],
     ),
-    query<{ id: string; eng: string; per: string; hard_count: number; wrong_count: number }>(
-      `SELECT w.id, w.eng, w.per, pr.hard_count, pr.wrong_count
-       FROM progress pr JOIN words w ON pr.word_id=w.id
-       WHERE pr.review_mode=? AND pr.introduced_at IS NOT NULL
-         AND (pr.hard_count>0 OR pr.wrong_count>0)
-       ORDER BY pr.hard_count DESC, pr.wrong_count DESC
-       LIMIT ?`,
-      [mode, HARD_WORDS_LIMIT],
-    ),
+    queryHardWords(mode, HARD_WORDS_LIMIT),
   ])
 
   const fresh = freshRow[0]?.c ?? 0
@@ -842,14 +868,6 @@ async function getMemoryInsights(
     growth[i] = { date: key, count: Math.max(0, running) }
     running -= perDay.get(key) ?? 0
   }
-
-  const hardWords: HardWordItem[] = hardRows.map((r) => ({
-    wordId: r.id,
-    eng: r.eng,
-    per: r.per,
-    hardCount: r.hard_count,
-    wrongCount: r.wrong_count,
-  }))
 
   return { memory, upcoming, hardWords, growth }
 }

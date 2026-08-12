@@ -1,7 +1,7 @@
 import api from '@/lib/axios'
 import { API_ENDPOINTS } from '@/config/api'
 import { isNative } from '@/lib/platform'
-import type { BookSimple, DashboardData, DiscoveryBook } from '@/types'
+import type { BookSimple, DashboardData, DiscoveryBook, HardWordItem } from '@/types'
 
 const off = () => import('@/offline/repo')
 
@@ -20,6 +20,12 @@ export const dashboardService = {
   getDashboard(): Promise<DashboardData> {
     if (isNative()) return off().then((o) => o.getDashboard())
     return api.get<DashboardData>(API_ENDPOINTS.dashboard.get).then((r) => r.data)
+  },
+
+  /** Full "needs more attention" list (the dashboard card shows only the top 5). */
+  getHardWords(): Promise<HardWordItem[]> {
+    if (isNative()) return off().then((o) => o.getHardWords())
+    return api.get<HardWordItem[]>(API_ENDPOINTS.dashboard.hardWords).then((r) => r.data)
   },
 
   // ── Real watchlist endpoints ──────────────────────────────────────────────

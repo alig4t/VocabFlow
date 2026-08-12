@@ -85,6 +85,8 @@ const HEATMAP_DAYS = 126
 const GROWTH_DAYS = 30
 const UPCOMING_DAYS = 7
 const HARD_WORDS_LIMIT = 5
+/** The standalone "واژه‌های سخت" page shows the full list, not just the top 5. */
+const HARD_WORDS_PAGE_LIMIT = 100
 
 /**
  * Local YYYY-MM-DD bucket for a date (heatmap/streak buckets are day-granular).
@@ -220,6 +222,23 @@ export class DashboardService {
     }))
 
     return { stats, watchlist, heatmap, queue, memory, upcoming, hardWords, growth }
+  }
+
+  /**
+   * The full "words that need more attention" list, for the dedicated page.
+   * Same ordering as the dashboard card — that card is just the top 5 of this.
+   */
+  async getHardWords(userId: string): Promise<HardWordItem[]> {
+    const settings = await this.repo.getUserSettings(userId)
+    const mode: ReviewMode = settings?.studyDirection ?? ReviewMode.EN_TO_FA
+    const rows = await this.repo.getHardWords(userId, mode, HARD_WORDS_PAGE_LIMIT)
+    return rows.map((r) => ({
+      wordId: r.word.id,
+      eng: r.word.eng,
+      per: r.word.per,
+      hardCount: r.hardCount,
+      wrongCount: r.wrongCount,
+    }))
   }
 
   /**

@@ -13,3 +13,4 @@ export const dashboardRouter = Router()
 dashboardRouter.use(authenticate)
 
 dashboardRouter.get('/', dashboardController.getDashboard)
+dashboardRouter.get('/hard-words', dashboardController.getHardWords)

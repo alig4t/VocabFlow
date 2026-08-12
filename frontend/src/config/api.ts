@@ -63,5 +63,6 @@ export const API_ENDPOINTS = {
   },
   dashboard: {
     get: '/dashboard',
+    hardWords: '/dashboard/hard-words',
   },
 } as const

@@ -1,11 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { dashboardService } from '@/services/dashboard.service'
-import type { BookSimple, DashboardData, DiscoveryBook } from '@/types'
+import type { BookSimple, DashboardData, DiscoveryBook, HardWordItem } from '@/types'
 
 export function useDashboard() {
   return useQuery<DashboardData, Error>({
     queryKey: ['dashboard'],
     queryFn: () => dashboardService.getDashboard(),
+  })
+}
+
+/** Full "needs more attention" list for the dedicated hard-words page. */
+export function useHardWords() {
+  return useQuery<HardWordItem[], Error>({
+    queryKey: ['dashboard', 'hard-words'],
+    queryFn: () => dashboardService.getHardWords(),
   })
 }
 
