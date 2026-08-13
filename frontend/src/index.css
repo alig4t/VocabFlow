@@ -257,19 +257,17 @@
     color: transparent;
   }
   /*
-    The dashboard hero's signature bottom edge: it falls away toward the
-    inline-end (left, in RTL) instead of ending on a flat rule. Used exactly
-    once per page — repeating it turns a signature into noise.
-    The element needs `--slant` of extra bottom padding so content clears the cut.
+    Lets a section span the full width of the scroll area by cancelling the
+    padding on Layout's <main> (`px-2 py-4 sm:p-4 md:p-6 lg:p-8`). Keep the two
+    in sync — these numbers are that padding, negated.
   */
-  .edge-slant {
-    --slant: 1.75rem;
-    padding-bottom: calc(1.25rem + var(--slant));
-    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 calc(100% - var(--slant)));
+  .page-bleed {
+    margin-inline: -0.5rem;
+    margin-top: -1rem;
   }
-  @media (min-width: 640px) {
-    .edge-slant { --slant: 2.25rem; padding-bottom: calc(1.5rem + var(--slant)); }
-  }
+  @media (min-width: 640px) { .page-bleed { margin-inline: -1rem;   margin-top: -1rem; } }
+  @media (min-width: 768px) { .page-bleed { margin-inline: -1.5rem; margin-top: -1.5rem; } }
+  @media (min-width: 1024px){ .page-bleed { margin-inline: -2rem;   margin-top: -2rem; } }
 
   /* Soft, layered card elevation tuned for calm-minimal */
   .shadow-soft {

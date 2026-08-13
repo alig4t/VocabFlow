@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import {
   CalendarDays,
-  BarChart3,
   Library,
   Compass,
   CalendarClock,
@@ -26,20 +25,9 @@ import { useDashboard } from '@/hooks/useDashboard'
 import { useAuthStore } from '@/store/authStore'
 import { isNative } from '@/lib/platform'
 
-/** صبح / ظهر / عصر / شب — the greeting tracks the time of day. */
-function greeting(): string {
-  const h = new Date().getHours()
-  if (h < 5) return 'شب بخیر'
-  if (h < 12) return 'صبح بخیر'
-  if (h < 17) return 'ظهر بخیر'
-  if (h < 20) return 'عصر بخیر'
-  return 'شب بخیر'
-}
-
 function DashboardSkeleton() {
   return (
     <div className="space-y-8">
-      <Skeleton className="h-56 rounded-3xl" />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[...Array(4)].map((_, i) => (
           <Skeleton key={i} className="h-28 rounded-2xl" />
@@ -63,45 +51,22 @@ export function DashboardPage() {
   const name = user && !isNative() ? user.name : null
 
   return (
-    /*
-      Section rhythm is `space-y-8`, not the old `space-y-6`: with the hero now
-      carrying real weight, the sections below need room to read as separate
-      answers rather than one continuous stack of cards.
-    */
-    <div dir="rtl" className="font-persian mx-auto max-w-6xl space-y-8">
+    <div dir="rtl" className="font-persian">
       {/*
-        A greeting line, not a page header. The hero underneath states what
-        today looks like, so repeating "خلاصه‌ای از پیشرفت شما" here just spent
-        vertical space before the first useful pixel.
+        ① امروز چه کار کنم؟ — the single primary action on the page.
+
+        It sits outside the max-width container so it can run edge to edge, and
+        it renders in every state (loading, no plans, done) because it carries
+        the greeting.
       */}
-      <header className="flex flex-col gap-3 px-0.5 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-xl font-black tracking-tight text-foreground sm:text-2xl">
-          {greeting()}
-          {name ? `، ${name}` : ''} 👋
-        </h1>
+      <StudyTodayHero userName={name} streak={data?.stats.currentStreak ?? 0} />
 
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() => navigate('/statistics')}
-          >
-            <BarChart3 className="h-4 w-4" aria-hidden="true" />
-            آمار یادگیری
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() => navigate('/library')}
-          >
-            <Compass className="h-4 w-4" aria-hidden="true" />
-            کاوش کتاب‌ها
-          </Button>
-        </div>
-      </header>
-
+      {/*
+        Section rhythm is `space-y-8`, not the old `space-y-6`: with the band
+        carrying real weight, the sections below need room to read as separate
+        answers rather than one continuous stack of cards.
+      */}
+      <div className="mx-auto max-w-6xl space-y-8 pt-6">
       {isLoading ? (
         <DashboardSkeleton />
       ) : isError || !data ? (
@@ -113,9 +78,6 @@ export function DashboardPage() {
         </Card>
       ) : (
         <>
-          {/* ① امروز چه کار کنم؟ — the single primary action on the page */}
-          <StudyTodayHero streak={data.stats.currentStreak} />
-
           {/* Practice — unlocks once today's session is finished */}
           <TodayPracticeCard />
 
@@ -207,6 +169,7 @@ export function DashboardPage() {
           </section>
         </>
       )}
+      </div>
     </div>
   )
 }
