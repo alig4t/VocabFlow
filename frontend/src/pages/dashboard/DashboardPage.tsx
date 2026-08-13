@@ -1,17 +1,18 @@
 import { useNavigate } from 'react-router-dom'
 import {
-  LayoutDashboard,
   CalendarDays,
   BarChart3,
   Library,
   Compass,
   CalendarClock,
   AlertTriangle,
+  Activity,
 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { GlobalStats } from '@/components/dashboard/GlobalStats'
+import { SectionHeading } from '@/components/dashboard/SectionHeading'
 import { StudyTodayHero } from '@/components/dashboard/StudyTodayHero'
 import { TodayPracticeCard } from '@/components/dashboard/TodayPracticeCard'
 import { WatchlistBookCard } from '@/components/dashboard/WatchlistBookCard'
@@ -25,19 +26,29 @@ import { useDashboard } from '@/hooks/useDashboard'
 import { useAuthStore } from '@/store/authStore'
 import { isNative } from '@/lib/platform'
 
+/** صبح / ظهر / عصر / شب — the greeting tracks the time of day. */
+function greeting(): string {
+  const h = new Date().getHours()
+  if (h < 5) return 'شب بخیر'
+  if (h < 12) return 'صبح بخیر'
+  if (h < 17) return 'ظهر بخیر'
+  if (h < 20) return 'عصر بخیر'
+  return 'شب بخیر'
+}
+
 function DashboardSkeleton() {
   return (
-    <div className="space-y-6">
-      <Skeleton className="h-64 rounded-xl" />
+    <div className="space-y-8">
+      <Skeleton className="h-56 rounded-3xl" />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[...Array(4)].map((_, i) => (
-          <Skeleton key={i} className="h-[76px] rounded-xl" />
+          <Skeleton key={i} className="h-28 rounded-2xl" />
         ))}
       </div>
-      <Skeleton className="h-28 rounded-2xl" />
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {[...Array(3)].map((_, i) => (
-          <Skeleton key={i} className="h-72 rounded-xl" />
+      <Skeleton className="h-72 rounded-xl" />
+      <div className="grid gap-4 lg:grid-cols-2">
+        {[...Array(2)].map((_, i) => (
+          <Skeleton key={i} className="h-64 rounded-xl" />
         ))}
       </div>
     </div>
@@ -49,25 +60,42 @@ export function DashboardPage() {
   const user = useAuthStore((s) => s.user)
   const { data, isLoading, isError } = useDashboard()
 
+  const name = user && !isNative() ? user.name : null
+
   return (
-    <div dir="rtl" className="font-persian mx-auto max-w-6xl space-y-6">
-      {/* Greeting header */}
-      <header className="flex flex-col pr-1.5 gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-foreground">
-            <LayoutDashboard className="h-6 w-6 text-primary" aria-hidden="true" />
-            {user ? (isNative() ? 'سلام زبان‌آموز گرامی 👋' : `سلام ${user.name} 👋`) : 'داشبورد'}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            خلاصه‌ای از مسیر یادگیری شخصی شما
-          </p>
-        </div>
-        <div className="flex gap-2 self-start sm:self-auto">
-          <Button variant="outline" className="gap-2" onClick={() => navigate('/statistics')}>
+    /*
+      Section rhythm is `space-y-8`, not the old `space-y-6`: with the hero now
+      carrying real weight, the sections below need room to read as separate
+      answers rather than one continuous stack of cards.
+    */
+    <div dir="rtl" className="font-persian mx-auto max-w-6xl space-y-8">
+      {/*
+        A greeting line, not a page header. The hero underneath states what
+        today looks like, so repeating "خلاصه‌ای از پیشرفت شما" here just spent
+        vertical space before the first useful pixel.
+      */}
+      <header className="flex flex-col gap-3 px-0.5 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-xl font-black tracking-tight text-foreground sm:text-2xl">
+          {greeting()}
+          {name ? `، ${name}` : ''} 👋
+        </h1>
+
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => navigate('/statistics')}
+          >
             <BarChart3 className="h-4 w-4" aria-hidden="true" />
             آمار یادگیری
           </Button>
-          <Button variant="outline" className="gap-2" onClick={() => navigate('/library')}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => navigate('/library')}
+          >
             <Compass className="h-4 w-4" aria-hidden="true" />
             کاوش کتاب‌ها
           </Button>
@@ -78,61 +106,58 @@ export function DashboardPage() {
         <DashboardSkeleton />
       ) : isError || !data ? (
         <Card className="px-6 py-12 text-center">
-          <p className="text-sm font-medium text-destructive">خطا در بارگذاری داشبورد.</p>
-          <p className="mt-1 text-xs text-muted-foreground">لطفاً بعداً دوباره تلاش کنید.</p>
+          <p className="text-sm font-medium text-destructive">داشبورد بارگذاری نشد.</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            اتصال خود را بررسی کنید و دوباره تلاش کنید.
+          </p>
         </Card>
       ) : (
         <>
-          {/* Today's study — the primary call to action */}
-          <StudyTodayHero />
+          {/* ① امروز چه کار کنم؟ — the single primary action on the page */}
+          <StudyTodayHero streak={data.stats.currentStreak} />
 
           {/* Practice — unlocks once today's session is finished */}
           <TodayPracticeCard />
 
-          {/* Memory: the SM-2 story — where every word stands, and the 30-day trend */}
-          <MemoryOverview memory={data.memory} growth={data.growth} />
-
-          {/* Global stats */}
+          {/* ② وضعیتم چطور است؟ */}
           <GlobalStats stats={data.stats} />
 
-          {/* Smart review queue */}
-          <ContinueLearning queue={data.queue} />
+          {/* ③ چقدر پیشرفت کرده‌ام؟ — where every word stands, plus the trend.
+              This card carries its own accent heading, so no SectionHeading. */}
+          <MemoryOverview memory={data.memory} growth={data.growth} />
 
-          {/* What's coming, and what keeps going wrong */}
+          {/* ④ چه چیزی در راه است و کجا گیر کرده‌ام؟ */}
           <section className="grid gap-4 lg:grid-cols-2">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <CalendarClock className="h-5 w-5 text-primary" aria-hidden="true" />
-                  مرورهای پیش رو
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <UpcomingReviews days={data.upcoming} />
-              </CardContent>
-            </Card>
+            <div className="space-y-3">
+              <SectionHeading icon={CalendarClock} accent="مرورهای">
+                پیش رو
+              </SectionHeading>
+              <Card className="shadow-soft">
+                <CardContent className="pt-6">
+                  <UpcomingReviews days={data.upcoming} />
+                </CardContent>
+              </Card>
+            </div>
 
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <AlertTriangle className="h-5 w-5 text-warning" aria-hidden="true" />
-                  نیاز به توجه بیشتر
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <HardWords words={data.hardWords} />
-              </CardContent>
-            </Card>
+            <div className="space-y-3">
+              <SectionHeading icon={AlertTriangle} accent="نیاز">
+                به توجه بیشتر
+              </SectionHeading>
+              <Card className="shadow-soft">
+                <CardContent className="pt-6">
+                  <HardWords words={data.hardWords} />
+                </CardContent>
+              </Card>
+            </div>
           </section>
 
-          {/* Watchlist */}
+          {/* ⑤ کتاب‌هایم — with the per-book review queue as its lead-in */}
           <section className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="flex items-center gap-2 text-lg font-bold text-foreground">
-                <Library className="h-5 w-5 text-primary" aria-hidden="true" />
-                کتاب‌های من
-              </h2>
-            </div>
+            <SectionHeading icon={Library} accent="کتاب‌های">
+              من
+            </SectionHeading>
+
+            <ContinueLearning queue={data.queue} />
 
             {data.watchlist.length === 0 ? (
               <Card className="flex flex-col items-center gap-3 px-6 py-14 text-center">
@@ -157,31 +182,28 @@ export function DashboardPage() {
             )}
           </section>
 
-          {/* Analytics: heatmap + comparison */}
-          <section className="grid gap-4 lg:grid-cols-3">
-            <Card className="lg:col-span-2">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <CalendarDays className="h-5 w-5 text-primary" aria-hidden="true" />
-                  فعالیت مطالعه
-                </CardTitle>
-              </CardHeader>
-              <CardContent className='p-2 pr-4 pl-3 sm:p-6'>
-                <ActivityHeatmap days={data.heatmap} />
-              </CardContent>
-            </Card>
+          {/* ⑥ سابقه‌ام چیست؟ */}
+          <section className="space-y-3">
+            <SectionHeading icon={Activity} accent="فعالیت">
+              مطالعه
+            </SectionHeading>
+            <div className="grid gap-4 lg:grid-cols-3">
+              <Card className="shadow-soft lg:col-span-2">
+                <CardContent className="p-2 pl-3 pr-4 pt-6 sm:p-6">
+                  <ActivityHeatmap days={data.heatmap} />
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <BarChart3 className="h-5 w-5 text-primary" aria-hidden="true" />
-                  مقایسه کتاب‌ها
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <BookComparison books={data.watchlist} />
-              </CardContent>
-            </Card>
+              <Card className="shadow-soft">
+                <CardContent className="space-y-3 pt-6">
+                  <p className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                    <CalendarDays className="h-4 w-4 text-accent-foreground" aria-hidden="true" />
+                    مقایسه کتاب‌ها
+                  </p>
+                  <BookComparison books={data.watchlist} />
+                </CardContent>
+              </Card>
+            </div>
           </section>
         </>
       )}

@@ -59,6 +59,12 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        /* Dashboard hero surface — the one dark, full-bleed panel per page. */
+        hero: {
+          DEFAULT: 'hsl(var(--hero))',
+          foreground: 'hsl(var(--hero-foreground))',
+          muted: 'hsl(var(--hero-muted))',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',

@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { Brain, Sprout, Leaf, TreeDeciduous, TrendingUp } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
+import { ProgressRing } from './ProgressRing'
 import { faNum } from '../../lib/format'
 import { cn } from '../../lib/utils'
 import type { GrowthPoint, MemoryBreakdown } from '../../types'
@@ -23,7 +24,7 @@ const BUCKETS = [
     icon: Sprout,
     label: 'تازه',
     hint: 'تازه وارد چرخه مرور شده',
-    bar: 'bg-chart-5',
+    ring: 'stroke-chart-5',
     chip: 'bg-chart-5/10 text-chart-5',
   },
   {
@@ -31,7 +32,7 @@ const BUCKETS = [
     icon: Leaf,
     label: 'در حال یادگیری',
     hint: 'هنوز به فاصله مرور بلند نرسیده',
-    bar: 'bg-warning',
+    ring: 'stroke-warning',
     chip: 'bg-warning/15 text-warning',
   },
   {
@@ -39,7 +40,7 @@ const BUCKETS = [
     icon: TreeDeciduous,
     label: 'پایدار',
     hint: 'فاصله مرور بیش از ۲۱ روز',
-    bar: 'bg-success',
+    ring: 'stroke-success',
     chip: 'bg-success/10 text-success',
   },
 ]
@@ -104,10 +105,17 @@ export function MemoryOverview({
   return (
     <Card className="shadow-soft">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Brain className="h-5 w-5 text-primary" aria-hidden="true" />
-          وضعیت حافظه
-          <span className="mr-auto text-sm font-normal text-muted-foreground">
+        <CardTitle className="flex items-center gap-3 text-base">
+          <span
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground"
+            aria-hidden="true"
+          >
+            <Brain className="h-4 w-4" />
+          </span>
+          <span className="text-lg font-bold">
+            <span className="text-accent-foreground">وضعیت</span> حافظه
+          </span>
+          <span className="mr-auto text-xs font-normal text-muted-foreground">
             {faNum(total)} واژه در چرخه مرور
           </span>
         </CardTitle>
@@ -120,55 +128,66 @@ export function MemoryOverview({
           </p>
         ) : (
           <>
-            {/* Stacked bar: one glance at the whole memory */}
-            <div
-              className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted"
-              role="img"
-              aria-label={`تازه ${memory.fresh}، در حال یادگیری ${memory.learning}، پایدار ${memory.stable}`}
-            >
-              {BUCKETS.map((b) => {
-                const value = memory[b.key]
-                if (value === 0) return null
-                return (
-                  <span
-                    key={b.key}
-                    className={cn('h-full', b.bar)}
-                    style={{ width: `${(value / total) * 100}%` }}
-                  />
-                )
-              })}
-            </div>
+            {/*
+              Segmented dial + legend. The ring shows the split; the number in
+              the middle answers the question people actually ask of this card —
+              "how much of my vocabulary is safe?"
+            */}
+            <div className="flex flex-col items-center gap-6 sm:flex-row sm:gap-8">
+              <ProgressRing
+                segments={BUCKETS.map((b) => ({
+                  value: memory[b.key],
+                  className: b.ring,
+                }))}
+                thickness={11}
+                trackClassName="stroke-muted"
+                className="h-36 w-36 shrink-0"
+                label={`تازه ${memory.fresh}، در حال یادگیری ${memory.learning}، پایدار ${memory.stable}`}
+              >
+                <span className="text-3xl font-black tabular-nums text-foreground">
+                  {faNum(Math.round((memory.stable / total) * 100))}٪
+                </span>
+                <span className="mt-1.5 text-[11px] font-medium text-muted-foreground">
+                  پایدار
+                </span>
+              </ProgressRing>
 
-            {/* Per-bucket detail */}
-            <ul className="grid gap-3 sm:grid-cols-3">
-              {BUCKETS.map((b) => {
-                const Icon = b.icon
-                const value = memory[b.key]
-                return (
-                  <li
-                    key={b.key}
-                    className="flex items-center gap-3 rounded-xl border border-border bg-card p-3"
-                  >
-                    <span
-                      className={cn(
-                        'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
-                        b.chip,
-                      )}
-                      aria-hidden="true"
+              <ul className="w-full flex-1 space-y-2">
+                {BUCKETS.map((b) => {
+                  const Icon = b.icon
+                  const value = memory[b.key]
+                  const share = Math.round((value / total) * 100)
+                  return (
+                    <li
+                      key={b.key}
+                      className="flex items-center gap-3 rounded-xl bg-muted/40 px-3 py-2.5"
                     >
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-lg font-bold tabular-nums leading-tight text-foreground">
-                        {faNum(value)}
-                      </p>
-                      <p className="truncate text-xs font-medium text-foreground">{b.label}</p>
-                      <p className="truncate text-[11px] text-muted-foreground">{b.hint}</p>
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
+                      <span
+                        className={cn(
+                          'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg',
+                          b.chip,
+                        )}
+                        aria-hidden="true"
+                      >
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-foreground">{b.label}</p>
+                        <p className="truncate text-[11px] text-muted-foreground">{b.hint}</p>
+                      </div>
+                      <div className="shrink-0 text-left">
+                        <p className="text-lg font-black tabular-nums leading-none text-foreground">
+                          {faNum(value)}
+                        </p>
+                        <p className="mt-1 text-[11px] tabular-nums text-muted-foreground">
+                          {faNum(share)}٪
+                        </p>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
 
             {/* 30-day growth of the stable set */}
             <div className="space-y-1.5 rounded-xl bg-muted/50 p-3">

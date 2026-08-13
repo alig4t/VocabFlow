@@ -48,14 +48,14 @@ export function WatchlistBookCard({ book }: WatchlistBookCardProps) {
             src={book.coverImage}
             alt={book.title}
             loading="lazy"
-            className="h-14 w-11 shrink-0 rounded-lg object-cover ring-1 ring-border bg-muted"
+            className="h-[4.5rem] w-14 shrink-0 rounded-lg object-cover shadow-sm ring-1 ring-border bg-muted"
           />
         ) : (
           <span
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+            className="flex h-[4.5rem] w-14 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground"
             aria-hidden="true"
           >
-            <BookOpen className="h-5 w-5" />
+            <BookOpen className="h-6 w-6" />
           </span>
         )}
         <div className="min-w-0 flex-1">

@@ -33,25 +33,40 @@ export function HardWords({ words }: HardWordsProps) {
   return (
     <div className="space-y-3">
       <ul className="space-y-1.5">
-        {words.map((w) => (
-          <li key={w.wordId} className="flex items-center gap-3 px-2 py-2">
-            <AlertTriangle className="h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
-            <span className="min-w-0 flex-1">
-              {/* dir=ltr keeps the English readable; text-right aligns it with
-                  the Persian meaning underneath in the RTL layout. */}
-              <span
-                dir="ltr"
-                className="block truncate text-right text-sm font-semibold text-foreground"
-              >
-                {w.eng}
+        {words.map((w) => {
+          // Four strikes is where a word stops being "tricky" and starts being
+          // a blocker; the bar saturates there so the scale stays readable.
+          const strikes = Math.max(w.hardCount, w.wrongCount)
+          const severity = Math.min(100, (strikes / 4) * 100)
+          return (
+            <li
+              key={w.wordId}
+              className="flex items-center gap-3 rounded-xl bg-muted/40 px-3 py-2.5"
+            >
+              <AlertTriangle className="h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
+              <span className="min-w-0 flex-1 space-y-1">
+                {/* dir=ltr keeps the English readable; text-right aligns it with
+                    the Persian meaning underneath in the RTL layout. */}
+                <span
+                  dir="ltr"
+                  className="block truncate text-right text-sm font-semibold text-foreground"
+                >
+                  {w.eng}
+                </span>
+                <span className="block truncate text-xs text-muted-foreground">{w.per}</span>
+                <span className="block h-[3px] w-24 overflow-hidden rounded-full bg-warning/15">
+                  <span
+                    className="block h-full rounded-full bg-warning/70"
+                    style={{ width: `${severity}%` }}
+                  />
+                </span>
               </span>
-              <span className="block truncate text-xs text-muted-foreground">{w.per}</span>
-            </span>
-            <span className="shrink-0 rounded-full bg-warning/15 px-2 py-0.5 text-[11px] font-medium tabular-nums text-warning">
-              {struggleLabel(w)}
-            </span>
-          </li>
-        ))}
+              <span className="shrink-0 rounded-full bg-warning/15 px-2 py-0.5 text-[11px] font-medium tabular-nums text-warning">
+                {struggleLabel(w)}
+              </span>
+            </li>
+          )
+        })}
       </ul>
 
       <Button

@@ -121,6 +121,10 @@
     --chart-3: 152 55% 42%;
     --chart-4: 15 82% 55%;
     --chart-5: 265 55% 58%;
+    /* Hero panel — brand navy #18243C */
+    --hero: 222 44% 16%;
+    --hero-foreground: 40 32% 96%;
+    --hero-muted: 40 16% 74%;
   }
   .dark {
     --background: 222 47% 6%;
@@ -153,6 +157,10 @@
     --chart-3: 152 55% 52%;
     --chart-4: 18 85% 60%;
     --chart-5: 265 70% 68%;
+    /* Sits above the near-black background, so it reads as a raised panel. */
+    --hero: 222 42% 17%;
+    --hero-foreground: 40 30% 94%;
+    --hero-muted: 40 14% 70%;
   }
   /* ── Study mode · warm sepia + gold, easy on the eyes for long reading ── */
   .study {
@@ -186,6 +194,10 @@
     --chart-3: 122 32% 38%;
     --chart-4: 40 80% 44%;
     --chart-5: 265 40% 50%;
+    /* Warm espresso instead of navy — navy fights the sepia paper. */
+    --hero: 28 34% 20%;
+    --hero-foreground: 42 46% 95%;
+    --hero-muted: 36 20% 76%;
   }
 
   * { @apply border-border; }
@@ -244,6 +256,21 @@
     background-clip: text;
     color: transparent;
   }
+  /*
+    The dashboard hero's signature bottom edge: it falls away toward the
+    inline-end (left, in RTL) instead of ending on a flat rule. Used exactly
+    once per page — repeating it turns a signature into noise.
+    The element needs `--slant` of extra bottom padding so content clears the cut.
+  */
+  .edge-slant {
+    --slant: 1.75rem;
+    padding-bottom: calc(1.25rem + var(--slant));
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 calc(100% - var(--slant)));
+  }
+  @media (min-width: 640px) {
+    .edge-slant { --slant: 2.25rem; padding-bottom: calc(1.5rem + var(--slant)); }
+  }
+
   /* Soft, layered card elevation tuned for calm-minimal */
   .shadow-soft {
     box-shadow:
