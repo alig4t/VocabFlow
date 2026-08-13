@@ -11,9 +11,15 @@ export interface RingSegment {
 /** Named gradients for the single-arc mode. */
 const GRADIENTS = {
   gold: ['hsl(var(--gradient-from))', 'hsl(var(--gradient-to))'],
-  /** The hero dial: travels violet → gold, so the arc reads as motion. */
+  /** Travels violet → gold, so the arc reads as motion. */
   violet: ['hsl(var(--brand-violet))', 'hsl(var(--primary))'],
   mint: ['hsl(var(--brand-mint))', 'hsl(var(--primary))'],
+  /*
+    The hero dial. Ends on `--dial-to` rather than raw gold: gold on the cream
+    panel is about 1.7:1, well under the 3:1 a data mark needs. `--dial-to` is
+    per-theme — deep amber on light surfaces, bright gold on dark ones.
+  */
+  dial: ['hsl(var(--brand-violet))', 'hsl(var(--dial-to))'],
 } as const
 
 export type RingGradient = keyof typeof GRADIENTS
@@ -41,10 +47,12 @@ interface ProgressRingProps {
   children?: ReactNode
 }
 
+/* Weak on light surfaces, where a blurred disc reads as a smudge; stronger on
+   dark, where it reads as light coming off the arc. */
 const GLOW_CLASS = {
-  violet: 'bg-violet/25',
-  gold: 'bg-primary/25',
-  mint: 'bg-mint/25',
+  violet: 'bg-violet/10 dark:bg-violet/25',
+  gold: 'bg-primary/10 dark:bg-primary/25',
+  mint: 'bg-mint/10 dark:bg-mint/25',
 } as const
 
 /**
@@ -161,7 +169,7 @@ export function ProgressRing({
                     cx={tipX}
                     cy={tipY}
                     r={thickness / 2 + 1.5}
-                    className="fill-primary"
+                    className={gradient === 'dial' ? 'fill-[hsl(var(--dial-to))]' : 'fill-primary'}
                   />
                 )}
               </>

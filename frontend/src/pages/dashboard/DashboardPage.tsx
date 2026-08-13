@@ -59,6 +59,7 @@ export function DashboardPage() {
         streak={data?.stats.currentStreak ?? 0}
         accuracy={data?.stats.accuracyRate ?? 0}
         wordsInMemory={data?.memory.total ?? 0}
+        textureWords={data?.hardWords.map((w) => w.eng)}
       />
 
       {/*
@@ -66,8 +67,13 @@ export function DashboardPage() {
         banked → what am I reading → where am I stuck → what's coming → history.
         Rhythm is `space-y-10`: the cards no longer carry borders, so the gap
         between sections is what separates them.
+
+        The negative top margin lifts the first card onto the hero's diagonal
+        instead of leaving a clean seam between the band and the page — the two
+        overlap, which is what stops the transition reading as "hero ends, plain
+        dashboard begins".
       */}
-      <div className="mx-auto max-w-6xl space-y-10 pt-8">
+      <div className="relative z-10 mx-auto -mt-14 max-w-6xl space-y-10 sm:-mt-20">
         {isLoading ? (
           <DashboardSkeleton />
         ) : isError || !data ? (

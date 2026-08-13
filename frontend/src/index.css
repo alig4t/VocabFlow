@@ -121,10 +121,24 @@
     --chart-3: 152 55% 42%;
     --chart-4: 15 82% 55%;
     --chart-5: 265 55% 58%;
-    /* Hero panel — brand navy #18243C */
-    --hero: 222 44% 16%;
-    --hero-foreground: 40 32% 96%;
-    --hero-muted: 40 16% 74%;
+    /*
+      Hero panel — the landing page's own hero wash, so the app opens on the
+      same surface the marketing page closes on. Three stops, warm cream,
+      slightly deeper than `--background` so the band still reads as a band.
+    */
+    --hero-1: 43 58% 98%;
+    --hero-2: 39 52% 91%;
+    --hero-3: 40 76% 95%;
+    --hero: 40 55% 95%;
+    --hero-foreground: 222 45% 12%;
+    --hero-muted: 220 12% 42%;
+    /* Unfilled part of a dial drawn on the hero. */
+    --hero-track: 40 26% 85%;
+    /*
+      Far end of the hero dial's gradient. Deep enough to clear 3:1 against the
+      cream panel — raw gold sits near 1.7:1 there — without going olive.
+    */
+    --dial-to: 38 92% 42%;
     /*
       Two secondary accents beside the gold. Gold alone had to carry every
       non-semantic highlight, which is why the dark panel read as flat: violet
@@ -166,10 +180,15 @@
     --chart-3: 152 55% 52%;
     --chart-4: 18 85% 60%;
     --chart-5: 265 70% 68%;
-    /* Sits above the near-black background, so it reads as a raised panel. */
-    --hero: 222 42% 17%;
+    /* The landing page's dark hero wash. */
+    --hero-1: 218 43% 7%;
+    --hero-2: 222 50% 13%;
+    --hero-3: 218 53% 9%;
+    --hero: 222 46% 11%;
     --hero-foreground: 40 30% 94%;
-    --hero-muted: 40 14% 70%;
+    --hero-muted: 220 15% 64%;
+    --hero-track: 222 26% 24%;
+    --dial-to: 49 86% 62%;
     --brand-violet: 258 74% 72%;
     --brand-mint: 166 52% 52%;
   }
@@ -205,10 +224,15 @@
     --chart-3: 122 32% 38%;
     --chart-4: 40 80% 44%;
     --chart-5: 265 40% 50%;
-    /* Warm espresso instead of navy — navy fights the sepia paper. */
-    --hero: 28 34% 20%;
-    --hero-foreground: 42 46% 95%;
-    --hero-muted: 36 20% 76%;
+    /* Deeper than the sepia paper, same family — a warmer sheet of the same stock. */
+    --hero-1: 38 46% 94%;
+    --hero-2: 34 34% 85%;
+    --hero-3: 40 52% 91%;
+    --hero: 36 40% 90%;
+    --hero-foreground: 28 28% 20%;
+    --hero-muted: 30 16% 40%;
+    --hero-track: 34 24% 76%;
+    --dial-to: 30 80% 38%;
     /* Desaturated so the accents read as aged ink, not neon, on warm paper. */
     --brand-violet: 265 34% 52%;
     --brand-mint: 162 32% 36%;
@@ -288,6 +312,16 @@
     background-clip: text;
     color: transparent;
   }
+  /* The hero wash. Three stops rather than two so the warm centre band shows. */
+  .bg-hero-surface {
+    background-image: linear-gradient(
+      205deg,
+      hsl(var(--hero-1)) 0%,
+      hsl(var(--hero-2)) 55%,
+      hsl(var(--hero-3)) 100%
+    );
+  }
+
   /*
     Lets a section span the full width of the scroll area by cancelling the
     padding on Layout's <main> (`px-2 py-4 sm:p-4 md:p-6 lg:p-8`). Keep the two
