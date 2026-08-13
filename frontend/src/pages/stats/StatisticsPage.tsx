@@ -212,10 +212,10 @@ function StatsContent({
       {/* Headline numbers */}
       <section aria-label="خلاصه آمار" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatTile icon={Repeat2} accent="primary" label="کل مرورها" value={faNum(totals.reviews)} />
-        <StatTile icon={Target} accent="success" label="دقت کل" value={faPercent(stats.accuracy)} />
+        <StatTile icon={Target} accent="mint" label="دقت کل" value={faPercent(stats.accuracy)} />
         <StatTile
           icon={Clock}
-          accent="chart-5"
+          accent="violet"
           label="زمان مطالعه"
           value={
             totals.studyMinutes >= 60

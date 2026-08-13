@@ -8,6 +8,16 @@ export interface RingSegment {
   className: string
 }
 
+/** Named gradients for the single-arc mode. */
+const GRADIENTS = {
+  gold: ['hsl(var(--gradient-from))', 'hsl(var(--gradient-to))'],
+  /** The hero dial: travels violet → gold, so the arc reads as motion. */
+  violet: ['hsl(var(--brand-violet))', 'hsl(var(--primary))'],
+  mint: ['hsl(var(--brand-mint))', 'hsl(var(--primary))'],
+} as const
+
+export type RingGradient = keyof typeof GRADIENTS
+
 interface ProgressRingProps {
   /** 0–100. Ignored when `segments` is provided. */
   value?: number
@@ -15,20 +25,30 @@ interface ProgressRingProps {
   segments?: RingSegment[]
   /** Stroke width in viewBox units (the box is 100×100). */
   thickness?: number
-  /** Paint the single arc with the brand gold gradient. */
-  gradient?: boolean
-  /** Stroke class for the single arc when `gradient` is off. */
+  /** Paint the single arc with a named gradient. */
+  gradient?: RingGradient
+  /** Stroke class for the single arc when `gradient` is unset. */
   arcClassName?: string
   trackClassName?: string
   className?: string
+  /** Marks the head of the arc with a dot — reads as "you are here". */
+  tip?: boolean
+  /** Soft colored halo behind the ring. */
+  glow?: 'violet' | 'gold' | 'mint'
   /** Describes the ring for screen readers; the ring is decorative without it. */
   label?: string
   /** Centre content — a number, a percentage, a short caption. */
   children?: ReactNode
 }
 
+const GLOW_CLASS = {
+  violet: 'bg-violet/25',
+  gold: 'bg-primary/25',
+  mint: 'bg-mint/25',
+} as const
+
 /**
- * The dashboard's one recurring visual motif: a circular progress dial.
+ * The dashboard's recurring visual motif: a circular progress dial.
  *
  * Two modes — a single arc (today's completion) and a segmented ring (how the
  * whole vocabulary splits across memory strengths). Kept to those two uses on
@@ -38,10 +58,12 @@ export function ProgressRing({
   value = 0,
   segments,
   thickness = 9,
-  gradient = false,
+  gradient,
   arcClassName = 'stroke-primary',
   trackClassName = 'stroke-muted',
   className,
+  tip = false,
+  glow,
   label,
   children,
 }: ProgressRingProps) {
@@ -49,22 +71,40 @@ export function ProgressRing({
   const r = 50 - thickness / 2
   const circumference = 2 * Math.PI * r
 
+  const pct = Math.min(100, Math.max(0, value))
+
+  // The <circle> starts at 3 o'clock and runs clockwise; the whole SVG is then
+  // rotated -90°, so the tip lands wherever the arc visually ends.
+  const tipAngle = (pct / 100) * 2 * Math.PI
+  const tipX = 50 + r * Math.cos(tipAngle)
+  const tipY = 50 + r * Math.sin(tipAngle)
+
   const total = segments?.reduce((s, x) => s + x.value, 0) ?? 0
   let offset = 0
 
   return (
     <div className={cn('relative shrink-0', className)}>
+      {glow && (
+        <span
+          aria-hidden="true"
+          className={cn(
+            'pointer-events-none absolute inset-2 rounded-full blur-2xl',
+            GLOW_CLASS[glow],
+          )}
+        />
+      )}
+
       <svg
         viewBox="0 0 100 100"
-        className="h-full w-full -rotate-90"
+        className="relative h-full w-full -rotate-90"
         role={label ? 'img' : 'presentation'}
         aria-label={label}
       >
         {gradient && (
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="hsl(var(--gradient-from))" />
-              <stop offset="100%" stopColor="hsl(var(--gradient-to))" />
+              <stop offset="0%" stopColor={GRADIENTS[gradient][0]} />
+              <stop offset="100%" stopColor={GRADIENTS[gradient][1]} />
             </linearGradient>
           </defs>
         )}
@@ -100,21 +140,31 @@ export function ProgressRing({
               )
             })
           : !segments && (
-              <circle
-                cx="50"
-                cy="50"
-                r={r}
-                fill="none"
-                strokeWidth={thickness}
-                strokeLinecap="round"
-                strokeDasharray={circumference}
-                strokeDashoffset={circumference * (1 - Math.min(100, Math.max(0, value)) / 100)}
-                stroke={gradient ? `url(#${gradientId})` : undefined}
-                className={cn(
-                  'transition-[stroke-dashoffset] duration-700 ease-out motion-reduce:transition-none',
-                  gradient ? undefined : arcClassName,
+              <>
+                <circle
+                  cx="50"
+                  cy="50"
+                  r={r}
+                  fill="none"
+                  strokeWidth={thickness}
+                  strokeLinecap="round"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={circumference * (1 - pct / 100)}
+                  stroke={gradient ? `url(#${gradientId})` : undefined}
+                  className={cn(
+                    'transition-[stroke-dashoffset] duration-700 ease-out motion-reduce:transition-none',
+                    gradient ? undefined : arcClassName,
+                  )}
+                />
+                {tip && pct > 0 && pct < 100 && (
+                  <circle
+                    cx={tipX}
+                    cy={tipY}
+                    r={thickness / 2 + 1.5}
+                    className="fill-primary"
+                  />
                 )}
-              />
+              </>
             )}
       </svg>
 

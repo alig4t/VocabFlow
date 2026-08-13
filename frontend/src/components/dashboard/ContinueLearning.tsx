@@ -23,7 +23,7 @@ export function ContinueLearning({ queue }: ContinueLearningProps) {
   if (totalDue === 0) return null
 
   return (
-    <section className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+    <section className="surface rounded-3xl p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 space-y-2.5">
           <p className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">

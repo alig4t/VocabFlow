@@ -125,6 +125,15 @@
     --hero: 222 44% 16%;
     --hero-foreground: 40 32% 96%;
     --hero-muted: 40 16% 74%;
+    /*
+      Two secondary accents beside the gold. Gold alone had to carry every
+      non-semantic highlight, which is why the dark panel read as flat: violet
+      gives the progress dial a gradient to travel along, mint marks progress
+      that is already banked. Both are tuned to sit with the navy, not compete
+      with it.
+    */
+    --brand-violet: 258 68% 60%;
+    --brand-mint: 166 58% 40%;
   }
   .dark {
     --background: 222 47% 6%;
@@ -161,6 +170,8 @@
     --hero: 222 42% 17%;
     --hero-foreground: 40 30% 94%;
     --hero-muted: 40 14% 70%;
+    --brand-violet: 258 74% 72%;
+    --brand-mint: 166 52% 52%;
   }
   /* ── Study mode · warm sepia + gold, easy on the eyes for long reading ── */
   .study {
@@ -198,6 +209,9 @@
     --hero: 28 34% 20%;
     --hero-foreground: 42 46% 95%;
     --hero-muted: 36 20% 76%;
+    /* Desaturated so the accents read as aged ink, not neon, on warm paper. */
+    --brand-violet: 265 34% 52%;
+    --brand-mint: 162 32% 36%;
   }
 
   * { @apply border-border; }
@@ -292,6 +306,44 @@
     box-shadow:
       0 1px 2px -1px hsl(222 47% 11% / 0.08),
       0 4px 16px -6px hsl(222 47% 11% / 0.08);
+  }
+
+  /*
+    Surfaces that carry themselves on shadow instead of a 1px rule. Borders
+    everywhere is what made the page read as a grid of boxes; a soft double
+    shadow separates a card from the page without drawing an outline around it.
+  */
+  .surface {
+    background-color: hsl(var(--card));
+    box-shadow:
+      0 1px 2px hsl(222 47% 11% / 0.05),
+      0 8px 24px -12px hsl(222 47% 11% / 0.14);
+  }
+  .dark .surface {
+    box-shadow:
+      0 1px 2px hsl(0 0% 0% / 0.4),
+      0 8px 24px -12px hsl(0 0% 0% / 0.6);
+  }
+
+  /* A quiet inset surface for rows inside a card (legend lines, list items). */
+  .surface-sunken {
+    background-color: hsl(var(--muted) / 0.45);
+  }
+
+  /*
+    Faint atmosphere behind the page: two wide, very low-opacity washes so the
+    off-white doesn't read as flat paper. Fixed, non-interactive, and weak
+    enough that text contrast is unaffected.
+  */
+  .page-atmosphere::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(60rem 40rem at 85% -10%, hsl(var(--primary) / 0.07), transparent 60%),
+      radial-gradient(50rem 36rem at 5% 40%, hsl(var(--brand-violet) / 0.06), transparent 60%);
   }
 
   /* Styled native <select>: removes the OS arrow and draws a clean chevron

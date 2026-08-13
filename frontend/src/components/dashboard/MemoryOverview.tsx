@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import { Brain, Sprout, Leaf, TreeDeciduous, TrendingUp } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { ProgressRing } from './ProgressRing'
 import { faNum } from '../../lib/format'
 import { cn } from '../../lib/utils'
@@ -24,8 +23,8 @@ const BUCKETS = [
     icon: Sprout,
     label: 'تازه',
     hint: 'تازه وارد چرخه مرور شده',
-    ring: 'stroke-chart-5',
-    chip: 'bg-chart-5/10 text-chart-5',
+    ring: 'stroke-violet',
+    chip: 'bg-violet/10 text-violet',
   },
   {
     key: 'learning' as const,
@@ -40,8 +39,8 @@ const BUCKETS = [
     icon: TreeDeciduous,
     label: 'پایدار',
     hint: 'فاصله مرور بیش از ۲۱ روز',
-    ring: 'stroke-success',
-    chip: 'bg-success/10 text-success',
+    ring: 'stroke-mint',
+    chip: 'bg-mint/10 text-mint',
   },
 ]
 
@@ -71,11 +70,11 @@ function GrowthSparkline({ points }: { points: GrowthPoint[] }) {
       className="h-12 w-full"
       aria-hidden="true"
     >
-      <path d={`${path} L100,32 L0,32 Z`} className="fill-success/10" />
+      <path d={`${path} L100,32 L0,32 Z`} className="fill-mint/10" />
       <path
         d={path}
         fill="none"
-        className="stroke-success"
+        className="stroke-mint"
         strokeWidth={1.5}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -103,9 +102,9 @@ export function MemoryOverview({
   const gained = growth.length > 1 ? growth[growth.length - 1].count - growth[0].count : 0
 
   return (
-    <Card className="shadow-soft">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-3 text-base">
+    <section className="surface rounded-3xl p-5 sm:p-6">
+      <header className="pb-5">
+        <div className="flex items-center gap-3">
           <span
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground"
             aria-hidden="true"
@@ -118,10 +117,10 @@ export function MemoryOverview({
           <span className="mr-auto text-xs font-normal text-muted-foreground">
             {faNum(total)} واژه در چرخه مرور
           </span>
-        </CardTitle>
-      </CardHeader>
+        </div>
+      </header>
 
-      <CardContent className="space-y-5">
+      <div className="space-y-6">
         {total === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">
             هنوز واژه‌ای وارد چرخه مرور نشده — با شروع مطالعه امروز اینجا پر می‌شود.
@@ -133,26 +132,31 @@ export function MemoryOverview({
               the middle answers the question people actually ask of this card —
               "how much of my vocabulary is safe?"
             */}
-            <div className="flex flex-col items-center gap-6 sm:flex-row sm:gap-8">
+            <div className="flex flex-col items-center gap-7 sm:flex-row sm:gap-10">
               <ProgressRing
                 segments={BUCKETS.map((b) => ({
                   value: memory[b.key],
                   className: b.ring,
                 }))}
-                thickness={11}
+                thickness={13}
+                glow="mint"
                 trackClassName="stroke-muted"
-                className="h-36 w-36 shrink-0"
+                className="h-40 w-40 shrink-0"
                 label={`تازه ${memory.fresh}، در حال یادگیری ${memory.learning}، پایدار ${memory.stable}`}
               >
-                <span className="text-3xl font-black tabular-nums text-foreground">
+                <span className="text-4xl font-black tabular-nums text-foreground">
                   {faNum(Math.round((memory.stable / total) * 100))}٪
                 </span>
-                <span className="mt-1.5 text-[11px] font-medium text-muted-foreground">
+                <span className="mt-2 text-[11px] font-medium text-muted-foreground">
                   پایدار
                 </span>
               </ProgressRing>
 
-              <ul className="w-full flex-1 space-y-2">
+              {/*
+                The legend reads across, not down: three numbers side by side
+                compare at a glance, where three stacked rows read as a table.
+              */}
+              <ul className="grid w-full flex-1 grid-cols-3 gap-2">
                 {BUCKETS.map((b) => {
                   const Icon = b.icon
                   const value = memory[b.key]
@@ -160,29 +164,26 @@ export function MemoryOverview({
                   return (
                     <li
                       key={b.key}
-                      className="flex items-center gap-3 rounded-xl bg-muted/40 px-3 py-2.5"
+                      className="surface-sunken flex flex-col items-center gap-1.5 rounded-2xl px-2 py-4 text-center"
                     >
                       <span
                         className={cn(
-                          'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg',
+                          'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl',
                           b.chip,
                         )}
                         aria-hidden="true"
                       >
                         <Icon className="h-4 w-4" />
                       </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-foreground">{b.label}</p>
-                        <p className="truncate text-[11px] text-muted-foreground">{b.hint}</p>
-                      </div>
-                      <div className="shrink-0 text-left">
-                        <p className="text-lg font-black tabular-nums leading-none text-foreground">
-                          {faNum(value)}
-                        </p>
-                        <p className="mt-1 text-[11px] tabular-nums text-muted-foreground">
-                          {faNum(share)}٪
-                        </p>
-                      </div>
+                      <p className="text-xl font-black tabular-nums leading-none text-foreground">
+                        {faNum(value)}
+                      </p>
+                      <p className="text-[11px] font-medium leading-tight text-foreground">
+                        {b.label}
+                      </p>
+                      <p className="text-[11px] tabular-nums text-muted-foreground">
+                        {faNum(share)}٪
+                      </p>
                     </li>
                   )
                 })}
@@ -190,9 +191,9 @@ export function MemoryOverview({
             </div>
 
             {/* 30-day growth of the stable set */}
-            <div className="space-y-1.5 rounded-xl bg-muted/50 p-3">
+            <div className="surface-sunken space-y-1.5 rounded-2xl p-4">
               <div className="flex items-center gap-2 text-xs">
-                <TrendingUp className="h-4 w-4 text-success" aria-hidden="true" />
+                <TrendingUp className="h-4 w-4 text-mint" aria-hidden="true" />
                 <span className="text-muted-foreground">
                   روند واژه‌های پایدار ({faNum(growthDays)} روز اخیر
                   {growthExact ? '' : ' — تقریبی'})
@@ -200,7 +201,7 @@ export function MemoryOverview({
                 <span
                   className={cn(
                     'mr-auto font-bold tabular-nums',
-                    gained > 0 ? 'text-success' : 'text-muted-foreground',
+                    gained > 0 ? 'text-mint' : 'text-muted-foreground',
                   )}
                 >
                   {gained > 0 ? `+${faNum(gained)}` : faNum(gained)} واژه
@@ -210,7 +211,7 @@ export function MemoryOverview({
             </div>
           </>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   )
 }

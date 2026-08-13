@@ -65,6 +65,9 @@ const config: Config = {
           foreground: 'hsl(var(--hero-foreground))',
           muted: 'hsl(var(--hero-muted))',
         },
+        /* Secondary accents beside the gold — see the token comment in index.css. */
+        violet: 'hsl(var(--brand-violet))',
+        mint: 'hsl(var(--brand-mint))',
       },
       borderRadius: {
         lg: 'var(--radius)',

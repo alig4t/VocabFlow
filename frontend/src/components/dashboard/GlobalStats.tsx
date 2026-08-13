@@ -22,7 +22,10 @@ export function GlobalStats({ stats }: GlobalStatsProps) {
   const noReviews = stats.accuracyRate === 0
 
   return (
-    <section aria-label="آمار کلی" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <section
+      aria-label="آمار کلی"
+      className="surface grid grid-cols-2 gap-1 rounded-3xl p-2 sm:gap-2 sm:p-3 lg:grid-cols-4"
+    >
       <StatTile
         icon={Flame}
         accent="warning"
@@ -34,7 +37,7 @@ export function GlobalStats({ stats }: GlobalStatsProps) {
       />
       <StatTile
         icon={Target}
-        accent="success"
+        accent="mint"
         label="دقت"
         value={faPercent(stats.accuracyRate)}
         hint="پاسخ‌های درست"
@@ -52,7 +55,7 @@ export function GlobalStats({ stats }: GlobalStatsProps) {
       />
       <StatTile
         icon={Clock}
-        accent="chart-5"
+        accent="violet"
         label="میانگین مطالعه"
         value={faNum(stats.avgStudyMinutes)}
         hint="دقیقه در هر جلسه"

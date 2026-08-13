@@ -43,16 +43,18 @@ export function ActivityHeatmap({ days }: ActivityHeatmapProps) {
           <span className="font-semibold tabular-nums text-foreground">{faNum(activeDays)}</span> روز
           فعال
         </span>
-        <span aria-hidden="true" className="opacity-40">
-          ·
-        </span>
+        <span
+          aria-hidden="true"
+          className="h-1 w-1 shrink-0 rounded-full bg-current opacity-40"
+        />
         <span>
           <span className="font-semibold tabular-nums text-foreground">{faNum(totalReviews)}</span>{' '}
           مرور
         </span>
-        <span aria-hidden="true" className="opacity-40">
-          ·
-        </span>
+        <span
+          aria-hidden="true"
+          className="h-1 w-1 shrink-0 rounded-full bg-current opacity-40"
+        />
         <span>
           پرکارترین روز{' '}
           <span className="font-semibold tabular-nums text-foreground">{faNum(bestDay)}</span> مرور

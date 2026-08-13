@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, AlertTriangle } from 'lucide-react'
 import { Button } from '../ui/button'
 import { faNum } from '../../lib/format'
+import { cn } from '../../lib/utils'
 import type { HardWordItem } from '../../types'
 
 interface HardWordsProps {
@@ -14,10 +15,16 @@ function struggleLabel(w: HardWordItem): string {
   return `${faNum(w.wrongCount)} بار غلط`
 }
 
+/** Four strikes is where a word stops being tricky and becomes a blocker. */
+const MAX_STRIKES = 4
+
 /**
- * The top few words that resist memorisation, across every book. The rows are
- * plain text on purpose — the whole list lives on `/hard-words`, reachable via
- * the button below.
+ * The words that resist memorisation, as a row of cards you swipe through.
+ *
+ * A vertical list read as a table of rows; these are individual words the user
+ * is going to work on, so each gets its own card with the English large, the
+ * Persian under it, and a dot meter for how often it has gone wrong. The whole
+ * list lives on `/hard-words`, reachable from the button below.
  */
 export function HardWords({ words }: HardWordsProps) {
   const navigate = useNavigate()
@@ -31,37 +38,52 @@ export function HardWords({ words }: HardWordsProps) {
   }
 
   return (
-    <div className="space-y-3">
-      <ul className="space-y-1.5">
+    <div className="space-y-4">
+      {/*
+        Negative margins let the row bleed to the card's padding edge, so a card
+        is clipped mid-way at the end — the standard cue that this scrolls.
+      */}
+      <ul className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2">
         {words.map((w) => {
-          // Four strikes is where a word stops being "tricky" and starts being
-          // a blocker; the bar saturates there so the scale stays readable.
-          const strikes = Math.max(w.hardCount, w.wrongCount)
-          const severity = Math.min(100, (strikes / 4) * 100)
+          const strikes = Math.min(MAX_STRIKES, Math.max(w.hardCount, w.wrongCount))
           return (
             <li
               key={w.wordId}
-              className="flex items-center gap-3 rounded-xl bg-muted/40 px-3 py-2.5"
+              // Fixed width on a phone so the row scrolls; on wider screens the
+              // cards share the space instead of leaving a gap at the end.
+              className="surface-sunken flex w-40 shrink-0 snap-start flex-col gap-2 rounded-2xl p-3.5 sm:w-auto sm:min-w-0 sm:flex-1"
             >
-              <AlertTriangle className="h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
-              <span className="min-w-0 flex-1 space-y-1">
+              <div className="flex items-start justify-between gap-2">
                 {/* dir=ltr keeps the English readable; text-right aligns it with
                     the Persian meaning underneath in the RTL layout. */}
                 <span
                   dir="ltr"
-                  className="block truncate text-right text-sm font-semibold text-foreground"
+                  className="min-w-0 flex-1 truncate text-right text-base font-bold text-foreground"
                 >
                   {w.eng}
                 </span>
-                <span className="block truncate text-xs text-muted-foreground">{w.per}</span>
-                <span className="block h-[3px] w-24 overflow-hidden rounded-full bg-warning/15">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
+              </div>
+
+              <span className="truncate text-xs text-muted-foreground">{w.per}</span>
+
+              <span
+                className="flex gap-1 pt-1"
+                role="img"
+                aria-label={struggleLabel(w)}
+              >
+                {Array.from({ length: MAX_STRIKES }, (_, i) => (
                   <span
-                    className="block h-full rounded-full bg-warning/70"
-                    style={{ width: `${severity}%` }}
+                    key={i}
+                    className={cn(
+                      'h-1.5 w-1.5 rounded-full',
+                      i < strikes ? 'bg-warning' : 'bg-warning/20',
+                    )}
                   />
-                </span>
+                ))}
               </span>
-              <span className="shrink-0 rounded-full bg-warning/15 px-2 py-0.5 text-[11px] font-medium tabular-nums text-warning">
+
+              <span className="text-[11px] tabular-nums text-muted-foreground">
                 {struggleLabel(w)}
               </span>
             </li>
