@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Dumbbell, Lock, Sparkles, ArrowLeft, ShieldCheck } from 'lucide-react'
+import { Dumbbell, Lock, ArrowLeft, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useStudyToday } from '@/hooks/useStudy'
 import { cn } from '@/lib/utils'
+import { faNum } from '@/lib/format'
 
 /**
  * Heading for the practice section, deliberately outside the box.
@@ -98,7 +99,7 @@ export function TodayPracticeCard() {
             مرور مجدد واژگان جدید امروز
           </p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground/80">
-            {introducedToday > 0 ? `${introducedToday} واژه تا اینجا خوانده‌اید. ` : ''}
+            {introducedToday > 0 ? `${faNum(introducedToday)} واژه تا اینجا خوانده‌اید. ` : ''}
             با تمام‌کردن مطالعه امروز باز می‌شود.
           </p>
         </div>
@@ -119,24 +120,34 @@ export function TodayPracticeCard() {
         {/* Soft glow — decorative only */}
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute -left-10 -top-14 h-40 w-40 rounded-full bg-primary/20 blur-3xl"
+          className="pointer-events-none absolute -left-10 -top-14 h-40 w-40 rounded-full bg-primary/15 blur-3xl"
         />
 
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0 space-y-2">
-            <p className="text-sm font-medium text-foreground/90">
-              مرور مجدد واژگان جدید امروز
-            </p>
+          <div className="flex min-w-0 items-center gap-4">
+            {/*
+              The count leads. This is the second action on the page and it was
+              reading as another paragraph of card copy; the numeral gives it
+              something to be seen by from across the screen.
+            */}
+            <span
+              className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl bg-accent text-accent-foreground"
+              aria-hidden="true"
+            >
+              <span className="text-2xl font-black leading-none tabular-nums">
+                {faNum(introducedToday)}
+              </span>
+              <span className="mt-1 text-[10px] font-medium">واژه</span>
+            </span>
 
-            <div className="flex flex-wrap items-center gap-2 text-xs">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1 font-semibold text-accent-foreground">
-                <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-                {introducedToday} واژه‌ی تازه
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+            <div className="min-w-0 space-y-1.5">
+              <p className="text-base font-bold text-foreground">
+                مرور مجدد واژگان جدید امروز
+              </p>
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 بدون اثر روی زمان‌بندی مرور
-              </span>
+              </p>
             </div>
           </div>
 

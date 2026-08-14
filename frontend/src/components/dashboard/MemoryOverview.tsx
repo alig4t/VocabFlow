@@ -192,15 +192,33 @@ export function MemoryOverview({
                       >
                         <Icon className="h-4 w-4" />
                       </span>
-                      <p className="text-xl font-black tabular-nums leading-none text-foreground">
-                        {faNum(value)}
-                      </p>
-                      <p className="text-[11px] font-medium leading-tight text-foreground">
-                        {b.label}
-                      </p>
-                      <p className="text-[11px] tabular-nums text-muted-foreground">
-                        {faNum(share)}٪
-                      </p>
+                      {/*
+                        An empty bucket says so in words. Three tiles reading
+                        «۰ / ۰٪» is the shape of a broken dashboard, not of an
+                        account that simply hasn't got there yet.
+                      */}
+                      {value === 0 ? (
+                        <>
+                          <p className="text-[11px] font-medium leading-tight text-foreground">
+                            {b.label}
+                          </p>
+                          <p className="text-[11px] leading-tight text-muted-foreground/80">
+                            هنوز نرسیده
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-xl font-black tabular-nums leading-none text-foreground">
+                            {faNum(value)}
+                          </p>
+                          <p className="text-[11px] font-medium leading-tight text-foreground">
+                            {b.label}
+                          </p>
+                          <p className="text-[11px] tabular-nums text-muted-foreground">
+                            {faNum(share)}٪
+                          </p>
+                        </>
+                      )}
                     </li>
                   )
                 })}

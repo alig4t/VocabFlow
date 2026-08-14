@@ -158,8 +158,8 @@ export function StudyTodayHero({
 
       {/* Atmosphere and abstract decoration — nothing here carries meaning. */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-        <span className="absolute -left-24 -top-28 h-80 w-80 rounded-full bg-violet/20 blur-3xl" />
-        <span className="absolute -right-16 top-4 h-64 w-64 rounded-full bg-primary/25 blur-3xl" />
+        <span className="absolute -left-24 -top-28 h-80 w-80 rounded-full bg-violet/10 blur-3xl" />
+        <span className="absolute -right-16 top-4 h-64 w-64 rounded-full bg-primary/[0.16] blur-3xl" />
         <Sparkles className="absolute left-[14%] top-10 h-4 w-4 text-accent-foreground/25" />
         <Sparkles className="absolute right-[28%] bottom-24 h-3 w-3 text-violet/30" />
       </div>
@@ -169,7 +169,7 @@ export function StudyTodayHero({
         diagonal now runs deep on this side, so there is room for it to sit low.
         Below `md` it moves inline, next to the dial; see there.
       */}
-      <BookIllustration className="absolute bottom-10 left-2 hidden w-44 md:block lg:bottom-12 lg:w-56" />
+      <BookIllustration className="absolute bottom-10 left-2 hidden w-52 md:block lg:bottom-12 lg:w-64" />
 
       {/*
         Mirrors Layout's <main> exactly — its padding, then the same max-width —
@@ -236,7 +236,7 @@ export function StudyTodayHero({
                   <span className="block h-9 w-1/2 rounded bg-hero-foreground/10" />
                   <span className="block h-12 w-44 rounded-2xl bg-hero-foreground/10" />
                 </div>
-                <span className="h-32 w-32 shrink-0 rounded-full bg-hero-foreground/10 sm:h-44 sm:w-44" />
+                <span className="h-36 w-36 shrink-0 rounded-full bg-hero-foreground/10 sm:h-48 sm:w-48" />
               </div>
             ) : !meta?.hasPlans ? (
               <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:justify-between sm:text-right">
@@ -269,10 +269,10 @@ export function StudyTodayHero({
                   <h2 className="text-[1.75rem] font-black leading-[1.25] sm:text-4xl">
                     {done ? (
                       <>
-                        امروز تمام شد
+                        <span className="text-mint">امروز تمام شد</span>
                         <span className="mt-1 block text-lg font-bold text-hero-muted sm:text-xl">
                           {reviewedToday > 0
-                            ? `${faNum(reviewedToday)} واژه مرور کردی — فردا ادامه می‌دهیم.`
+                            ? 'هدف امروزت را کامل کردی.'
                             : 'برای امروز چیزی در صف نبود.'}
                         </span>
                       </>
@@ -284,6 +284,29 @@ export function StudyTodayHero({
                       </>
                     )}
                   </h2>
+
+                  {/*
+                    What was actually achieved, rather than a greyed-out button.
+                    A disabled primary CTA is the loudest element on the panel
+                    and it does nothing — on a finished day the panel should
+                    report the win and offer somewhere real to go.
+                  */}
+                  {done && (reviewedToday > 0 || streak > 0) && (
+                    <ul className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                      {reviewedToday > 0 && (
+                        <li className="inline-flex items-center gap-1.5 rounded-full bg-mint/10 px-3 py-1.5 text-sm font-bold text-mint">
+                          <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                          {faNum(reviewedToday)} واژه مرور شد
+                        </li>
+                      )}
+                      {streak > 0 && (
+                        <li className="inline-flex items-center gap-1.5 rounded-full bg-hero-foreground/[0.06] px-3 py-1.5 text-sm font-bold text-hero-foreground">
+                          <Flame className="h-4 w-4 text-accent-foreground" aria-hidden="true" />
+                          {faNum(streak)} روز پیاپی
+                        </li>
+                      )}
+                    </ul>
+                  )}
 
                   {!done && (
                     /*
@@ -311,16 +334,30 @@ export function StudyTodayHero({
                   )}
 
                   <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center">
-                    <Button
-                      size="lg"
-                      className="h-14 w-full shrink-0 gap-2 rounded-2xl px-7 text-base font-bold shadow-lg shadow-primary/25 sm:w-auto"
-                      disabled={done}
-                      onClick={() => navigate('/study')}
-                    >
-                      <GraduationCap className="h-5 w-5" aria-hidden="true" />
-                      {done ? 'تمام شد' : 'شروع مطالعه'}
-                      {!done && <ArrowLeft className="h-4 w-4" aria-hidden="true" />}
-                    </Button>
+                    {done ? (
+                      // Somewhere real to go, styled as a secondary action —
+                      // the day's primary action is spent.
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        className="h-14 w-full shrink-0 gap-2 rounded-2xl border-hero-foreground/15 bg-hero-foreground/[0.04] px-7 text-base font-bold text-hero-foreground hover:bg-hero-foreground/[0.09] hover:text-hero-foreground sm:w-auto"
+                        onClick={() => navigate('/statistics')}
+                      >
+                        <BarChart3 className="h-5 w-5" aria-hidden="true" />
+                        مشاهده پیشرفت
+                        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                      </Button>
+                    ) : (
+                      <Button
+                        size="lg"
+                        className="h-14 w-full shrink-0 gap-2 rounded-2xl px-7 text-base font-bold shadow-lg shadow-primary/25 sm:w-auto"
+                        onClick={() => navigate('/study')}
+                      >
+                        <GraduationCap className="h-5 w-5" aria-hidden="true" />
+                        شروع مطالعه
+                        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                      </Button>
+                    )}
 
                     {lessonLabel && !done && (
                       <p className="truncate text-xs text-hero-muted">{lessonLabel}</p>
@@ -341,12 +378,18 @@ export function StudyTodayHero({
                   they belong together as a single object.
                 */}
                 <div className="flex shrink-0 items-center justify-center gap-1 sm:justify-normal">
-                  <BookIllustration className="w-32 shrink-0 md:hidden" />
+                  <BookIllustration className="w-36 shrink-0 md:hidden" />
 
                   <ProgressRing
                   value={progress}
-                  gradient="dial"
-                  glow="gold"
+                  /*
+                    A finished dial is mint end to end, tick included. An amber
+                    ring with a green tick read as two unrelated colours that
+                    happened to land together; one colour says "done".
+                  */
+                  gradient={done ? undefined : 'dial'}
+                  arcClassName="stroke-mint"
+                  glow={done ? 'mint' : 'gold'}
                   tip
                   thickness={8}
                   /*
@@ -361,11 +404,11 @@ export function StudyTodayHero({
                       ? 'stroke-[hsl(var(--dial-from)_/_0.3)]'
                       : 'stroke-[hsl(var(--hero-track))]'
                   }
-                    className="h-32 w-32 shrink-0 sm:h-44 sm:w-44"
+                    className="h-36 w-36 shrink-0 sm:h-48 sm:w-48"
                     label={`${Math.round(progress)} درصد از مطالعه امروز انجام شده`}
                   >
                     {done ? (
-                      <CheckCircle2 className="h-12 w-12 text-mint" aria-hidden="true" />
+                      <CheckCircle2 className="h-16 w-16 text-mint sm:h-20 sm:w-20" aria-hidden="true" />
                     ) : (
                       <>
                         <span className="text-[2.75rem] font-black tabular-nums leading-none text-hero-foreground sm:text-6xl">

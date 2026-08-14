@@ -119,8 +119,13 @@ export function MemoryWordHalo({ words = [], className }: MemoryWordHaloProps) {
         </span>
       ))}
 
-      {/* Soft bloom so the brain sits on light, not on nothing. */}
+      {/*
+        Bloom plus two hairline rings, so the brain reads as floating above the
+        card rather than printed onto it.
+      */}
       <span className="pointer-events-none absolute left-1/2 top-[58%] h-32 w-32 -translate-x-1/2 -translate-y-1/2 rounded-full bg-pink/20 blur-2xl sm:h-40 sm:w-40" />
+      <span className="pointer-events-none absolute left-1/2 top-[58%] h-44 w-44 -translate-x-1/2 -translate-y-1/2 rounded-full border border-pink/15 sm:h-56 sm:w-56" />
+      <span className="pointer-events-none absolute left-1/2 top-[58%] h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full border border-pink/10 sm:h-72 sm:w-72" />
 
       <BrainIllustration className="absolute left-1/2 top-[58%] h-32 w-32 -translate-x-1/2 -translate-y-1/2 sm:h-40 sm:w-40" />
     </div>

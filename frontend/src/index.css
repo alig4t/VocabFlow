@@ -123,13 +123,18 @@
     --chart-5: 265 55% 58%;
     /*
       Hero panel — the landing page's own hero wash, so the app opens on the
-      same surface the marketing page closes on. Three stops, warm cream,
-      slightly deeper than `--background` so the band still reads as a band.
+      same surface the marketing page closes on.
+
+      Warm white running to the faintest cool violet at the foot, rather than a
+      saturated cream: at full strength the gold, pink and violet together read
+      as a generic pastel study app and the navy/gold identity got lost. The
+      colour here should be almost subliminal; the brand comes from the type,
+      the gold CTA and the dark panels elsewhere.
     */
-    --hero-1: 43 58% 98%;
-    --hero-2: 39 52% 91%;
-    --hero-3: 40 76% 95%;
-    --hero: 40 55% 95%;
+    --hero-1: 48 100% 98%;
+    --hero-2: 45 100% 95%;
+    --hero-3: 255 33% 98%;
+    --hero: 46 80% 97%;
     --hero-foreground: 222 45% 12%;
     --hero-muted: 220 12% 42%;
     /* Unfilled part of a dial drawn on the hero. */
