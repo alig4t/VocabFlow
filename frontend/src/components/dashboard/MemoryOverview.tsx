@@ -115,7 +115,7 @@ export function MemoryOverview({
             <span className="text-accent-foreground">وضعیت</span> حافظه
           </span>
           <span className="mr-auto text-xs font-normal text-muted-foreground">
-            {faNum(total)} واژه در چرخه مرور
+            {faNum(Math.round((memory.stable / Math.max(1, total)) * 100))}٪ پایدار
           </span>
         </div>
       </header>
@@ -128,9 +128,12 @@ export function MemoryOverview({
         ) : (
           <>
             {/*
-              Segmented dial + legend. The ring shows the split; the number in
-              the middle answers the question people actually ask of this card —
-              "how much of my vocabulary is safe?"
+              Segmented dial + legend.
+              The centre is the total, not the stable share. The ring draws the
+              whole vocabulary, so a centre reading "۰٪" inside a completely
+              filled ring — exactly what a new account produces, where every
+              word is fresh — contradicts itself. The stable share is a slice,
+              and lives with the other slices: in the header and the legend.
             */}
             <div className="flex flex-col items-center gap-7 sm:flex-row sm:gap-10">
               <ProgressRing
@@ -145,10 +148,10 @@ export function MemoryOverview({
                 label={`تازه ${memory.fresh}، در حال یادگیری ${memory.learning}، پایدار ${memory.stable}`}
               >
                 <span className="text-4xl font-black tabular-nums text-foreground">
-                  {faNum(Math.round((memory.stable / total) * 100))}٪
+                  {faNum(total)}
                 </span>
                 <span className="mt-2 text-[11px] font-medium text-muted-foreground">
-                  پایدار
+                  واژه در حافظه
                 </span>
               </ProgressRing>
 
@@ -190,7 +193,16 @@ export function MemoryOverview({
               </ul>
             </div>
 
-            {/* 30-day growth of the stable set */}
+            {/*
+              30-day growth of the stable set. Skipped entirely until a word
+              has actually reached the stable interval — a curve pinned flat at
+              zero looks like a broken chart, not an honest one.
+            */}
+            {memory.stable === 0 ? (
+              <p className="surface-sunken rounded-2xl px-4 py-3 text-center text-xs text-muted-foreground">
+                وقتی اولین واژه‌ها به فاصله مرور بلند برسند، روند رشدشان اینجا رسم می‌شود.
+              </p>
+            ) : (
             <div className="surface-sunken space-y-1.5 rounded-2xl p-4">
               <div className="flex items-center gap-2 text-xs">
                 <TrendingUp className="h-4 w-4 text-mint" aria-hidden="true" />
@@ -209,6 +221,7 @@ export function MemoryOverview({
               </div>
               <GrowthSparkline points={growth} />
             </div>
+            )}
           </>
         )}
       </div>

@@ -64,7 +64,7 @@ export function HeroWordCloud({ words = [] }: HeroWordCloudProps) {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute inset-0 select-none overflow-hidden opacity-[0.045] dark:opacity-[0.09]"
+      className="pointer-events-none absolute inset-0 select-none overflow-hidden opacity-[0.032] dark:opacity-[0.085]"
     >
       {SLOTS.map((slot, i) => (
         <span

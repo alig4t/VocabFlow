@@ -325,7 +325,17 @@ export function StudyTodayHero({
                   glow="violet"
                   tip
                   thickness={8}
-                  trackClassName="stroke-[hsl(var(--hero-track))]"
+                  /*
+                    Before the first answer of the day there is no arc at all,
+                    and a bare grey circle is the largest thing on the panel —
+                    it reads as unfinished UI. Tinting the empty track keeps the
+                    dial alive without drawing progress that hasn't happened.
+                  */
+                  trackClassName={
+                    progress === 0
+                      ? 'stroke-[hsl(var(--brand-violet)_/_0.28)]'
+                      : 'stroke-[hsl(var(--hero-track))]'
+                  }
                   className="ms-auto h-36 w-36 sm:ms-0 sm:h-44 sm:w-44"
                   label={`${Math.round(progress)} درصد از مطالعه امروز انجام شده`}
                 >
@@ -361,6 +371,19 @@ export function StudyTodayHero({
         <path
           d="M0,0.8 C1.6,0.8 2.4,0.95 4,1.15 L96,8.35 C97.6,8.55 98.4,8.7 100,8.7 L100,10.5 L0,10.5 Z"
           fill="hsl(var(--background))"
+        />
+        {/*
+          A hairline along the cut. In light mode the panel and the page are
+          both warm off-white, so the edge alone was a fade rather than a line —
+          the diagonal simply didn't read. `non-scaling-stroke` keeps it one
+          pixel thick despite the non-uniform scale.
+        */}
+        <path
+          d="M0,0.8 C1.6,0.8 2.4,0.95 4,1.15 L96,8.35 C97.6,8.55 98.4,8.7 100,8.7"
+          fill="none"
+          stroke="hsl(var(--border))"
+          strokeWidth={1}
+          vectorEffect="non-scaling-stroke"
         />
       </svg>
     </section>
