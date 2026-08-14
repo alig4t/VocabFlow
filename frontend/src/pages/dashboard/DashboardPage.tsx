@@ -89,7 +89,11 @@ export function DashboardPage() {
             <TodayPracticeCard />
 
             {/* ② چقدر پیشرفت کرده‌ام؟ — this card carries its own accent heading */}
-            <MemoryOverview memory={data.memory} growth={data.growth} />
+            <MemoryOverview
+              memory={data.memory}
+              growth={data.growth}
+              words={data.hardWords.map((w) => w.eng)}
+            />
 
             {/* ③ وضعیتم چطور است؟ — a quiet strip, not four competing cards */}
             <GlobalStats stats={data.stats} />

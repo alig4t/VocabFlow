@@ -154,9 +154,10 @@ export function StudyTodayHero({
       </div>
 
       {/*
-        The illustration anchors the inline-end side, sitting just above the
-        diagonal rather than under it — the wedge is at its deepest on this side
-        and swallowed the drawing whole when it was pinned to the bottom.
+        On wide screens the illustration anchors the inline-end side, sitting
+        just above the diagonal rather than under it — the wedge is at its
+        deepest here and swallowed the drawing whole when it was pinned to the
+        bottom. Below `md` it moves inline, next to the dial; see there.
       */}
       <BookIllustration className="absolute bottom-24 left-2 hidden w-44 md:block lg:bottom-28 lg:w-56" />
 
@@ -222,7 +223,7 @@ export function StudyTodayHero({
                   <span className="block h-9 w-1/2 rounded bg-hero-foreground/10" />
                   <span className="block h-12 w-44 rounded-2xl bg-hero-foreground/10" />
                 </div>
-                <span className="ms-auto h-36 w-36 shrink-0 rounded-full bg-hero-foreground/10 sm:h-44 sm:w-44" />
+                <span className="h-32 w-32 shrink-0 rounded-full bg-hero-foreground/10 sm:h-44 sm:w-44" />
               </div>
             ) : !meta?.hasPlans ? (
               <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:justify-between sm:text-right">
@@ -315,11 +316,18 @@ export function StudyTodayHero({
                 </div>
 
                 {/*
-                  The dial: fill is today's progress, centre is what's still
-                  waiting. Pushed to the inline end on small screens rather than
-                  centred — dead centre cuts the panel into two halves.
+                  The dial, and on phones the book beside it.
+
+                  The dial used to sit alone on its own row with the whole
+                  inline-start half of the panel empty next to it, while the
+                  illustration was desktop-only and so never appeared on a phone
+                  at all. Pairing them solves both: the row is balanced and the
+                  drawing is visible where most of the reading happens.
                 */}
-                <ProgressRing
+                <div className="flex shrink-0 items-center justify-between gap-4 sm:justify-normal">
+                  <BookIllustration className="w-32 shrink-0 md:hidden" />
+
+                  <ProgressRing
                   value={progress}
                   gradient="dial"
                   glow="violet"
@@ -336,20 +344,21 @@ export function StudyTodayHero({
                       ? 'stroke-[hsl(var(--brand-violet)_/_0.28)]'
                       : 'stroke-[hsl(var(--hero-track))]'
                   }
-                  className="ms-auto h-36 w-36 sm:ms-0 sm:h-44 sm:w-44"
-                  label={`${Math.round(progress)} درصد از مطالعه امروز انجام شده`}
-                >
-                  {done ? (
-                    <CheckCircle2 className="h-12 w-12 text-mint" aria-hidden="true" />
-                  ) : (
-                    <>
-                      <span className="text-5xl font-black tabular-nums text-hero-foreground sm:text-6xl">
-                        {faNum(remaining)}
-                      </span>
-                      <span className="mt-2 text-[11px] font-medium text-hero-muted">واژه</span>
-                    </>
-                  )}
-                </ProgressRing>
+                    className="h-32 w-32 shrink-0 sm:h-44 sm:w-44"
+                    label={`${Math.round(progress)} درصد از مطالعه امروز انجام شده`}
+                  >
+                    {done ? (
+                      <CheckCircle2 className="h-12 w-12 text-mint" aria-hidden="true" />
+                    ) : (
+                      <>
+                        <span className="text-[2.75rem] font-black tabular-nums leading-none text-hero-foreground sm:text-6xl">
+                          {faNum(remaining)}
+                        </span>
+                        <span className="mt-2 text-[11px] font-medium text-hero-muted">واژه</span>
+                      </>
+                    )}
+                  </ProgressRing>
+                </div>
               </div>
             )}
           </div>

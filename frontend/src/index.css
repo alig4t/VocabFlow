@@ -393,6 +393,28 @@
   }
 }
 
+/* ── Memory card: words drifting around the brain ───────────── */
+@keyframes wordDrift {
+  0%, 100% { transform: translateY(0) translateX(0); opacity: var(--drift-min, 0.45); }
+  50%      { transform: translateY(-7px) translateX(2px); opacity: var(--drift-max, 1); }
+}
+
+.word-drift {
+  animation: wordDrift var(--drift-dur, 7s) ease-in-out infinite;
+  animation-delay: var(--drift-delay, 0s);
+}
+
+/*
+  The halo is atmosphere, not information — every word it shows is also listed
+  in the legend below it. Hold them still for anyone who asked for less motion.
+*/
+@media (prefers-reduced-motion: reduce) {
+  .word-drift {
+    animation: none;
+    opacity: var(--drift-max, 1);
+  }
+}
+
 /* ── Landing page animations ────────────────────────────────── */
 @keyframes wordFloat {
   0%   { opacity: 0; transform: translateY(0px) translateX(0px); }

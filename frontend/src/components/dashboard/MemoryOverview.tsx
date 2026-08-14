@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { Brain, Sprout, Leaf, TreeDeciduous, TrendingUp } from 'lucide-react'
 import { ProgressRing } from './ProgressRing'
+import { MemoryWordHalo } from './MemoryWordHalo'
 import { faNum } from '../../lib/format'
 import { cn } from '../../lib/utils'
 import type { GrowthPoint, MemoryBreakdown } from '../../types'
@@ -8,6 +9,8 @@ import type { GrowthPoint, MemoryBreakdown } from '../../types'
 interface MemoryOverviewProps {
   memory: MemoryBreakdown
   growth: GrowthPoint[]
+  /** The reader's own words, drifting around the brain at the top of the card. */
+  words?: string[]
   /** Window the curve covers, for the caption. Defaults to the dashboard's 30. */
   growthDays?: number
   /**
@@ -95,6 +98,7 @@ function GrowthSparkline({ points }: { points: GrowthPoint[] }) {
 export function MemoryOverview({
   memory,
   growth,
+  words,
   growthDays = 30,
   growthExact = false,
 }: MemoryOverviewProps) {
@@ -121,6 +125,8 @@ export function MemoryOverview({
       </header>
 
       <div className="space-y-6">
+        <MemoryWordHalo words={words} />
+
         {total === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">
             هنوز واژه‌ای وارد چرخه مرور نشده — با شروع مطالعه امروز اینجا پر می‌شود.
