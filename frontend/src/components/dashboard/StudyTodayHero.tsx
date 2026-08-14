@@ -10,6 +10,10 @@ import {
   ArrowLeft,
   BarChart3,
   Compass,
+  Sunrise,
+  Sun,
+  Sunset,
+  Moon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ProgressRing } from '@/components/dashboard/ProgressRing'
@@ -31,14 +35,19 @@ interface StudyTodayHeroProps {
   textureWords?: string[]
 }
 
-/** صبح / ظهر / عصر / شب — the greeting tracks the time of day. */
-function greeting(): string {
+/**
+ * صبح / ظهر / عصر / شب — the greeting tracks the time of day, and so does its
+ * icon. A drawn glyph rather than 👋: emoji render differently on every
+ * platform and can't take a theme colour, and the sun/moon actually says
+ * something the words already say, instead of waving.
+ */
+function greeting(): { text: string; Icon: typeof Sunrise } {
   const h = new Date().getHours()
-  if (h < 5) return 'شب بخیر'
-  if (h < 12) return 'صبح بخیر'
-  if (h < 17) return 'ظهر بخیر'
-  if (h < 20) return 'عصر بخیر'
-  return 'شب بخیر'
+  if (h < 5) return { text: 'شب بخیر', Icon: Moon }
+  if (h < 12) return { text: 'صبح بخیر', Icon: Sunrise }
+  if (h < 17) return { text: 'ظهر بخیر', Icon: Sun }
+  if (h < 20) return { text: 'عصر بخیر', Icon: Sunset }
+  return { text: 'شب بخیر', Icon: Moon }
 }
 
 /**
@@ -135,6 +144,8 @@ export function StudyTodayHero({
   const progress = planned > 0 ? (reviewedToday / planned) * 100 : 100
   const done = remaining === 0
 
+  const Greeting = greeting()
+
   const lessonLabel =
     plan && plan.currentLesson != null
       ? // faNum, and an em dash rather than "·" — see the separator note below.
@@ -154,12 +165,11 @@ export function StudyTodayHero({
       </div>
 
       {/*
-        On wide screens the illustration anchors the inline-end side, sitting
-        just above the diagonal rather than under it — the wedge is at its
-        deepest here and swallowed the drawing whole when it was pinned to the
-        bottom. Below `md` it moves inline, next to the dial; see there.
+        On wide screens the illustration anchors the inline-end side. The
+        diagonal now runs deep on this side, so there is room for it to sit low.
+        Below `md` it moves inline, next to the dial; see there.
       */}
-      <BookIllustration className="absolute bottom-24 left-2 hidden w-44 md:block lg:bottom-28 lg:w-56" />
+      <BookIllustration className="absolute bottom-10 left-2 hidden w-44 md:block lg:bottom-12 lg:w-56" />
 
       {/*
         Mirrors Layout's <main> exactly — its padding, then the same max-width —
@@ -169,9 +179,12 @@ export function StudyTodayHero({
       <div className="relative px-2 sm:px-4 md:px-6 lg:px-8">
         <div className="mx-auto max-w-6xl">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-base font-black sm:text-lg">
-              {greeting()}
-              {userName ? `، ${userName}` : ''} 👋
+            <p className="flex items-center gap-2 text-base font-black sm:text-lg">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-hero-foreground/[0.06] text-accent-foreground">
+                <Greeting.Icon className="h-4 w-4" aria-hidden="true" />
+              </span>
+              {Greeting.text}
+              {userName ? `، ${userName}` : ''}
             </p>
 
             <div className="flex gap-2">
@@ -382,7 +395,7 @@ export function StudyTodayHero({
         className="absolute inset-x-0 bottom-0 block h-16 w-full sm:h-28"
       >
         <path
-          d="M0,0.8 C1.6,0.8 2.4,0.95 4,1.15 L96,8.35 C97.6,8.55 98.4,8.7 100,8.7 L100,10.5 L0,10.5 Z"
+          d="M0,8.7 C1.6,8.7 2.4,8.55 4,8.35 L96,1.15 C97.6,0.95 98.4,0.8 100,0.8 L100,10.5 L0,10.5 Z"
           fill="hsl(var(--background))"
         />
         {/*
@@ -392,7 +405,7 @@ export function StudyTodayHero({
           pixel thick despite the non-uniform scale.
         */}
         <path
-          d="M0,0.8 C1.6,0.8 2.4,0.95 4,1.15 L96,8.35 C97.6,8.55 98.4,8.7 100,8.7"
+          d="M0,8.7 C1.6,8.7 2.4,8.55 4,8.35 L96,1.15 C97.6,0.95 98.4,0.8 100,0.8"
           fill="none"
           stroke="hsl(var(--border))"
           strokeWidth={1}

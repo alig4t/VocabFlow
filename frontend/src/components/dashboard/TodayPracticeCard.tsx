@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 /**
  * Heading for the practice section, deliberately outside the box.
  *
- * It sits at the inline end (the physical left), which is where the hero's
+ * It sits at the inline start (the physical right), which is where the hero's
  * closing diagonal is shallowest and leaves a wedge of empty page above this
  * section — the heading fills it instead of the layout carrying dead space.
  */
@@ -24,7 +24,7 @@ function PracticeHeading({
   chipClassName: string
 }) {
   return (
-    <header className="flex items-center justify-end gap-2 pb-3 pe-1">
+    <header className="flex items-center justify-start gap-2 pb-3 ps-1">
       <span
         className={cn(
           'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl',

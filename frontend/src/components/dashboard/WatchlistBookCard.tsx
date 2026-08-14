@@ -153,9 +153,15 @@ export function WatchlistBookCard({ book }: WatchlistBookCardProps) {
           variant={bookComplete ? 'outline' : 'default'}
           className="gap-1.5"
           disabled={bookComplete}
-          // Was pointing at /vocabulary (the word-list/browse page) instead of
-          // the actual review flow.
-          onClick={() => navigate(`/vocabulary/review?bookId=${book.bookId}`)}
+          /*
+            The daily programme, not `/vocabulary/review`. Those are two
+            independent tracks: `/study` drives the SM-2 schedule, while the
+            free-review page only writes `manual_status` and would leave this
+            card's counts untouched. "ادامه مطالعه" means carry on with today's
+            plan. `/study` takes no book parameter — it serves the queue across
+            every active plan.
+          */
+          onClick={() => navigate('/study')}
         >
           {bookComplete ? (
             <>
