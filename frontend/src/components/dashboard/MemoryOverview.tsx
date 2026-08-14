@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import { Brain, Sprout, Leaf, TreeDeciduous, TrendingUp } from 'lucide-react'
-import { ProgressRing } from './ProgressRing'
 import { MemoryWordHalo } from './MemoryWordHalo'
 import { faNum } from '../../lib/format'
 import { cn } from '../../lib/utils'
@@ -26,7 +25,7 @@ const BUCKETS = [
     icon: Sprout,
     label: 'تازه',
     hint: 'تازه وارد چرخه مرور شده',
-    ring: 'stroke-violet',
+    bar: 'bg-violet',
     chip: 'bg-violet/10 text-violet',
   },
   {
@@ -34,7 +33,7 @@ const BUCKETS = [
     icon: Leaf,
     label: 'در حال یادگیری',
     hint: 'هنوز به فاصله مرور بلند نرسیده',
-    ring: 'stroke-warning',
+    bar: 'bg-warning',
     chip: 'bg-warning/15 text-warning',
   },
   {
@@ -42,7 +41,7 @@ const BUCKETS = [
     icon: TreeDeciduous,
     label: 'پایدار',
     hint: 'فاصله مرور بیش از ۲۱ روز',
-    ring: 'stroke-mint',
+    bar: 'bg-mint',
     chip: 'bg-mint/10 text-mint',
   },
 ]
@@ -134,38 +133,47 @@ export function MemoryOverview({
         ) : (
           <>
             {/*
-              Segmented dial + legend.
-              The centre is the total, not the stable share. The ring draws the
-              whole vocabulary, so a centre reading "۰٪" inside a completely
-              filled ring — exactly what a new account produces, where every
-              word is fresh — contradicts itself. The stable share is a slice,
-              and lives with the other slices: in the header and the legend.
+              The split as a strength bar, not a donut.
+
+              A ring here sat directly under the brain and echoed its shape, so
+              the card read as two circles stacked. A bar also does the job
+              better: comparing three lengths on a shared baseline is easier
+              than comparing three arcs, and it leaves room for the total to be
+              stated plainly instead of squeezed into a hole in the middle.
             */}
-            <div className="flex flex-col items-center gap-7 sm:flex-row sm:gap-10">
-              <ProgressRing
-                segments={BUCKETS.map((b) => ({
-                  value: memory[b.key],
-                  className: b.ring,
-                }))}
-                thickness={13}
-                glow="mint"
-                trackClassName="stroke-muted"
-                className="h-40 w-40 shrink-0"
-                label={`تازه ${memory.fresh}، در حال یادگیری ${memory.learning}، پایدار ${memory.stable}`}
-              >
-                <span className="text-4xl font-black tabular-nums text-foreground">
+            <div className="space-y-3">
+              <div className="flex items-baseline gap-2">
+                <span className="text-4xl font-black tabular-nums leading-none text-foreground">
                   {faNum(total)}
                 </span>
-                <span className="mt-2 text-[11px] font-medium text-muted-foreground">
-                  واژه در حافظه
-                </span>
-              </ProgressRing>
+                <span className="text-sm text-muted-foreground">واژه در حافظه</span>
+              </div>
 
-              {/*
-                The legend reads across, not down: three numbers side by side
-                compare at a glance, where three stacked rows read as a table.
-              */}
-              <ul className="grid w-full flex-1 grid-cols-3 gap-2">
+              <div
+                className="flex h-4 w-full gap-1 overflow-hidden"
+                role="img"
+                aria-label={`تازه ${memory.fresh}، در حال یادگیری ${memory.learning}، پایدار ${memory.stable}`}
+              >
+                {BUCKETS.map((b) => {
+                  const value = memory[b.key]
+                  if (value === 0) return null
+                  return (
+                    <span
+                      key={b.key}
+                      className={cn('h-full rounded-full', b.bar)}
+                      style={{ width: `${(value / total) * 100}%` }}
+                      title={`${b.label}: ${value}`}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+
+            {/*
+              The legend reads across, not down: three numbers side by side
+              compare at a glance, where three stacked rows read as a table.
+            */}
+            <ul className="grid w-full grid-cols-3 gap-2">
                 {BUCKETS.map((b) => {
                   const Icon = b.icon
                   const value = memory[b.key]
@@ -196,8 +204,7 @@ export function MemoryOverview({
                     </li>
                   )
                 })}
-              </ul>
-            </div>
+            </ul>
 
             {/*
               30-day growth of the stable set. Skipped entirely until a word

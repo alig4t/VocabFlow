@@ -15,11 +15,11 @@ const GRADIENTS = {
   violet: ['hsl(var(--brand-violet))', 'hsl(var(--primary))'],
   mint: ['hsl(var(--brand-mint))', 'hsl(var(--primary))'],
   /*
-    The hero dial. Ends on `--dial-to` rather than raw gold: gold on the cream
-    panel is about 1.7:1, well under the 3:1 a data mark needs. `--dial-to` is
-    per-theme — deep amber on light surfaces, bright gold on dark ones.
+    The hero dial: the landing page's amber→yellow. Driven by per-theme tokens
+    rather than raw gold, which sits near 1.7:1 on the cream panel — under the
+    3:1 a data mark needs. Deep amber on light surfaces, bright gold on dark.
   */
-  dial: ['hsl(var(--brand-violet))', 'hsl(var(--dial-to))'],
+  dial: ['hsl(var(--dial-from))', 'hsl(var(--dial-to))'],
 } as const
 
 export type RingGradient = keyof typeof GRADIENTS

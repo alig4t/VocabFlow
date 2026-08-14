@@ -68,6 +68,10 @@ const config: Config = {
         /* Secondary accents beside the gold — see the token comment in index.css. */
         violet: 'hsl(var(--brand-violet))',
         mint: 'hsl(var(--brand-mint))',
+        pink: {
+          DEFAULT: 'hsl(var(--brand-pink))',
+          deep: 'hsl(var(--brand-pink-deep))',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',

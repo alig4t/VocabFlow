@@ -135,10 +135,11 @@
     /* Unfilled part of a dial drawn on the hero. */
     --hero-track: 40 26% 85%;
     /*
-      Far end of the hero dial's gradient. Deep enough to clear 3:1 against the
-      cream panel — raw gold sits near 1.7:1 there — without going olive.
+      The hero dial's gradient — the landing page's amber→yellow, deepened
+      enough to clear 3:1 against the cream panel (raw gold sits near 1.7:1).
     */
-    --dial-to: 38 92% 42%;
+    --dial-from: 32 95% 44%;
+    --dial-to: 45 96% 45%;
     /*
       Two secondary accents beside the gold. Gold alone had to carry every
       non-semantic highlight, which is why the dark panel read as flat: violet
@@ -148,6 +149,9 @@
     */
     --brand-violet: 258 68% 60%;
     --brand-mint: 166 58% 40%;
+    /* The brain keeps the pink it shipped with; only the tone is theme-tuned. */
+    --brand-pink: 322 60% 70%;
+    --brand-pink-deep: 322 52% 58%;
   }
   .dark {
     --background: 222 47% 6%;
@@ -188,9 +192,12 @@
     --hero-foreground: 40 30% 94%;
     --hero-muted: 220 15% 64%;
     --hero-track: 222 26% 24%;
-    --dial-to: 49 86% 62%;
+    --dial-from: 38 92% 56%;
+    --dial-to: 48 95% 62%;
     --brand-violet: 258 74% 72%;
     --brand-mint: 166 52% 52%;
+    --brand-pink: 322 62% 74%;
+    --brand-pink-deep: 322 55% 64%;
   }
   /* ── Study mode · warm sepia + gold, easy on the eyes for long reading ── */
   .study {
@@ -232,10 +239,13 @@
     --hero-foreground: 28 28% 20%;
     --hero-muted: 30 16% 40%;
     --hero-track: 34 24% 76%;
-    --dial-to: 30 80% 38%;
+    --dial-from: 26 80% 42%;
+    --dial-to: 38 78% 44%;
     /* Desaturated so the accents read as aged ink, not neon, on warm paper. */
     --brand-violet: 265 34% 52%;
     --brand-mint: 162 32% 36%;
+    --brand-pink: 328 38% 62%;
+    --brand-pink-deep: 328 34% 52%;
   }
 
   * { @apply border-border; }

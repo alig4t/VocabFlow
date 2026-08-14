@@ -321,27 +321,31 @@ export function StudyTodayHero({
                   The dial used to sit alone on its own row with the whole
                   inline-start half of the panel empty next to it, while the
                   illustration was desktop-only and so never appeared on a phone
-                  at all. Pairing them solves both: the row is balanced and the
-                  drawing is visible where most of the reading happens.
+                  at all. Pairing them solves both.
+
+                  Centred with a fixed gap rather than `justify-between`, which
+                  pinned one to each edge and opened a gulf down the middle —
+                  they belong together as a single object.
                 */}
-                <div className="flex shrink-0 items-center justify-between gap-4 sm:justify-normal">
+                <div className="flex shrink-0 items-center justify-center gap-1 sm:justify-normal">
                   <BookIllustration className="w-32 shrink-0 md:hidden" />
 
                   <ProgressRing
                   value={progress}
                   gradient="dial"
-                  glow="violet"
+                  glow="gold"
                   tip
                   thickness={8}
                   /*
                     Before the first answer of the day there is no arc at all,
                     and a bare grey circle is the largest thing on the panel —
-                    it reads as unfinished UI. Tinting the empty track keeps the
-                    dial alive without drawing progress that hasn't happened.
+                    it reads as unfinished UI. Tinting the empty track in the
+                    dial's own amber keeps it alive without drawing progress
+                    that hasn't happened.
                   */
                   trackClassName={
                     progress === 0
-                      ? 'stroke-[hsl(var(--brand-violet)_/_0.28)]'
+                      ? 'stroke-[hsl(var(--dial-from)_/_0.3)]'
                       : 'stroke-[hsl(var(--hero-track))]'
                   }
                     className="h-32 w-32 shrink-0 sm:h-44 sm:w-44"

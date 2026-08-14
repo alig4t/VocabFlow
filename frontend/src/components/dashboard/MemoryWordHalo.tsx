@@ -3,29 +3,47 @@ import { BrainIllustration } from './BrainIllustration'
 import { cn } from '../../lib/utils'
 
 /**
- * Hand-placed positions for the drifting words: above the brain, out to each
- * side, and up into both top corners. Nothing sits below it — the donut starts
- * there — and nothing overlaps the silhouette itself.
+ * Hand-placed positions for the drifting words: above the brain, down both
+ * flanks, and up into the top corners. None overlaps the silhouette itself.
  *
  * Fixed rather than randomised so the halo doesn't reshuffle on every render.
  * `dur` and `delay` are staggered so the words never pulse in unison.
  */
 const SLOTS = [
-  { x: 50, y: 2, size: 11, dur: 7.5, delay: 0 },
-  { x: 26, y: 10, size: 12, dur: 8.5, delay: 0.6 },
-  { x: 74, y: 9, size: 12, dur: 9, delay: 1.2 },
-  { x: 9, y: 26, size: 13, dur: 7, delay: 0.3 },
-  { x: 90, y: 24, size: 13, dur: 8, delay: 1.6 },
-  { x: 15, y: 55, size: 11, dur: 9.5, delay: 2.1 },
-  { x: 85, y: 53, size: 11, dur: 7.8, delay: 0.9 },
-  { x: 34, y: 30, size: 10, dur: 8.2, delay: 2.5 },
-  { x: 67, y: 31, size: 10, dur: 9.2, delay: 1.9 },
-  { x: 3, y: 8, size: 10, dur: 8.8, delay: 2.8 },
-  { x: 96, y: 7, size: 10, dur: 7.3, delay: 1.4 },
-  // The brain occupies roughly y 20–80% at x 38–62%; a slot at (50, 74) landed
-  // squarely behind it, so there is deliberately nothing directly below.
-  { x: 22, y: 78, size: 10, dur: 8.6, delay: 3.1 },
-  { x: 79, y: 77, size: 10, dur: 9.4, delay: 2.3 },
+  // Directly above the brain
+  { x: 50, y: 1, size: 9, dur: 7.5, delay: 0 },
+  { x: 39, y: 7, size: 8, dur: 8.1, delay: 1.7 },
+  { x: 61, y: 6, size: 8, dur: 9.1, delay: 0.4 },
+  // Upper shoulders
+  { x: 27, y: 3, size: 9, dur: 8.5, delay: 0.6 },
+  { x: 73, y: 2, size: 9, dur: 9, delay: 1.2 },
+  { x: 30, y: 14, size: 8, dur: 7.6, delay: 2.4 },
+  { x: 70, y: 15, size: 8, dur: 8.9, delay: 0.2 },
+  // Top corners
+  { x: 5, y: 4, size: 8, dur: 8.8, delay: 2.8 },
+  { x: 94, y: 3, size: 8, dur: 7.3, delay: 1.4 },
+  { x: 14, y: 13, size: 9, dur: 9.3, delay: 1.1 },
+  { x: 86, y: 12, size: 9, dur: 7.9, delay: 2.6 },
+  // Flanks. Nudged above the midline on purpose — sitting level with the
+  // brain's widest point made them read as labels pointing at it.
+  { x: 7, y: 27, size: 10, dur: 7, delay: 0.3 },
+  { x: 92, y: 25, size: 10, dur: 8, delay: 1.6 },
+  { x: 18, y: 38, size: 9, dur: 9.5, delay: 2.1 },
+  { x: 82, y: 36, size: 9, dur: 7.8, delay: 0.9 },
+  { x: 6, y: 48, size: 8, dur: 8.4, delay: 3.3 },
+  { x: 93, y: 46, size: 8, dur: 9.7, delay: 1.5 },
+  { x: 30, y: 26, size: 8, dur: 8.2, delay: 2.5 },
+  { x: 71, y: 27, size: 8, dur: 9.2, delay: 1.9 },
+  { x: 19, y: 58, size: 8, dur: 8.7, delay: 0.8 },
+  { x: 81, y: 57, size: 8, dur: 7.4, delay: 2.9 },
+  // Lower flanks. The brain occupies roughly y 18–82% at x 35–65%, so nothing
+  // is placed inside that column — a slot at (50, 74) landed behind it.
+  { x: 9, y: 68, size: 8, dur: 9.6, delay: 1.3 },
+  { x: 90, y: 66, size: 8, dur: 8.3, delay: 2.2 },
+  { x: 24, y: 78, size: 9, dur: 8.6, delay: 3.1 },
+  { x: 77, y: 77, size: 9, dur: 9.4, delay: 2.3 },
+  { x: 38, y: 88, size: 8, dur: 7.7, delay: 1.8 },
+  { x: 63, y: 89, size: 8, dur: 8.9, delay: 0.7 },
 ] as const
 
 /**
@@ -43,11 +61,22 @@ const FALLBACK = [
   'improve',
   'recall',
   'practice',
-  'meaning',
   'learn',
   'words',
   'memory',
   'repeat',
+  'meaning',
+  'spelling',
+  'sentence',
+  'phrase',
+  'context',
+  'listen',
+  'speak',
+  'read',
+  'write',
+  'daily',
+  'progress',
+  'retain',
 ]
 
 interface MemoryWordHaloProps {
@@ -69,7 +98,7 @@ export function MemoryWordHalo({ words = [], className }: MemoryWordHaloProps) {
   return (
     <div
       aria-hidden="true"
-      className={cn('relative mx-auto h-40 w-full max-w-md select-none sm:h-44', className)}
+      className={cn('relative mx-auto h-52 w-full max-w-lg select-none sm:h-60', className)}
     >
       {SLOTS.map((slot, i) => (
         <span
@@ -95,10 +124,10 @@ export function MemoryWordHalo({ words = [], className }: MemoryWordHaloProps) {
         </span>
       ))}
 
-      {/* Soft violet bloom so the brain sits on light, not on nothing. */}
-      <span className="pointer-events-none absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-violet/15 blur-2xl" />
+      {/* Soft bloom so the brain sits on light, not on nothing. */}
+      <span className="pointer-events-none absolute left-1/2 top-1/2 h-32 w-32 -translate-x-1/2 -translate-y-1/2 rounded-full bg-pink/20 blur-2xl sm:h-40 sm:w-40" />
 
-      <BrainIllustration className="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 sm:h-28 sm:w-28" />
+      <BrainIllustration className="absolute left-1/2 top-1/2 h-32 w-32 -translate-x-1/2 -translate-y-1/2 sm:h-40 sm:w-40" />
     </div>
   )
 }
