@@ -21,6 +21,7 @@ import { HeroWordCloud } from '@/components/dashboard/HeroWordCloud'
 import { BookIllustration } from '@/components/dashboard/BookIllustration'
 import { useStudyToday } from '@/hooks/useStudy'
 import { faNum, faPercent } from '@/lib/format'
+import { cn } from '@/lib/utils'
 
 interface StudyTodayHeroProps {
   /** Shown in the greeting; omitted on native, which has no account. */
@@ -197,9 +198,24 @@ export function StudyTodayHero({
             </div>
           </div>
 
-          {/* Three numbers worth knowing before anything else. Zeros are left
-              out rather than shown — an empty row beats a row of noughts. */}
-          {(streak > 0 || accuracy > 0 || wordsInMemory > 0) && (
+          {/*
+            Three numbers worth knowing before anything else. Zeros are left out
+            rather than shown — an empty row beats a row of noughts.
+
+            The placeholders matter: these values come from the dashboard query
+            while the panel below waits on the study query, so without them the
+            row appears a beat later and shoves the whole panel down.
+          */}
+          {isLoading ? (
+            <div className="flex flex-wrap gap-2 pt-6" aria-hidden="true">
+              {['w-28', 'w-24', 'w-32'].map((w) => (
+                <span
+                  key={w}
+                  className={cn('h-8 animate-pulse rounded-full bg-hero-foreground/[0.06]', w)}
+                />
+              ))}
+            </div>
+          ) : (streak > 0 || accuracy > 0 || wordsInMemory > 0) && (
             <div className="flex flex-wrap gap-2 pt-6">
               {streak > 0 && (
                 <StatPill
@@ -230,13 +246,27 @@ export function StudyTodayHero({
 
           <div className="pt-7">
             {isLoading ? (
-              <div className="flex animate-pulse flex-col-reverse gap-6 sm:flex-row sm:items-center sm:gap-10">
-                <div className="w-full flex-1 space-y-4">
-                  <span className="block h-9 w-3/4 rounded bg-hero-foreground/10" />
-                  <span className="block h-9 w-1/2 rounded bg-hero-foreground/10" />
-                  <span className="block h-12 w-44 rounded-2xl bg-hero-foreground/10" />
+              /*
+                Shaped to the loaded panel, block for block: two headline lines,
+                the meta row, the CTA at its real 56px, and the book-plus-dial
+                pair at their real sizes. A skeleton that only approximates the
+                layout it replaces just moves everything when the data lands.
+              */
+              <div className="flex animate-pulse flex-col-reverse gap-7 sm:flex-row sm:items-center sm:gap-10">
+                <div className="min-w-0 flex-1 space-y-5 sm:max-w-2xl">
+                  {/* Centred on phones, where the loaded copy is centred too. */}
+                  <div className="space-y-2">
+                    <span className="mx-auto block h-8 w-2/3 rounded-lg bg-hero-foreground/10 sm:mx-0 sm:h-10" />
+                    <span className="mx-auto block h-8 w-1/2 rounded-lg bg-hero-foreground/10 sm:mx-0 sm:h-10" />
+                  </div>
+                  <span className="mx-auto block h-5 w-3/5 rounded bg-hero-foreground/10 sm:mx-0" />
+                  <span className="block h-14 w-full rounded-2xl bg-hero-foreground/10 sm:w-52" />
                 </div>
-                <span className="h-36 w-36 shrink-0 rounded-full bg-hero-foreground/10 sm:h-48 sm:w-48" />
+
+                <div className="flex shrink-0 items-center justify-center gap-1 sm:justify-normal">
+                  <span className="h-28 w-36 shrink-0 rounded-2xl bg-hero-foreground/10 md:hidden" />
+                  <span className="h-36 w-36 shrink-0 rounded-full bg-hero-foreground/10 sm:h-48 sm:w-48" />
+                </div>
               </div>
             ) : !meta?.hasPlans ? (
               <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:justify-between sm:text-right">
