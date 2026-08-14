@@ -404,6 +404,14 @@
 }
 
 /* ── Memory card: words drifting around the brain ───────────── */
+/*
+  Resting and peak opacity for the words *outside* the brain. Per-theme because
+  the same alpha does not read the same on both: a quarter-strength hue on white
+  is pale but present, while on the near-black panel it all but disappears.
+*/
+:root { --drift-out-min: 0.26; --drift-out-max: 0.5; }
+.dark { --drift-out-min: 0.4;  --drift-out-max: 0.72; }
+
 @keyframes wordDrift {
   0%, 100% { transform: translateY(0) translateX(0); opacity: var(--drift-min, 0.45); }
   50%      { transform: translateY(-7px) translateX(2px); opacity: var(--drift-max, 1); }
@@ -412,6 +420,12 @@
 .word-drift {
   animation: wordDrift var(--drift-dur, 7s) ease-in-out infinite;
   animation-delay: var(--drift-delay, 0s);
+  /*
+    `backwards`, or each word renders at its own full opacity for the length of
+    its delay and only then snaps to the keyframe — up to three seconds of
+    fully-opaque words popping down one by one on every mount.
+  */
+  animation-fill-mode: backwards;
 }
 
 /*
