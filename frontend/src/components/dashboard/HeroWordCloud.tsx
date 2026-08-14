@@ -7,8 +7,10 @@
  * page), and every slot has to stay clear of the middle band where the
  * headline, dial and CTA live.
  *
- * `x`/`y` are percentages of the panel. Nothing sits between y 30–72 on the
- * inner half, which is the content's safe zone.
+ * `x`/`y` are percentages of the panel. The big, heavy words stay in the top
+ * and bottom bands and along the outer edges; only small, faint ones sit in the
+ * middle, where the headline, dial and CTA live. Nothing goes below y 88 — the
+ * closing diagonal paints over that strip.
  *
  * `weight` is *relative* (0–1), not a final opacity. The absolute level lives
  * on the container, because the two themes need very different amounts: 6% of
@@ -16,16 +18,32 @@
  * dark panel is barely a smudge.
  */
 const SLOTS = [
-  { x: 4, y: 12, size: 2.4, rotate: -4, weight: 1 },
-  { x: 20, y: 78, size: 1.5, rotate: 3, weight: 0.85 },
-  { x: 33, y: 8, size: 1.1, rotate: -2, weight: 0.7 },
-  { x: 46, y: 86, size: 2.0, rotate: -5, weight: 0.85 },
-  { x: 8, y: 44, size: 1.3, rotate: 2, weight: 0.7 },
-  { x: 62, y: 14, size: 1.4, rotate: 4, weight: 0.7 },
-  { x: 2, y: 66, size: 1.0, rotate: -3, weight: 0.6 },
-  { x: 76, y: 84, size: 1.2, rotate: 2, weight: 0.6 },
+  // Top band
+  { x: 4, y: 10, size: 2.4, rotate: -4, weight: 1 },
+  { x: 17, y: 2, size: 1.3, rotate: 2, weight: 0.6 },
+  { x: 33, y: 7, size: 1.1, rotate: -2, weight: 0.7 },
+  { x: 48, y: 19, size: 0.95, rotate: -3, weight: 0.5 },
+  { x: 62, y: 13, size: 1.4, rotate: 4, weight: 0.7 },
+  { x: 74, y: 3, size: 1.2, rotate: -2, weight: 0.55 },
+  { x: 88, y: 19, size: 1.1, rotate: 3, weight: 0.55 },
+  { x: 96, y: 6, size: 1.0, rotate: 2, weight: 0.45 },
   { x: 30, y: 26, size: 0.95, rotate: -2, weight: 0.55 },
-  { x: 88, y: 20, size: 1.1, rotate: 3, weight: 0.55 },
+  // Outer edges, mid height
+  { x: 7, y: 40, size: 1.3, rotate: 2, weight: 0.7 },
+  { x: 2, y: 64, size: 1.0, rotate: -3, weight: 0.6 },
+  { x: 95, y: 47, size: 1.1, rotate: -2, weight: 0.5 },
+  { x: 12, y: 54, size: 0.9, rotate: 3, weight: 0.45 },
+  // Middle — small and faint on purpose, this is behind the copy
+  { x: 31, y: 35, size: 0.95, rotate: -2, weight: 0.4 },
+  { x: 68, y: 44, size: 0.9, rotate: 3, weight: 0.4 },
+  { x: 45, y: 57, size: 0.85, rotate: -2, weight: 0.35 },
+  // Bottom band
+  { x: 20, y: 76, size: 1.5, rotate: 3, weight: 0.85 },
+  { x: 46, y: 84, size: 2.0, rotate: -5, weight: 0.85 },
+  { x: 76, y: 81, size: 1.2, rotate: 2, weight: 0.6 },
+  { x: 8, y: 86, size: 1.1, rotate: -3, weight: 0.5 },
+  { x: 92, y: 73, size: 1.3, rotate: 2, weight: 0.55 },
+  { x: 62, y: 87, size: 1.0, rotate: -2, weight: 0.45 },
 ] as const
 
 /**
@@ -43,6 +61,18 @@ const FALLBACK = [
   'understand',
   'words',
   'learn',
+  'meaning',
+  'sentence',
+  'speak',
+  'listen',
+  'phrase',
+  'context',
+  'recall',
+  'progress',
+  'daily',
+  'memory',
+  'repeat',
+  'read',
 ]
 
 interface HeroWordCloudProps {
