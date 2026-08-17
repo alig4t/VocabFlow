@@ -72,6 +72,7 @@ export class StudyService {
 
     const dayStart = startOfDay(now)
     const dayEnd = endOfDay(now)
+    const todayTotals = await this.repo.getTodaySessionTotals(userId, dayStart, dayEnd)
 
     // Due reviews are capped per volume by that plan's own dailyGoal (oldest-due
     // first, so a cap only ever defers the least-urgent words). Without this cap
@@ -135,7 +136,7 @@ export class StudyService {
         dueCount: dueWords.length,
         newCount: newWords.length,
         dailyGoal: plans.reduce((s, p) => s + p.dailyGoal, 0),
-        reviewedToday: 0, // filled by dashboard; not needed for the session itself
+        reviewedToday: todayTotals.reviewedCount,
         introducedToday: introducedTodayTotal,
         hasPlans: plans.length > 0,
         direction: mode,
@@ -196,7 +197,17 @@ export class StudyService {
     }
   }
 
+  /**
+   * Persist this visit's session, then return the running total for the whole
+   * day (`[dayStart, dayEnd]` of `input.endedAt`) — the user may visit
+   * `/study` more than once a day, and the summary screen shows the day's
+   * total, not just the visit that just finished.
+   */
   async recordSession(userId: string, input: SessionInput) {
-    return this.repo.createSession(userId, input)
+    const session = await this.repo.createSession(userId, input)
+    const dayStart = startOfDay(input.endedAt)
+    const dayEnd = endOfDay(input.endedAt)
+    const today = await this.repo.getTodaySessionTotals(userId, dayStart, dayEnd)
+    return { id: session.id, today }
   }
 }

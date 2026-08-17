@@ -6,6 +6,7 @@ import type {
   StudyAnswerResult,
   StudyToday,
   SessionSummary,
+  DailyStudyTotals,
   TodayNewWords,
 } from '@/types'
 
@@ -33,8 +34,10 @@ export const studyService = {
       .then((r) => r.data)
   },
 
-  recordSession(summary: SessionSummary): Promise<{ id: string }> {
+  recordSession(summary: SessionSummary): Promise<{ id: string; today: DailyStudyTotals }> {
     if (isNative()) return off().then((o) => o.recordStudySession(summary))
-    return api.post<{ id: string }>(API_ENDPOINTS.study.session, summary).then((r) => r.data)
+    return api
+      .post<{ id: string; today: DailyStudyTotals }>(API_ENDPOINTS.study.session, summary)
+      .then((r) => r.data)
   },
 }

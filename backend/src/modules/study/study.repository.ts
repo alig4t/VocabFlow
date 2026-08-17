@@ -262,11 +262,51 @@ export class StudyRepository {
       },
     })
   }
+
+  /**
+   * Sum of every session's stats for one day (`[dayStart, dayEnd]`, the same
+   * DAY_START_HOUR-bounded range `getToday` uses). The user may open `/study`
+   * several times in a day — this is the total across all of those visits,
+   * not any single one.
+   */
+  async getTodaySessionTotals(userId: string, dayStart: Date, dayEnd: Date): Promise<SessionTotals> {
+    const agg = await prisma.studySession.aggregate({
+      where: { userId, startedAt: { gte: dayStart, lte: dayEnd } },
+      _sum: {
+        durationSec: true,
+        reviewedCount: true,
+        correctCount: true,
+        wrongCount: true,
+        hardCount: true,
+        skippedCount: true,
+        newCount: true,
+      },
+    })
+    return {
+      durationSec: agg._sum.durationSec ?? 0,
+      reviewedCount: agg._sum.reviewedCount ?? 0,
+      correctCount: agg._sum.correctCount ?? 0,
+      wrongCount: agg._sum.wrongCount ?? 0,
+      hardCount: agg._sum.hardCount ?? 0,
+      skippedCount: agg._sum.skippedCount ?? 0,
+      newCount: agg._sum.newCount ?? 0,
+    }
+  }
 }
 
 export interface SessionInput {
   startedAt: Date
   endedAt: Date
+  durationSec: number
+  reviewedCount: number
+  correctCount: number
+  wrongCount: number
+  hardCount: number
+  skippedCount: number
+  newCount: number
+}
+
+export interface SessionTotals {
   durationSec: number
   reviewedCount: number
   correctCount: number

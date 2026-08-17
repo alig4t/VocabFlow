@@ -50,7 +50,7 @@ export class StudyController {
 
   recordSession = async (req: Request, res: Response): Promise<void> => {
     const input = parseOrThrow(sessionSchema, req.body)
-    const session = await this.service.recordSession(req.user!.sub, input)
-    res.status(201).json({ success: true, data: { id: session.id } })
+    const result = await this.service.recordSession(req.user!.sub, input)
+    res.status(201).json({ success: true, data: result })
   }
 }

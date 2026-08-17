@@ -4,6 +4,10 @@ import { Button } from '@/components/ui/button'
 /**
  * Every count here is a number of WORDS, not of button presses — one outcome per
  * word however many times it came around in the session.
+ *
+ * By the time this reaches the summary screen it is usually the WHOLE DAY's
+ * total (every visit to `/study` today summed together), not just the visit
+ * that just ended — see `finish()` in `StudySessionPage`.
  */
 export interface SessionStats {
   /** Words that got a real answer = `correctCount + wrongCount`. */
@@ -81,7 +85,7 @@ export function SessionSummaryScreen({ stats, onHome, onAgain, saving }: Session
           <Sparkles className="h-8 w-8 text-primary" />
         </div>
         <h1 className="text-2xl font-bold text-foreground">مطالعه امروز تمام شد! 🎉</h1>
-        <p className="text-sm text-muted-foreground">خلاصه‌ی این جلسه را ببینید.</p>
+        <p className="text-sm text-muted-foreground">خلاصه‌ی کل مطالعه‌ی امروزت را ببینید.</p>
       </div>
 
       {/* Success ring */}
@@ -146,7 +150,8 @@ export function SessionSummaryScreen({ stats, onHome, onAgain, saving }: Session
       </div>
 
       <p className="text-sm text-muted-foreground">
-        مجموع واژگان مرورشده: <span className="font-semibold text-foreground">{stats.reviewedCount}</span> واژه
+        مجموع واژگان مرورشده امروز:{' '}
+        <span className="font-semibold text-foreground">{stats.reviewedCount}</span> واژه
       </p>
 
       <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">

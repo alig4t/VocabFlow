@@ -435,6 +435,21 @@ export interface SessionSummary {
   newCount: number
 }
 
+/**
+ * Sum of every session recorded today (DAY_START_HOUR-bounded, see `srs.ts`).
+ * The user may visit `/study` several times a day — this is what the
+ * session-summary screen shows, not just the visit that just ended.
+ */
+export interface DailyStudyTotals {
+  durationSec: number
+  reviewedCount: number
+  correctCount: number
+  wrongCount: number
+  hardCount: number
+  skippedCount: number
+  newCount: number
+}
+
 export interface UserSettings {
   studyDirection: ReviewMode
   autoPlayAudio: boolean

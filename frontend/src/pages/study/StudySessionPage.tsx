@@ -34,11 +34,38 @@ function loadMuted(): boolean {
 // Persist the in-progress session (queue, position, tallies) so leaving the
 // page (back button, accidental nav, phone lock) and returning resumes at the
 // exact same card instead of re-fetching and losing position. Cleared on
-// finish/restart. sessionStorage (not localStorage) so a stale session never
-// survives a full app close+reopen days later.
+// finish/restart.
 // v2: the tally switched from button presses to per-word outcomes, so a session
 // persisted by the old build can't be resumed — bumping the key drops it.
 const SESSION_KEY = 'vocab_study_session_v2'
+
+/**
+ * Native: `localStorage`, so the in-progress session survives the app being
+ * fully closed (Android can kill the WebView process while backgrounded,
+ * wiping `sessionStorage` mid-session) — otherwise the day's timer and tallies
+ * silently reset on reopen. Web: `sessionStorage`, unchanged — closing the tab
+ * is a clearer "I'm done" signal there, and `localStorage` would leak the
+ * session across separate tabs of the same origin.
+ * Staleness (see the `stale` check below) still bounds how long either can live.
+ */
+function sessionStore(): Storage {
+  return isNative() ? localStorage : sessionStorage
+}
+
+/**
+ * Mirrors `DAY_START_HOUR` in `backend/src/modules/study/srs.ts` and
+ * `frontend/src/offline/srs.ts` — the study day rolls over at 06:00 local,
+ * not midnight, so a session persisted late tonight isn't mistaken for
+ * yesterday's and discarded.
+ */
+const DAY_START_HOUR = 6
+
+function startOfStudyDay(d: Date): Date {
+  const s = new Date(d)
+  s.setHours(DAY_START_HOUR, 0, 0, 0)
+  if (s.getTime() > d.getTime()) s.setDate(s.getDate() - 1)
+  return s
+}
 
 /**
  * Per-word outcome sets. The summary counts WORDS, not button presses:
@@ -67,6 +94,16 @@ interface PersistedSession {
   seenNewOnce: string[]
   startedAt: string
   /**
+   * Timestamp of the last answer recorded into this session (updated on every
+   * `persist()` call). Used only when this session turns out to be stale and
+   * gets flushed instead of resumed — it bounds that flushed session's
+   * `endedAt`/duration to when the user was actually last active, not to
+   * whenever the app happens to notice the staleness (which could be much
+   * later). Optional so an older persisted session (pre-dating this field)
+   * still flushes, just falling back to `startedAt`.
+   */
+  lastActivityAt?: string
+  /**
    * Active learning-PLAN ids at the moment this queue was built (sorted).
    * Compared against the CURRENT plan list before resuming. Deliberately
    * plan-level, not book-level: `useWatchlistBooks()` dedupes by book, so two
@@ -81,7 +118,7 @@ interface PersistedSession {
 
 function loadPersistedSession(): PersistedSession | null {
   try {
-    const raw = sessionStorage.getItem(SESSION_KEY)
+    const raw = sessionStore().getItem(SESSION_KEY)
     return raw ? (JSON.parse(raw) as PersistedSession) : null
   } catch {
     return null
@@ -90,17 +127,49 @@ function loadPersistedSession(): PersistedSession | null {
 
 function savePersistedSession(s: PersistedSession) {
   try {
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(s))
+    sessionStore().setItem(SESSION_KEY, JSON.stringify(s))
   } catch {
     /* ignore (quota / private mode) */
   }
 }
 
 function clearPersistedSession() {
+  // Clear both unconditionally — cheap, and drops any leftover key in the
+  // storage `sessionStore()` isn't currently pointing at.
+  try {
+    localStorage.removeItem(SESSION_KEY)
+  } catch {
+    /* ignore */
+  }
   try {
     sessionStorage.removeItem(SESSION_KEY)
   } catch {
     /* ignore */
+  }
+}
+
+/**
+ * Word-outcome stats shared by `finish()` (live `Set` refs) and the
+ * stale-session flush path (persisted arrays) — see `SessionOutcomes`.
+ */
+function computeSessionStats(
+  outcomes: { rated: string[]; wrong: string[]; hard: string[]; skipped: string[] },
+  newCount: number,
+  startedAt: Date,
+  endedAt: Date,
+): SessionStats {
+  const wrongSet = new Set(outcomes.wrong)
+  const ratedSet = new Set(outcomes.rated)
+  const correctCount = outcomes.rated.filter((id) => !wrongSet.has(id)).length
+  const skippedCount = outcomes.skipped.filter((id) => !ratedSet.has(id) && !wrongSet.has(id)).length
+  return {
+    correctCount,
+    wrongCount: wrongSet.size,
+    hardCount: new Set(outcomes.hard).size,
+    skippedCount,
+    newCount,
+    reviewedCount: correctCount + wrongSet.size,
+    durationSec: Math.max(0, Math.round((endedAt.getTime() - startedAt.getTime()) / 1000)),
   }
 }
 
@@ -263,6 +332,7 @@ export function StudySessionPage() {
       introducedNew: [...introducedNew.current],
       seenNewOnce: [...seenNewOnce.current],
       startedAt: startedAtRef.current.toISOString(),
+      lastActivityAt: new Date().toISOString(),
       planIds: planIdsRef.current,
     })
   }, [])
@@ -285,12 +355,19 @@ export function StudySessionPage() {
     const persisted = loadPersistedSession()
     if (persisted && persisted.queue.length > 0) {
       const persistedIds = persisted.planIds
+      const persistedStart = new Date(persisted.startedAt)
+      // The study day rolled over (06:00 boundary) while this session sat
+      // unfinished — today's queue is for a new day now, so the old one can't
+      // be resumed even though the plan set itself may be unchanged.
+      const crossedStudyDay =
+        startOfStudyDay(persistedStart).getTime() !== startOfStudyDay(new Date()).getTime()
       // Compare the FULL plan id set, not just "did a queued word's plan get
       // removed" — a plan ADDED after the queue was built contributes no
       // words to it, so nothing in the queue looks stale even though "امروز"
       // should now include more. A missing snapshot (older persisted session,
       // pre-dating this field) is treated as stale too, so it self-heals once.
       const stale =
+        crossedStudyDay ||
         !persistedIds ||
         persistedIds.length !== currentIds.length ||
         persistedIds.some((id, i) => id !== currentIds[i])
@@ -303,11 +380,41 @@ export function StudySessionPage() {
         skippedWords.current = new Set(persisted.outcomes?.skipped ?? [])
         introducedNew.current = new Set(persisted.introducedNew)
         seenNewOnce.current = new Set(persisted.seenNewOnce)
-        startedAtRef.current = new Date(persisted.startedAt)
+        startedAtRef.current = persistedStart
         return
       }
-      // Plan composition changed since this queue was built — discard and
-      // fetch fresh.
+      // Discarding progress that was never recorded (plan set changed
+      // mid-session, or the study day rolled over while the app sat closed) —
+      // flush it as its own session first so the time/words already spent
+      // aren't silently lost. Bounded by `lastActivityAt`, not "now": the app
+      // may only be noticing this long after the user actually stopped.
+      const flushEnd = persisted.lastActivityAt ? new Date(persisted.lastActivityAt) : persistedStart
+      const flushStats = computeSessionStats(
+        {
+          rated: persisted.outcomes?.rated ?? [],
+          wrong: persisted.outcomes?.wrong ?? [],
+          hard: persisted.outcomes?.hard ?? [],
+          skipped: persisted.outcomes?.skipped ?? [],
+        },
+        persisted.introducedNew?.length ?? 0,
+        persistedStart,
+        flushEnd,
+      )
+      if (flushStats.reviewedCount + flushStats.skippedCount + flushStats.newCount > 0) {
+        void studyService
+          .recordSession({
+            startedAt: persisted.startedAt,
+            endedAt: flushEnd.toISOString(),
+            durationSec: flushStats.durationSec,
+            reviewedCount: flushStats.reviewedCount,
+            correctCount: flushStats.correctCount,
+            wrongCount: flushStats.wrongCount,
+            hardCount: flushStats.hardCount,
+            skippedCount: flushStats.skippedCount,
+            newCount: flushStats.newCount,
+          })
+          .catch((e) => console.error('flush abandoned session failed', e))
+      }
       clearPersistedSession()
     }
 
@@ -342,22 +449,17 @@ export function StudySessionPage() {
     // correctly later is wrong (it needed a second look) and is NOT also counted
     // as correct — so correct + wrong is exactly the number of words studied.
     // This also drives the dashboard accuracy rate via the recorded session row.
-    const wrong = wrongWords.current
-    const correctCount = [...ratedWords.current].filter((id) => !wrong.has(id)).length
-    // A word only counts as skipped if it never got a real answer afterwards.
-    const skippedCount = [...skippedWords.current].filter(
-      (id) => !ratedWords.current.has(id) && !wrong.has(id),
-    ).length
-
-    const stats: SessionStats = {
-      correctCount,
-      wrongCount: wrong.size,
-      hardCount: hardWords.current.size,
-      skippedCount,
-      newCount: introducedNew.current.size,
-      reviewedCount: correctCount + wrong.size,
-      durationSec: Math.max(0, Math.round((Date.now() - startedAtRef.current.getTime()) / 1000)),
+    const outcomes = {
+      rated: [...ratedWords.current],
+      wrong: [...wrongWords.current],
+      hard: [...hardWords.current],
+      skipped: [...skippedWords.current],
     }
+    const endedAt = new Date()
+    const stats = computeSessionStats(outcomes, introducedNew.current.size, startedAtRef.current, endedAt)
+    // Shown immediately as this visit's own numbers; replaced below with the
+    // whole day's total once the server/local DB confirms it (the user may
+    // have visited `/study` earlier today too — see `recordSession`).
     setSummary(stats)
     clearPersistedSession()
     stopPronunciation()
@@ -368,7 +470,7 @@ export function StudySessionPage() {
       studyService
         .recordSession({
           startedAt: startedAtRef.current.toISOString(),
-          endedAt: new Date().toISOString(),
+          endedAt: endedAt.toISOString(),
           durationSec: stats.durationSec,
           reviewedCount: stats.reviewedCount,
           correctCount: stats.correctCount,
@@ -377,6 +479,7 @@ export function StudySessionPage() {
           skippedCount: stats.skippedCount,
           newCount: stats.newCount,
         })
+        .then((res) => setSummary(res.today))
         .catch((e) => console.error('recordSession failed', e))
         .finally(() => {
           setSaving(false)

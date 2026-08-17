@@ -35,6 +35,7 @@ import type {
   StudyPlanMeta,
   NotificationStatus,
   SessionSummary,
+  DailyStudyTotals,
   LearningPlan,
   UserSettings,
   CardOrder,
@@ -587,6 +588,47 @@ function isoDayLocal(d: Date): string {
 }
 
 const dayOf = (iso: string | null | undefined) => (iso ? isoDayLocal(new Date(iso)) : null)
+
+/**
+ * Sum of every session's stats between two timestamps (inclusive) — mirrors
+ * the backend's `getTodaySessionTotals`. The user may open the study page
+ * several times in a day; this is the running total across all those visits.
+ */
+async function sessionTotalsBetween(startIso: string, endIso: string): Promise<DailyStudyTotals> {
+  const rows = await query<{
+    duration_sec: number
+    reviewed_count: number
+    correct_count: number
+    wrong_count: number
+    hard_count: number
+    skipped_count: number
+    new_count: number
+  }>(
+    `SELECT duration_sec, reviewed_count, correct_count, wrong_count, hard_count, skipped_count, new_count
+     FROM study_sessions WHERE started_at >= ? AND started_at <= ?`,
+    [startIso, endIso],
+  )
+  return rows.reduce(
+    (t, r) => ({
+      durationSec: t.durationSec + r.duration_sec,
+      reviewedCount: t.reviewedCount + r.reviewed_count,
+      correctCount: t.correctCount + r.correct_count,
+      wrongCount: t.wrongCount + r.wrong_count,
+      hardCount: t.hardCount + r.hard_count,
+      skippedCount: t.skippedCount + r.skipped_count,
+      newCount: t.newCount + r.new_count,
+    }),
+    {
+      durationSec: 0,
+      reviewedCount: 0,
+      correctCount: 0,
+      wrongCount: 0,
+      hardCount: 0,
+      skippedCount: 0,
+      newCount: 0,
+    },
+  )
+}
 
 export async function getDashboard(): Promise<DashboardData> {
   const now = new Date()
@@ -1286,6 +1328,8 @@ export async function getStudyToday(): Promise<StudyToday> {
   const orderedDue = settings.cardOrder === 'RANDOM' ? shuffle(due) : due
   const orderedNew = settings.cardOrder === 'RANDOM' ? shuffle(newWords) : newWords
 
+  const todayTotals = await sessionTotalsBetween(dayStartIso, dayEndIso)
+
   return {
     due: orderedDue,
     new: orderedNew,
@@ -1293,7 +1337,7 @@ export async function getStudyToday(): Promise<StudyToday> {
       dueCount: due.length,
       newCount: newWords.length,
       dailyGoal: plans.reduce((s, p) => s + p.daily_goal, 0),
-      reviewedToday: 0,
+      reviewedToday: todayTotals.reviewedCount,
       introducedToday: introducedTodayTotal,
       hasPlans: plans.length > 0,
       direction: mode,
@@ -1405,7 +1449,9 @@ export async function answerStudy(wordId: string, answer: StudyAnswer): Promise<
   }
 }
 
-export async function recordStudySession(summary: SessionSummary): Promise<{ id: string }> {
+export async function recordStudySession(
+  summary: SessionSummary,
+): Promise<{ id: string; today: DailyStudyTotals }> {
   const id = uid()
   await run(
     `INSERT INTO study_sessions (id, started_at, ended_at, duration_sec, reviewed_count,
@@ -1417,7 +1463,12 @@ export async function recordStudySession(summary: SessionSummary): Promise<{ id:
       summary.newCount, now(),
     ],
   )
-  return { id }
+  const endedAt = new Date(summary.endedAt)
+  const today = await sessionTotalsBetween(
+    startOfDay(endedAt).toISOString(),
+    endOfDay(endedAt).toISOString(),
+  )
+  return { id, today }
 }
 
 // ── Learning plans ─────────────────────────────────────────────────────────────
