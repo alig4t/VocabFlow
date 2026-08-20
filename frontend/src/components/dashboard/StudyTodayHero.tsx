@@ -12,8 +12,8 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ProgressRing } from '@/components/dashboard/ProgressRing'
-import { HeroWordCloud } from '@/components/dashboard/HeroWordCloud'
 import { HeroBlob } from '@/components/dashboard/HeroBlob'
+import { HeroPattern } from '@/components/dashboard/HeroPattern'
 import { useStudyToday } from '@/hooks/useStudy'
 import { faNum, faPercent } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -25,8 +25,6 @@ interface StudyTodayHeroProps {
   accuracy?: number
   /** Words currently in the SM-2 review cycle. Pill is hidden at zero. */
   wordsInMemory?: number
-  /** The user's own vocabulary, used as the panel's background texture. */
-  textureWords?: string[]
 }
 
 /*
@@ -127,10 +125,11 @@ function GhostCTA({
  * are answered.
  *
  * The field is the user's reference SVG — gold with its darker organic blob
- * (`<HeroBlob>`, the verbatim Haikei path) — textured further with the
- * reader's own vocabulary. On a finished day the dial gives way to a trophy
- * stat, so the band never repeats itself. Renders in every state — including
- * "still loading" and "no plans yet" — so the band never disappears.
+ * (`<HeroBlob>`, the verbatim Haikei path) over a designed texture of ink
+ * dots, rings and sparkles (`<HeroPattern>`). On a finished day the dial
+ * gives way to a trophy stat, so the band never repeats itself. Renders in
+ * every state — including "still loading" and "no plans yet" — so the band
+ * never disappears.
  *
  * The band doesn't end on a straight cut but on a two-layer wave: a pale-gold
  * swell (lighter than the field) riding an underwave painted in the page's own
@@ -141,7 +140,6 @@ export function StudyTodayHero({
   streak = 0,
   accuracy = 0,
   wordsInMemory = 0,
-  textureWords,
 }: StudyTodayHeroProps) {
   const navigate = useNavigate()
   const { data, isLoading } = useStudyToday()
@@ -191,10 +189,11 @@ export function StudyTodayHero({
       <HeroBlob className="absolute -bottom-28 -start-20 w-[26rem] opacity-90 sm:w-[30rem]" />
       <HeroBlob
         variant={2}
-        className="absolute -end-10 top-6 w-40 -scale-x-100 opacity-60 sm:w-52"
+        className="absolute -end-10 top-6 w-40 -scale-x-100 opacity-75 sm:w-52"
       />
 
-      <HeroWordCloud words={textureWords} onDeep />
+      {/* The designed texture: dot grid, rings, sparkles. */}
+      <HeroPattern />
 
       {/* A hairline of light along the top edge — the merged block's crown. */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">

@@ -52,7 +52,6 @@ export function DashboardPage() {
         streak={data?.stats.currentStreak ?? 0}
         accuracy={data?.stats.accuracyRate ?? 0}
         wordsInMemory={data?.memory.total ?? 0}
-        textureWords={data?.hardWords.map((w) => w.eng)}
       />
 
       {/*

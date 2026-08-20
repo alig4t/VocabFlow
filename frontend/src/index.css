@@ -170,7 +170,7 @@
     --deep-2: 47 97% 64%;
     --deep-3: 45 95% 57%;
     --deep-blob: 48 92% 52%;
-    --deep-blob-2: 49 100% 68%;
+    --deep-blob-2: 40 90% 48%;
     --deep-wave: 47 100% 84%;
     --deep-fg: 45 65% 10%;
     --deep-muted: 40 50% 26%;
@@ -384,6 +384,21 @@
     background-image:
       radial-gradient(90% 55% at 70% -15%, hsl(48 100% 82% / 0.55), transparent 60%),
       linear-gradient(176deg, hsl(var(--deep-1)) 0%, hsl(var(--deep-2)) 55%, hsl(var(--deep-3)) 100%);
+  }
+
+  /*
+    The band's dotted texture: an ink dot grid, faint enough to sit under any
+    text, masked so it concentrates behind the navbar half of the band and
+    dissolves before the wave. In `.hero-dots-mask` — separate so the mask can
+    be retuned without touching the grid.
+  */
+  .hero-dots {
+    background-image: radial-gradient(hsl(45 60% 10% / 0.08) 1.25px, transparent 1.35px);
+    background-size: 22px 22px;
+  }
+  .hero-dots-mask {
+    -webkit-mask-image: radial-gradient(85% 80% at 75% 0%, black 30%, transparent 75%);
+    mask-image: radial-gradient(85% 80% at 75% 0%, black 30%, transparent 75%);
   }
 
   /*
