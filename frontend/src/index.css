@@ -157,6 +157,25 @@
     /* The brain keeps the pink it shipped with; only the tone is theme-tuned. */
     --brand-pink: 322 60% 70%;
     --brand-pink-deep: 322 52% 58%;
+
+    /*
+      The dashboard hero band — a gold field themed per mode. Light opens
+      bright and airy with blobs in the theme's primary gold (the same gold
+      as the شروع تمرین button); dark runs deeper with brighter gold blobs;
+      study leans into the sepia ambers. Text on it stays warm ink in every
+      mode. The navbar turns transparent over it, so band and bar read as one
+      merged block that opens the app.
+    */
+    --deep-1: 48 100% 70%;
+    --deep-2: 47 97% 64%;
+    --deep-3: 45 95% 57%;
+    --deep-blob: 48 92% 52%;
+    --deep-blob-2: 49 100% 68%;
+    --deep-wave: 47 100% 84%;
+    --deep-fg: 45 65% 10%;
+    --deep-muted: 40 50% 26%;
+    /* Unfilled track of a dial drawn on the band. */
+    --deep-track: 38 70% 44%;
   }
   .dark {
     --background: 222 47% 6%;
@@ -203,6 +222,13 @@
     --brand-mint: 166 52% 52%;
     --brand-pink: 322 62% 74%;
     --brand-pink-deep: 322 55% 64%;
+    /* The hero band in dark — deeper gold field, brighter gold blobs. */
+    --deep-1: 42 90% 52%;
+    --deep-2: 40 88% 46%;
+    --deep-3: 36 86% 40%;
+    --deep-blob: 49 86% 58%;
+    --deep-blob-2: 46 90% 66%;
+    --deep-wave: 46 95% 80%;
   }
   /* ── Study mode · warm sepia + gold, easy on the eyes for long reading ── */
   .study {
@@ -251,6 +277,17 @@
     --brand-mint: 162 32% 36%;
     --brand-pink: 328 38% 62%;
     --brand-pink-deep: 328 34% 52%;
+    /*
+      The hero band in study — leans into the sepia: the field slides toward
+      the mode's warm ambers and its blobs carry the study primary itself.
+      Ink text stays (it clears 4.5:1 on every stop of the field).
+    */
+    --deep-1: 40 85% 62%;
+    --deep-2: 36 78% 55%;
+    --deep-3: 30 75% 46%;
+    --deep-blob: 34 80% 40%;
+    --deep-blob-2: 38 85% 55%;
+    --deep-wave: 38 90% 80%;
   }
 
   * { @apply border-border; }
@@ -335,6 +372,37 @@
       hsl(var(--hero-2)) 55%,
       hsl(var(--hero-3)) 100%
     );
+  }
+
+  /*
+    The hero band's wash: a gold field as a gentle top-light gradient, themed
+    per mode through the --deep tokens. The organic blob that completes the
+    reference lives in <HeroBlob>, placed per breakpoint; this just keeps the
+    colour from reading flat.
+  */
+  .bg-hero-deep {
+    background-image:
+      radial-gradient(90% 55% at 70% -15%, hsl(48 100% 82% / 0.55), transparent 60%),
+      linear-gradient(176deg, hsl(var(--deep-1)) 0%, hsl(var(--deep-2)) 55%, hsl(var(--deep-3)) 100%);
+  }
+
+  /*
+    Full bleed like `page-bleed`, but also sliding up under the transparent
+    hero navbar (h-16 = 4rem) so the gradient runs edge to edge behind it.
+    Replaces `page-bleed` — don't stack both, they'd fight over margin-top.
+  */
+  .page-bleed-under-nav {
+    margin-inline: -0.5rem;
+    margin-top: calc(-1rem - 4rem);
+  }
+  @media (min-width: 640px) {
+    .page-bleed-under-nav { margin-inline: -1rem;   margin-top: calc(-1rem - 4rem); }
+  }
+  @media (min-width: 768px) {
+    .page-bleed-under-nav { margin-inline: -1.5rem; margin-top: calc(-1.5rem - 4rem); }
+  }
+  @media (min-width: 1024px) {
+    .page-bleed-under-nav { margin-inline: -2rem;   margin-top: calc(-2rem - 4rem); }
   }
 
   /*

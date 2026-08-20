@@ -2,11 +2,18 @@ import { Menu, Moon, Sun, Lamp, User, LogOut, Power } from 'lucide-react'
 import { useTheme } from './ThemeProvider'
 import { useAuthStore } from '../../store/authStore'
 import { isNative } from '../../lib/platform'
+import { cn } from '../../lib/utils'
 import { Button } from '../ui/button'
 import { Link } from 'react-router-dom'
 
 interface NavbarProps {
   onMenuClick: () => void
+  /**
+   * On the dashboard the navbar merges into the hero band: transparent over
+   * the violet gradient (which slides up behind it), white icons, glass
+   * hovers. Every other page keeps the solid bar.
+   */
+  hero?: boolean
 }
 
 // Cycle order: light → dark → study → light.
@@ -18,7 +25,7 @@ const THEME_META = {
   study: { Icon: Lamp, label: 'حالت مطالعه', next: 'حالت روشن' },
 } as const
 
-export function Navbar({ onMenuClick }: NavbarProps) {
+export function Navbar({ onMenuClick, hero = false }: NavbarProps) {
   const { resolvedTheme, setTheme } = useTheme()
   const { user, clearAuth } = useAuthStore()
 
@@ -41,13 +48,21 @@ export function Navbar({ onMenuClick }: NavbarProps) {
   }
 
   return (
-    <header dir="rtl" className="font-persian flex h-16 shrink-0 items-center justify-between border-b border-border bg-background/95 backdrop-blur px-4 md:px-6">
+    <header
+      dir="rtl"
+      className={cn(
+        'font-persian relative z-10 flex h-16 shrink-0 items-center justify-between px-4 md:px-6',
+        hero
+          ? 'text-[hsl(45_60%_12%)]'
+          : 'border-b border-border bg-background/95 text-foreground backdrop-blur',
+      )}
+    >
       {/* راست: دکمه منو + لوگو — فقط وقتی سایدبار مخفی است (موبایل/عرض کم) */}
       <div className="flex items-center gap-2">
         <Button
           variant="ghost"
           size="icon"
-          className="lg:hidden"
+          className={cn('lg:hidden', hero && 'text-[hsl(45_60%_12%)] hover:bg-black/10 hover:text-[hsl(45_60%_12%)]')}
           onClick={onMenuClick}
           aria-label="باز کردن منو"
         >
@@ -55,21 +70,15 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         </Button>
         <Link to={'/'}>
           <div className="flex items-center gap-2 lg:hidden">
-            <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-white ring-1 ring-border">
+            <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-white ring-1 ring-black/10">
               <img src="/logo/logo-flow-192.png" alt="وکب فلو" className="h-full w-full object-contain p-0.5" draggable={false} />
             </div>
             <div className="leading-tight">
-              <p className="text-sm font-bold text-foreground">وکب فلو </p>
-              <p className="text-xs text-muted-foreground">یادگیری زبان</p>
+              <p className={cn('text-sm font-bold', hero ? 'text-[hsl(45_60%_12%)]' : 'text-foreground')}>وکب فلو </p>
+              <p className={cn('text-xs', hero ? 'text-[hsl(40_50%_26%)]' : 'text-muted-foreground')}>یادگیری زبان</p>
             </div>
           </div>
         </Link>
-        {/* <div className="flex items-center gap-2 lg:hidden">
-          <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-white ring-1 ring-border">
-            <img src="/logo/logo-flow-192.png" alt="وکب فلو" className="h-full w-full object-contain p-0.5" draggable={false} />
-          </div>
-          <span className="text-sm font-bold text-foreground">وکب فلو</span>
-        </div> */}
       </div>
 
       {/* چپ: اطلاعات کاربر و کنترل‌ها */}
@@ -77,12 +86,15 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         {/* اطلاعات کاربر */}
         {user && (
           <div className="hidden items-center gap-2 md:flex">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <div className={cn(
+              'flex h-8 w-8 items-center justify-center rounded-full',
+              hero ? 'bg-black/10 text-[hsl(45_60%_12%)] ring-1 ring-black/10' : 'bg-primary/10 text-primary',
+            )}>
               <User className="h-4 w-4" />
             </div>
             <div className="leading-tight">
-              <p className="text-sm font-medium text-foreground">{user.name}</p>
-              <p className="text-xs text-muted-foreground">{user.email}</p>
+              <p className={cn('text-sm font-medium', hero ? 'text-[hsl(45_60%_12%)]' : 'text-foreground')}>{user.name}</p>
+              <p className={cn('text-xs', hero ? 'text-[hsl(40_50%_26%)]' : 'text-muted-foreground')}>{user.email}</p>
             </div>
           </div>
         )}
@@ -91,6 +103,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         <Button
           variant="ghost"
           size="icon"
+          className={cn(hero && 'text-[hsl(45_60%_12%)] hover:bg-black/10 hover:text-[hsl(45_60%_12%)]')}
           onClick={toggleTheme}
           title={`${themeLabel} — تغییر به ${nextLabel}`}
           aria-label={`${themeLabel}. تغییر به ${nextLabel}`}
@@ -105,7 +118,10 @@ export function Navbar({ onMenuClick }: NavbarProps) {
           onClick={handleLogout}
           aria-label={native ? 'بستن برنامه' : 'خروج از حساب'}
           title={native ? 'بستن برنامه' : 'خروج از حساب'}
-          className="text-muted-foreground hover:text-destructive"
+          className={cn(
+            'text-muted-foreground hover:text-destructive',
+            hero && 'text-[hsl(45_60%_12%)]/70 hover:bg-black/10 hover:text-[hsl(45_60%_12%)]',
+          )}
         >
           {native ? <Power className="h-5 w-5" /> : <LogOut className="h-5 w-5" />}
         </Button>

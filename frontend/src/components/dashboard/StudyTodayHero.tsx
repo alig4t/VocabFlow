@@ -1,8 +1,6 @@
-import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   GraduationCap,
-  Sparkles,
   CheckCircle2,
   Flame,
   Target,
@@ -10,22 +8,17 @@ import {
   ArrowLeft,
   BarChart3,
   Compass,
-  Sunrise,
-  Sun,
-  Sunset,
-  Moon,
+  Trophy,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ProgressRing } from '@/components/dashboard/ProgressRing'
 import { HeroWordCloud } from '@/components/dashboard/HeroWordCloud'
-import { BookIllustration } from '@/components/dashboard/BookIllustration'
+import { HeroBlob } from '@/components/dashboard/HeroBlob'
 import { useStudyToday } from '@/hooks/useStudy'
 import { faNum, faPercent } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 interface StudyTodayHeroProps {
-  /** Shown in the greeting; omitted on native, which has no account. */
-  userName?: string | null
   /** Consecutive study days. Pill is hidden at zero. */
   streak?: number
   /** 0–100 share of answers marked known. Pill is hidden with no data. */
@@ -36,29 +29,24 @@ interface StudyTodayHeroProps {
   textureWords?: string[]
 }
 
-/**
- * صبح / ظهر / عصر / شب — the greeting tracks the time of day, and so does its
- * icon. A drawn glyph rather than 👋: emoji render differently on every
- * platform and can't take a theme colour, and the sun/moon actually says
- * something the words already say, instead of waving.
- */
-function greeting(): { text: string; Icon: typeof Sunrise } {
-  const h = new Date().getHours()
-  if (h < 5) return { text: 'شب بخیر', Icon: Moon }
-  if (h < 12) return { text: 'صبح بخیر', Icon: Sunrise }
-  if (h < 17) return { text: 'ظهر بخیر', Icon: Sun }
-  if (h < 20) return { text: 'عصر بخیر', Icon: Sunset }
-  return { text: 'شب بخیر', Icon: Moon }
-}
+/*
+  The band's palette, per the reference: gold field, warm ink, white accents.
+  Deep amber marks numbers and icons; everything else is ink or white glass.
+*/
+const TONE = {
+  amber: 'text-[hsl(36_85%_32%)]',
+  ink: 'text-deep-foreground',
+} as const
+
+/** Glass — white frosted, the band's one material for chips and badges. */
+const GLASS = 'bg-white/35 ring-1 ring-white/50 backdrop-blur-md'
 
 /**
- * A stat pill along the top of the panel.
- *
- * Tinted from `hero-foreground` rather than a fixed white overlay, so the same
- * component works on the cream panel in light mode and the near-black one in
- * dark.
+ * A stat chip — one number worth knowing before anything else. Frosted white
+ * glass on the gold; zeros are left out rather than shown, an empty row beats
+ * a row of noughts.
  */
-function StatPill({
+function StatChip({
   icon: Icon,
   value,
   label,
@@ -70,10 +58,10 @@ function StatPill({
   tone: string
 }) {
   return (
-    <span className="inline-flex items-center gap-2 rounded-full bg-hero-foreground/[0.06] py-1.5 pe-3 ps-2.5">
-      <Icon className={`h-4 w-4 shrink-0 ${tone}`} aria-hidden="true" />
-      <span className="text-sm font-bold tabular-nums text-hero-foreground">{value}</span>
-      <span className="text-[11px] text-hero-muted">{label}</span>
+    <span className={cn('inline-flex items-center gap-1.5 rounded-full py-1.5 pe-3 ps-2.5', GLASS)}>
+      <Icon className={cn('h-4 w-4 shrink-0', tone)} aria-hidden="true" />
+      <span className="text-sm font-bold tabular-nums text-deep-foreground">{value}</span>
+      <span className="text-[11px] text-deep-muted">{label}</span>
     </span>
   )
 }
@@ -85,46 +73,71 @@ function Dot() {
   )
 }
 
-function NavPill({
-  icon: Icon,
+/** The merged band's single primary action: an ink pill, white text. */
+function HeroCTA({
   children,
   onClick,
 }: {
-  icon: typeof Flame
-  children: ReactNode
+  children: React.ReactNode
   onClick: () => void
 }) {
   return (
     <Button
-      size="sm"
-      variant="ghost"
-      className="gap-2 bg-hero-foreground/[0.06] text-hero-foreground hover:bg-hero-foreground/[0.12] hover:text-hero-foreground"
+      size="lg"
+      className="h-14 w-full shrink-0 gap-2 rounded-full bg-[hsl(45_60%_10%)] px-8 text-base font-black text-white shadow-[0_18px_44px_-14px_hsl(45_60%_8%_/_0.55)] hover:bg-[hsl(45_60%_14%)] hover:text-white sm:w-auto"
       onClick={onClick}
     >
-      <Icon className="h-4 w-4" aria-hidden="true" />
+      {children}
+    </Button>
+  )
+}
+
+/** A quiet secondary action — glass, never a greyed-out primary. */
+function GhostCTA({
+  children,
+  onClick,
+}: {
+  children: React.ReactNode
+  onClick: () => void
+}) {
+  return (
+    <Button
+      size="lg"
+      variant="outline"
+      className={cn(
+        'h-14 w-full shrink-0 gap-2 rounded-full border-white/60 px-8 text-base font-bold text-deep-foreground hover:bg-white/50 hover:text-deep-foreground sm:w-auto',
+        GLASS,
+      )}
+      onClick={onClick}
+    >
       {children}
     </Button>
   )
 }
 
 /**
- * The dashboard's opening band: greeting, three at-a-glance numbers, what today
- * asks of you, and one call to action.
+ * The dashboard's opening band, merged with the navbar into one block.
  *
- * Surfaced on the landing page's own hero wash so the app opens on the same
- * material the marketing site closes on, textured with the reader's actual
- * vocabulary, and closed with a real diagonal rather than a wave.
+ * The Layout renders its navbar inside <main> directly above this section;
+ * `page-bleed-under-nav` pulls the band up the bar's full height so the
+ * Haikei gold runs edge to edge behind it — bar and band read as one object,
+ * with the bar's ink controls floating on the same field. The band closes
+ * with a straight cut: the page's first card simply starts below it, and a
+ * hairline progress strip along the cut fills with ink as the day's words
+ * are answered.
  *
- * The diagonal is an SVG path, not `clip-path`: clip-path renders a visibly
- * stepped edge in Blink and the Android WebView. It runs straight for most of
- * the width and eases flat over the last few percent at each side, so it reads
- * as a diagonal without ending on a razor-thin point where it meets the edge.
+ * The field is the user's reference SVG — gold with its darker organic blob
+ * (`<HeroBlob>`, the verbatim Haikei path) — textured further with the
+ * reader's own vocabulary. On a finished day the dial gives way to a trophy
+ * stat, so the band never repeats itself. Renders in every state — including
+ * "still loading" and "no plans yet" — so the band never disappears.
  *
- * Renders in every state — including "still loading" and "no plans yet" — so
- * the greeting never disappears.
+ * The band doesn't end on a straight cut but on a two-layer wave: a pale-gold
+ * swell (lighter than the field) riding an underwave painted in the page's own
+ * background, so the gold dissolves into the page instead of stopping at it.
+ * The day-progress strip rides the crest.
  */
 export function StudyTodayHero({
-  userName,
   streak = 0,
   accuracy = 0,
   wordsInMemory = 0,
@@ -145,344 +158,294 @@ export function StudyTodayHero({
   const progress = planned > 0 ? (reviewedToday / planned) * 100 : 100
   const done = remaining === 0
 
-  const Greeting = greeting()
-
   const lessonLabel =
     plan && plan.currentLesson != null
       ? // faNum, and an em dash rather than "·" — see the separator note below.
         `${plan.continueLesson ? 'ادامه‌ی' : 'شروع'} درس ${faNum(plan.currentLesson)} — ${plan.bookTitle}`
       : null
 
-  return (
-    <section className="page-bleed relative overflow-hidden bg-hero-surface pb-28 pt-5 text-hero-foreground sm:pb-40 sm:pt-8">
-      <HeroWordCloud words={textureWords} />
+  const chips = (
+    <div className="flex flex-wrap justify-center gap-2 sm:justify-start">
+      {streak > 0 && (
+        <StatChip icon={Flame} value={faNum(streak)} label="روز پیاپی" tone={TONE.amber} />
+      )}
+      {accuracy > 0 && (
+        <StatChip icon={Target} value={faPercent(accuracy)} label="دقت" tone={TONE.ink} />
+      )}
+      {wordsInMemory > 0 && (
+        <StatChip icon={Brain} value={faNum(wordsInMemory)} label="واژه در حافظه" tone={TONE.ink} />
+      )}
+    </div>
+  )
 
-      {/* Atmosphere and abstract decoration — nothing here carries meaning. */}
+  return (
+    <section
+      dir="rtl"
+      className="page-bleed-under-nav bg-hero-deep relative overflow-hidden pb-20 pt-24 text-deep-foreground sm:pb-24 sm:pt-28"
+    >
+      {/*
+        The reference's organic blobs: one large, low, behind the dial; one
+        small, high, opposite. Same Haikei path, coloured per theme through
+        the `--deep-blob` tokens — tone-on-tone depth, not decoration.
+      */}
+      <HeroBlob className="absolute -bottom-28 -start-20 w-[26rem] opacity-90 sm:w-[30rem]" />
+      <HeroBlob
+        variant={2}
+        className="absolute -end-10 top-6 w-40 -scale-x-100 opacity-60 sm:w-52"
+      />
+
+      <HeroWordCloud words={textureWords} onDeep />
+
+      {/* A hairline of light along the top edge — the merged block's crown. */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-        <span className="absolute -left-24 -top-28 h-80 w-80 rounded-full bg-violet/10 blur-3xl" />
-        <span className="absolute -right-16 top-4 h-64 w-64 rounded-full bg-primary/[0.16] blur-3xl" />
-        <Sparkles className="absolute left-[14%] top-10 h-4 w-4 text-accent-foreground/25" />
-        <Sparkles className="absolute right-[28%] bottom-24 h-3 w-3 text-violet/30" />
+        <span className="absolute inset-x-0 top-0 h-px bg-gradient-to-l from-transparent via-white/60 to-transparent" />
       </div>
 
       {/*
-        On wide screens the illustration anchors the inline-end side. The
-        diagonal now runs deep on this side, so there is room for it to sit low.
-        Below `md` it moves inline, next to the dial; see there.
-      */}
-      <BookIllustration className="absolute bottom-10 left-2 hidden w-52 md:block lg:bottom-12 lg:w-64" />
-
-      {/*
-        Mirrors Layout's <main> exactly — its padding, then the same max-width —
-        so the band's content sits on the same left/right edge as the cards
-        below it. Padding on the max-width box instead would inset it further.
+        Mirrors Layout's <main> padding, then the same max-width, so the band's
+        content sits on the same left/right edge as the cards below it.
       */}
       <div className="relative px-2 sm:px-4 md:px-6 lg:px-8">
         <div className="mx-auto max-w-6xl">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="flex items-center gap-2 text-base font-black sm:text-lg">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-hero-foreground/[0.06] text-accent-foreground">
-                <Greeting.Icon className="h-4 w-4" aria-hidden="true" />
-              </span>
-              {Greeting.text}
-              {userName ? `، ${userName}` : ''}
-            </p>
-
-            <div className="flex gap-2">
-              <NavPill icon={BarChart3} onClick={() => navigate('/statistics')}>
-                آمار یادگیری
-              </NavPill>
-              <NavPill icon={Compass} onClick={() => navigate('/library')}>
-                کاوش کتاب‌ها
-              </NavPill>
-            </div>
-          </div>
-
           {/*
-            Three numbers worth knowing before anything else. Zeros are left out
-            rather than shown — an empty row beats a row of noughts.
-
-            The placeholders matter: these values come from the dashboard query
-            while the panel below waits on the study query, so without them the
-            row appears a beat later and shoves the whole panel down.
+            The at-a-glance numbers, on their own row — centred on phones to
+            match the centred stack below, start-aligned from `sm`.
           */}
+          {!isLoading && (streak > 0 || accuracy > 0 || wordsInMemory > 0) && chips}
+
           {isLoading ? (
-            <div className="flex flex-wrap gap-2 pt-6" aria-hidden="true">
-              {['w-28', 'w-24', 'w-32'].map((w) => (
-                <span
-                  key={w}
-                  className={cn('h-8 animate-pulse rounded-full bg-hero-foreground/[0.06]', w)}
-                />
-              ))}
-            </div>
-          ) : (streak > 0 || accuracy > 0 || wordsInMemory > 0) && (
-            <div className="flex flex-wrap gap-2 pt-6">
-              {streak > 0 && (
-                <StatPill
-                  icon={Flame}
-                  value={faNum(streak)}
-                  label="روز پیاپی"
-                  tone="text-accent-foreground"
-                />
-              )}
-              {accuracy > 0 && (
-                <StatPill
-                  icon={Target}
-                  value={faPercent(accuracy)}
-                  label="دقت"
-                  tone="text-mint"
-                />
-              )}
-              {wordsInMemory > 0 && (
-                <StatPill
-                  icon={Brain}
-                  value={faNum(wordsInMemory)}
-                  label="واژه در حافظه"
-                  tone="text-violet"
-                />
-              )}
-            </div>
-          )}
-
-          <div className="pt-7">
-            {isLoading ? (
-              /*
-                Shaped to the loaded panel, block for block: two headline lines,
-                the meta row, the CTA at its real 56px, and the book-plus-dial
-                pair at their real sizes. A skeleton that only approximates the
-                layout it replaces just moves everything when the data lands.
-              */
-              <div className="flex animate-pulse flex-col-reverse gap-7 sm:flex-row sm:items-center sm:gap-10">
-                <div className="min-w-0 flex-1 space-y-5 sm:max-w-2xl">
-                  {/* Centred on phones, where the loaded copy is centred too. */}
-                  <div className="space-y-2">
-                    <span className="mx-auto block h-8 w-2/3 rounded-lg bg-hero-foreground/10 sm:mx-0 sm:h-10" />
-                    <span className="mx-auto block h-8 w-1/2 rounded-lg bg-hero-foreground/10 sm:mx-0 sm:h-10" />
-                  </div>
-                  <span className="mx-auto block h-5 w-3/5 rounded bg-hero-foreground/10 sm:mx-0" />
-                  <span className="block h-14 w-full rounded-2xl bg-hero-foreground/10 sm:w-52" />
-                </div>
-
-                <div className="flex shrink-0 items-center justify-center gap-1 sm:justify-normal">
-                  <span className="h-28 w-36 shrink-0 rounded-2xl bg-hero-foreground/10 md:hidden" />
-                  <span className="h-36 w-36 shrink-0 rounded-full bg-hero-foreground/10 sm:h-48 sm:w-48" />
-                </div>
+            /*
+              Shaped to the loaded band, block for block: the dial, two
+              headline lines, the meta row, the CTA at its real 56px. A
+              skeleton that only approximates the layout it replaces just
+              moves everything when the data lands.
+            */
+            <div className="flex animate-pulse flex-col items-center gap-7 pt-10 sm:flex-row sm:items-center sm:gap-10">
+              <div className="min-w-0 flex-1 space-y-4 text-center sm:text-right">
+                <span className="mx-auto block h-9 w-2/3 rounded-xl bg-black/10 sm:mx-0 sm:h-11" />
+                <span className="mx-auto block h-6 w-1/2 rounded-lg bg-black/10 sm:mx-0" />
+                <span className="mx-auto block h-5 w-3/5 rounded bg-black/10 sm:mx-0" />
+                <span className="block h-14 w-full rounded-full bg-black/10 sm:w-56" />
               </div>
-            ) : !meta?.hasPlans ? (
-              <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:justify-between sm:text-right">
-                <div className="space-y-2">
-                  <h2 className="text-[1.75rem] font-black leading-tight sm:text-4xl">
-                    هنوز برنامه‌ای نداری
-                  </h2>
-                  <p className="text-sm text-hero-muted">
-                    یک کتاب از کتابخانه انتخاب کن تا برنامه روزانه‌ات ساخته شود.
-                  </p>
-                </div>
-                <Button
-                  size="lg"
-                  className="h-14 w-full shrink-0 gap-2 rounded-2xl px-7 text-base font-bold shadow-lg shadow-primary/25 sm:w-auto"
-                  onClick={() => navigate('/library')}
-                >
-                  <Compass className="h-5 w-5" aria-hidden="true" />
-                  انتخاب کتاب
-                </Button>
+              <span className="h-36 w-36 shrink-0 rounded-full bg-black/10 sm:h-48 sm:w-48" />
+            </div>
+          ) : !meta?.hasPlans ? (
+            <div className="flex flex-col items-center gap-5 pt-10 text-center sm:flex-row sm:justify-between sm:pt-9 sm:text-right">
+              <div className="space-y-2">
+                <h2 className="text-[1.75rem] font-black leading-tight sm:text-4xl">
+                  هنوز برنامه‌ای نداری
+                </h2>
+                <p className="text-sm text-deep-muted">
+                  یک کتاب از کتابخانه انتخاب کن تا برنامه روزانه‌ات ساخته شود.
+                </p>
               </div>
-            ) : (
-              <div className="flex flex-col-reverse gap-7 sm:flex-row sm:items-center sm:gap-10">
-                {/*
-                  Headline and CTA travel together — one block, one action.
-                  Capped rather than free-growing: at `flex-1` the text box ate
-                  the whole row and pushed the dial to the far edge, so the two
-                  read as separate objects instead of one composition.
-                */}
-                <div className="min-w-0 flex-1 space-y-5 text-center sm:max-w-2xl sm:text-right">
-                  <h2 className="text-[1.75rem] font-black leading-[1.25] sm:text-4xl">
-                    {done ? (
-                      <>
-                        <span className="text-mint">امروز تمام شد</span>
-                        <span className="mt-1 block text-lg font-bold text-hero-muted sm:text-xl">
-                          {reviewedToday > 0
-                            ? 'هدف امروزت را کامل کردی.'
-                            : 'برای امروز چیزی در صف نبود.'}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        امروز{' '}
-                        <span className="text-accent-foreground">{faNum(remaining)} واژه</span>
-                        <span className="block">در انتظار توست</span>
-                      </>
-                    )}
-                  </h2>
-
-                  {/*
-                    What was actually achieved, rather than a greyed-out button.
-                    A disabled primary CTA is the loudest element on the panel
-                    and it does nothing — on a finished day the panel should
-                    report the win and offer somewhere real to go.
-                  */}
-                  {done && (reviewedToday > 0 || streak > 0) && (
-                    <ul className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-                      {reviewedToday > 0 && (
-                        <li className="inline-flex items-center gap-1.5 rounded-full bg-mint/10 px-3 py-1.5 text-sm font-bold text-mint">
-                          <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-                          {faNum(reviewedToday)} واژه مرور شد
-                        </li>
-                      )}
-                      {streak > 0 && (
-                        <li className="inline-flex items-center gap-1.5 rounded-full bg-hero-foreground/[0.06] px-3 py-1.5 text-sm font-bold text-hero-foreground">
-                          <Flame className="h-4 w-4 text-accent-foreground" aria-hidden="true" />
-                          {faNum(streak)} روز پیاپی
-                        </li>
-                      )}
-                    </ul>
+              <HeroCTA onClick={() => navigate('/library')}>
+                <Compass className="h-5 w-5" aria-hidden="true" />
+                انتخاب کتاب
+              </HeroCTA>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-7 pt-9 text-center sm:flex-row sm:gap-10 sm:pt-8 sm:text-right">
+              {/*
+                Headline and CTA travel together — one block, one action. Capped
+                rather than free-growing so the dial never gets pushed to the
+                far edge of a wide band.
+              */}
+              <div className="order-2 min-w-0 flex-1 space-y-4 sm:order-1 sm:max-w-2xl">
+                <h2 className="text-[1.625rem] font-black leading-[1.3] sm:text-4xl">
+                  {done ? (
+                    <>
+                      <span className="text-deep-foreground">امروز تمام شد</span>
+                      <span className="mt-1 block text-base font-bold text-deep-muted sm:text-xl">
+                        {reviewedToday > 0
+                          ? 'هدف امروزت را کامل کردی.'
+                          : 'برای امروز چیزی در صف نبود.'}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      امروز{' '}
+                      <span className={TONE.amber}>{faNum(remaining)} واژه</span>
+                      <span className="block">در انتظار توست</span>
+                    </>
                   )}
-
-                  {!done && (
-                    /*
-                      Separated by a drawn dot, never the "·" character: in the
-                      Persian numerals this line is full of, a middot is all but
-                      identical to ۰, so "۱۶ · واژه" reads as "۱۶۰ واژه".
-                    */
-                    <ul className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-sm text-hero-muted sm:justify-start">
-                      {dueCount > 0 && <li>{faNum(dueCount)} مرور</li>}
-                      {newCount > 0 && (
-                        <>
-                          {dueCount > 0 && <Dot />}
-                          <li>{faNum(newCount)} واژه جدید</li>
-                        </>
-                      )}
-                      {reviewedToday > 0 && (
-                        <>
-                          <Dot />
-                          <li>
-                            {faNum(reviewedToday)} از {faNum(planned)} انجام شده
-                          </li>
-                        </>
-                      )}
-                    </ul>
-                  )}
-
-                  <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center">
-                    {done ? (
-                      // Somewhere real to go, styled as a secondary action —
-                      // the day's primary action is spent.
-                      <Button
-                        size="lg"
-                        variant="outline"
-                        className="h-14 w-full shrink-0 gap-2 rounded-2xl border-hero-foreground/15 bg-hero-foreground/[0.04] px-7 text-base font-bold text-hero-foreground hover:bg-hero-foreground/[0.09] hover:text-hero-foreground sm:w-auto"
-                        onClick={() => navigate('/statistics')}
-                      >
-                        <BarChart3 className="h-5 w-5" aria-hidden="true" />
-                        مشاهده پیشرفت
-                        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                      </Button>
-                    ) : (
-                      <Button
-                        size="lg"
-                        className="h-14 w-full shrink-0 gap-2 rounded-2xl px-7 text-base font-bold shadow-lg shadow-primary/25 sm:w-auto"
-                        onClick={() => navigate('/study')}
-                      >
-                        <GraduationCap className="h-5 w-5" aria-hidden="true" />
-                        شروع مطالعه
-                        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                      </Button>
-                    )}
-
-                    {lessonLabel && !done && (
-                      <p className="truncate text-xs text-hero-muted">{lessonLabel}</p>
-                    )}
-                  </div>
-                </div>
+                </h2>
 
                 {/*
-                  The dial, and on phones the book beside it.
-
-                  The dial used to sit alone on its own row with the whole
-                  inline-start half of the panel empty next to it, while the
-                  illustration was desktop-only and so never appeared on a phone
-                  at all. Pairing them solves both.
-
-                  Centred with a fixed gap rather than `justify-between`, which
-                  pinned one to each edge and opened a gulf down the middle —
-                  they belong together as a single object.
+                  What was actually achieved, rather than a greyed-out button.
+                  A disabled primary CTA is the loudest element on the band and
+                  it does nothing — on a finished day the band should report
+                  the win and offer somewhere real to go.
                 */}
-                <div className="flex shrink-0 items-center justify-center gap-1 sm:justify-normal">
-                  <BookIllustration className="w-36 shrink-0 md:hidden" />
+                {done && (reviewedToday > 0 || streak > 0) && (
+                  <ul className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                    {reviewedToday > 0 && (
+                      <li className={cn(
+                        'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-bold text-deep-foreground',
+                        GLASS,
+                      )}>
+                        <CheckCircle2 className={cn('h-4 w-4', TONE.amber)} aria-hidden="true" />
+                        {faNum(reviewedToday)} واژه مرور شد
+                      </li>
+                    )}
+                    {streak > 0 && (
+                      <li className={cn(
+                        'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-bold text-deep-foreground',
+                        GLASS,
+                      )}>
+                        <Flame className={cn('h-4 w-4', TONE.amber)} aria-hidden="true" />
+                        {faNum(streak)} روز پیاپی
+                      </li>
+                    )}
+                  </ul>
+                )}
 
-                  <ProgressRing
-                  value={progress}
+                {!done && (
                   /*
-                    A finished dial is mint end to end, tick included. An amber
-                    ring with a green tick read as two unrelated colours that
-                    happened to land together; one colour says "done".
+                    Separated by a drawn dot, never the "·" character: in the
+                    Persian numerals this line is full of, a middot is all but
+                    identical to ۰, so "۱۶ · واژه" reads as "۱۶۰ واژه".
                   */
-                  gradient={done ? undefined : 'dial'}
-                  arcClassName="stroke-mint"
-                  glow={done ? 'mint' : 'gold'}
+                  <ul className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-sm text-deep-muted sm:justify-start">
+                    {dueCount > 0 && <li>{faNum(dueCount)} مرور</li>}
+                    {newCount > 0 && (
+                      <>
+                        {dueCount > 0 && <Dot />}
+                        <li>{faNum(newCount)} واژه جدید</li>
+                      </>
+                    )}
+                    {reviewedToday > 0 && (
+                      <>
+                        <Dot />
+                        <li>
+                          {faNum(reviewedToday)} از {faNum(planned)} انجام شده
+                        </li>
+                      </>
+                    )}
+                  </ul>
+                )}
+
+                <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center">
+                  {done ? (
+                    <GhostCTA onClick={() => navigate('/statistics')}>
+                      <BarChart3 className="h-5 w-5" aria-hidden="true" />
+                      مشاهده پیشرفت
+                      <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                    </GhostCTA>
+                  ) : (
+                    <HeroCTA onClick={() => navigate('/study')}>
+                      <GraduationCap className="h-5 w-5" aria-hidden="true" />
+                      شروع مطالعه
+                      <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                    </HeroCTA>
+                  )}
+
+                  {lessonLabel && !done && (
+                    <p className="truncate text-xs text-deep-muted">{lessonLabel}</p>
+                  )}
+                </div>
+              </div>
+
+              {/*
+                The focal point. Mid-session it's the dial — ink arc on the
+                gold, the remaining count huge in the middle; on phones it
+                sits above the headline like a medal. On a finished day the
+                dial gives way to the trophy stat: the day's achievement as a
+                number, not a second ring repeating the strip below.
+              */}
+              {done ? (
+                <div className="order-1 flex shrink-0 flex-col items-center gap-3 sm:order-2">
+                  <span
+                    className={cn(
+                      'flex h-20 w-20 items-center justify-center rounded-[1.75rem] shadow-lg shadow-black/10',
+                      GLASS,
+                    )}
+                  >
+                    <Trophy className={cn('h-10 w-10', TONE.amber)} aria-hidden="true" />
+                  </span>
+                  {reviewedToday > 0 && (
+                    <p className="text-center leading-tight">
+                      <span className="block text-4xl font-black tabular-nums text-deep-foreground">
+                        {faNum(reviewedToday)}
+                      </span>
+                      <span className="mt-1 block text-xs font-medium text-deep-muted">
+                        واژه مرور شدی
+                      </span>
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <ProgressRing
+                  value={progress}
+                  gradient="hero"
                   tip
                   thickness={8}
                   /*
                     Before the first answer of the day there is no arc at all,
-                    and a bare grey circle is the largest thing on the panel —
-                    it reads as unfinished UI. Tinting the empty track in the
-                    dial's own amber keeps it alive without drawing progress
-                    that hasn't happened.
+                    and a bare grey circle is the largest thing on the band —
+                    it reads as unfinished UI. Tinting the empty track ink
+                    keeps it alive without drawing progress that hasn't
+                    happened.
                   */
                   trackClassName={
                     progress === 0
-                      ? 'stroke-[hsl(var(--dial-from)_/_0.3)]'
-                      : 'stroke-[hsl(var(--hero-track))]'
+                      ? 'stroke-[hsl(45_60%_10%_/_0.3)]'
+                      : 'stroke-deep-track'
                   }
-                    className="h-36 w-36 shrink-0 sm:h-48 sm:w-48"
-                    label={`${Math.round(progress)} درصد از مطالعه امروز انجام شده`}
-                  >
-                    {done ? (
-                      <CheckCircle2 className="h-16 w-16 text-mint sm:h-20 sm:w-20" aria-hidden="true" />
-                    ) : (
-                      <>
-                        <span className="text-[2.75rem] font-black tabular-nums leading-none text-hero-foreground sm:text-6xl">
-                          {faNum(remaining)}
-                        </span>
-                        <span className="mt-2 text-[11px] font-medium text-hero-muted">واژه</span>
-                      </>
-                    )}
-                  </ProgressRing>
-                </div>
-              </div>
-            )}
-          </div>
+                  className="order-1 h-36 w-36 shrink-0 sm:order-2 sm:h-52 sm:w-52"
+                  label={`${Math.round(progress)} درصد از مطالعه امروز انجام شده`}
+                >
+                  <span className="text-[2.6rem] font-black tabular-nums leading-none text-deep-foreground sm:text-6xl">
+                    {faNum(remaining)}
+                  </span>
+                  <span className="mt-1.5 text-[11px] font-medium text-deep-muted">واژه</span>
+                </ProgressRing>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       {/*
-        The closing diagonal. Straight across the middle, eased flat over the
-        first and last few percent so it meets each side square instead of
-        tapering to a sliver. `preserveAspectRatio="none"` stretches it to any
-        width; the horizontal end tangents survive the non-uniform scale.
+        The day, as a strip. A hairline that rides the wave crest — the top of
+        the wave zone below — and fills with ink as today's words are answered,
+        full when the day is done. The one progress mark that is always
+        visible, even while the rest of the band is still loading its numbers.
+      */}
+      {!isLoading && meta?.hasPlans && (
+        <div
+          aria-hidden="true"
+          className="absolute inset-x-0 bottom-12 h-[5px] bg-black/10 sm:bottom-16"
+        >
+          <div
+            className="h-full bg-[hsl(45_60%_10%)] transition-[width] duration-700 ease-out motion-reduce:transition-none"
+            style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+          />
+        </div>
+      )}
+
+      {/*
+        The closing wave. Two layers: a pale-gold swell — lighter than the
+        field, tuned per theme through `--deep-wave` — then an underwave in
+        the page's own background colour that carries the band into the page.
+        SVG paths rather than clip-path: clip-path renders a visibly stepped
+        edge in Blink and the Android WebView. `preserveAspectRatio="none"`
+        stretches the swell to any width; the crest reads the same at 390px
+        and 1440px.
       */}
       <svg
         aria-hidden="true"
-        viewBox="0 0 100 10"
+        viewBox="0 0 100 20"
         preserveAspectRatio="none"
-        className="absolute inset-x-0 bottom-0 block h-16 w-full sm:h-28"
+        className="absolute inset-x-0 bottom-0 block h-12 w-full sm:h-16"
       >
         <path
-          d="M0,8.7 C1.6,8.7 2.4,8.55 4,8.35 L96,1.15 C97.6,0.95 98.4,0.8 100,0.8 L100,10.5 L0,10.5 Z"
-          fill="hsl(var(--background))"
+          d="M0,11 C12,5 26,15 45,10 C64,5 80,15 100,8 L100,21 L0,21 Z"
+          fill="hsl(var(--deep-wave))"
         />
-        {/*
-          A hairline along the cut. In light mode the panel and the page are
-          both warm off-white, so the edge alone was a fade rather than a line —
-          the diagonal simply didn't read. `non-scaling-stroke` keeps it one
-          pixel thick despite the non-uniform scale.
-        */}
         <path
-          d="M0,8.7 C1.6,8.7 2.4,8.55 4,8.35 L96,1.15 C97.6,0.95 98.4,0.8 100,0.8"
-          fill="none"
-          stroke="hsl(var(--border))"
-          strokeWidth={1}
-          vectorEffect="non-scaling-stroke"
+          d="M0,15 C12,9 26,19 45,14 C64,9 80,19 100,12 L100,22 L0,22 Z"
+          fill="hsl(var(--background))"
         />
       </svg>
     </section>

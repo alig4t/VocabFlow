@@ -13,6 +13,16 @@ export function Layout({ children }: LayoutProps) {
   const { pathname } = useLocation()
   const mainRef = useRef<HTMLElement>(null)
 
+  /*
+    On the dashboard the navbar merges into the hero band: it renders INSIDE
+    <main> as its first child, transparent, with the hero's full-bleed
+    gradient sliding up behind it (`.page-bleed-under-nav`). Moving it inside
+    the scroll container is what makes the merge possible — a negative-margin
+    hero inside main could never paint under a bar outside it. Everywhere else
+    the solid navbar sits above <main> as before.
+  */
+  const mergedHeroNav = pathname === '/dashboard'
+
   // Every route renders its own <Layout>, but React reconciles them into the
   // same element, so <main> survives navigation with its scrollTop intact and
   // the new page opens wherever the previous one was left. Reset before paint
@@ -49,13 +59,14 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Main area */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        <Navbar onMenuClick={() => setSidebarOpen(true)} />
+        {!mergedHeroNav && <Navbar onMenuClick={() => setSidebarOpen(true)} />}
 
         <main
           id={SCROLL_CONTAINER_ID}
           ref={mainRef}
           className="flex-1 transform-gpu overflow-y-auto px-2 py-4 [backface-visibility:hidden] [overflow-anchor:none] sm:p-4 md:p-6 lg:p-8"
         >
+          {mergedHeroNav && <Navbar hero onMenuClick={() => setSidebarOpen(true)} />}
           {children}
         </main>
       </div>

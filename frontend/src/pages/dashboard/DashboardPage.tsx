@@ -21,8 +21,6 @@ import { MemoryOverview } from '@/components/dashboard/MemoryOverview'
 import { UpcomingReviews } from '@/components/dashboard/UpcomingReviews'
 import { HardWords } from '@/components/dashboard/HardWords'
 import { useDashboard } from '@/hooks/useDashboard'
-import { useAuthStore } from '@/store/authStore'
-import { isNative } from '@/lib/platform'
 
 function DashboardSkeleton() {
   return (
@@ -40,22 +38,17 @@ function DashboardSkeleton() {
 
 export function DashboardPage() {
   const navigate = useNavigate()
-  const user = useAuthStore((s) => s.user)
   const { data, isLoading, isError } = useDashboard()
-
-  const name = user && !isNative() ? user.name : null
 
   return (
     <div dir="rtl" className="page-atmosphere font-persian">
       {/*
-        ① امروز چه کار کنم؟ — the single primary action on the page.
-
-        It sits outside the max-width container so it can run edge to edge, and
-        it renders in every state (loading, no plans, done) because it carries
-        the greeting.
+        ① امروز چه کار کنم؟ — the single primary action on the page. A
+        full-bleed violet band merged with the navbar (Layout renders the bar
+        inside <main> directly above it). Renders in every state (loading, no
+        plans, done) because it carries the greeting.
       */}
       <StudyTodayHero
-        userName={name}
         streak={data?.stats.currentStreak ?? 0}
         accuracy={data?.stats.accuracyRate ?? 0}
         wordsInMemory={data?.memory.total ?? 0}
@@ -66,14 +59,10 @@ export function DashboardPage() {
         Sections are ordered as questions: how am I doing overall → what have I
         banked → what am I reading → where am I stuck → what's coming → history.
         Rhythm is `space-y-10`: the cards no longer carry borders, so the gap
-        between sections is what separates them.
-
-        The negative top margin lifts the first card onto the hero's diagonal
-        instead of leaving a clean seam between the band and the page — the two
-        overlap, which is what stops the transition reading as "hero ends, plain
-        dashboard begins".
+        between sections is what separates them. The band closes on a pale-gold
+        wave that dissolves into the page — the first card starts below it.
       */}
-      <div className="relative z-10 mx-auto -mt-14 max-w-6xl space-y-10 sm:-mt-20">
+      <div className="mx-auto max-w-6xl space-y-10 pt-6">
         {isLoading ? (
           <DashboardSkeleton />
         ) : isError || !data ? (

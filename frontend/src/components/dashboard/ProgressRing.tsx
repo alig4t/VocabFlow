@@ -20,6 +20,12 @@ const GRADIENTS = {
     3:1 a data mark needs. Deep amber on light surfaces, bright gold on dark.
   */
   dial: ['hsl(var(--dial-from))', 'hsl(var(--dial-to))'],
+  /*
+    The hero BAND dial. The band's gold field is the same in every theme, so
+    the arc can be too — warm ink fading into deep amber, legible on gold in
+    any mode. No theme coupling, no contrast surprises.
+  */
+  hero: ['hsl(45_60%_10%)', 'hsl(32_70%_26%)'],
 } as const
 
 export type RingGradient = keyof typeof GRADIENTS
@@ -169,7 +175,13 @@ export function ProgressRing({
                     cx={tipX}
                     cy={tipY}
                     r={thickness / 2 + 1.5}
-                    className={gradient === 'dial' ? 'fill-[hsl(var(--dial-to))]' : 'fill-primary'}
+                    className={cn(
+                      gradient === 'dial'
+                        ? 'fill-[hsl(var(--dial-to))]'
+                        : gradient === 'hero'
+                          ? 'fill-[hsl(45_60%_10%)]'
+                          : 'fill-primary',
+                    )}
                   />
                 )}
               </>

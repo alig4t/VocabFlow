@@ -65,6 +65,15 @@ const config: Config = {
           foreground: 'hsl(var(--hero-foreground))',
           muted: 'hsl(var(--hero-muted))',
         },
+        /*
+          The hero card's fixed navy + its own text colours. Constant across
+          themes by design — see the token comment in index.css.
+        */
+        deep: {
+          foreground: 'hsl(var(--deep-fg))',
+          muted: 'hsl(var(--deep-muted))',
+          track: 'hsl(var(--deep-track))',
+        },
         /* Secondary accents beside the gold — see the token comment in index.css. */
         violet: 'hsl(var(--brand-violet))',
         mint: 'hsl(var(--brand-mint))',

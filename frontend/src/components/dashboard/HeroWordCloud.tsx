@@ -1,3 +1,5 @@
+import { cn } from '../../lib/utils'
+
 /**
  * Fixed slots for the scattered words.
  *
@@ -78,6 +80,12 @@ const FALLBACK = [
 interface HeroWordCloudProps {
   /** The user's own words, most interesting first. Padded from FALLBACK. */
   words?: string[]
+  /**
+   * On the hero band's fixed gold the words must be warm ink at a constant
+   * level — the per-theme `text-hero-foreground` + light/dark opacity pair is
+   * tuned for the themeable hero band, not a surface that never changes.
+   */
+  onDeep?: boolean
 }
 
 /**
@@ -88,19 +96,27 @@ interface HeroWordCloudProps {
  * background the product rather than decoration. Purely visual — hidden from
  * assistive technology, and never placed where it could sit under body text.
  */
-export function HeroWordCloud({ words = [] }: HeroWordCloudProps) {
+export function HeroWordCloud({ words = [], onDeep = false }: HeroWordCloudProps) {
   const pool = [...words, ...FALLBACK.filter((w) => !words.includes(w))]
 
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute inset-0 select-none overflow-hidden opacity-[0.032] dark:opacity-[0.085]"
+      className={cn(
+        'pointer-events-none absolute inset-0 select-none overflow-hidden',
+        onDeep
+          ? 'text-[hsl(45_60%_10%)] opacity-[0.05]'
+          : 'text-hero-foreground opacity-[0.032] dark:opacity-[0.085]',
+      )}
     >
       {SLOTS.map((slot, i) => (
         <span
           key={i}
           dir="ltr"
-          className="absolute font-black lowercase leading-none tracking-tight text-hero-foreground"
+          className={cn(
+            'absolute font-black lowercase leading-none tracking-tight',
+            onDeep ? undefined : 'text-hero-foreground',
+          )}
           style={{
             left: `${slot.x}%`,
             top: `${slot.y}%`,
