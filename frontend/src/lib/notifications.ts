@@ -9,12 +9,14 @@
  * "don't remind a user who already studied today" falls out for free: a fresh
  * reschedule after a completed session simply omits today's reminder.
  *
- * The horizon is a **tapering ladder** (`REMINDER_DAYS`), not one-per-day: the
- * longer the absence, the wider the gap. Nagging daily is what the spec warns
- * against ("limit the number of notifications"), and since only opening the app
+ * The horizon is a **tapering ladder** (`REMINDER_DAYS`) merged with the SM-2
+ * forecast (`next_review_at`): every day that actually has due reviews gets a
+ * "your reviews are ready" reminder (these outrank the ladder's tone), while
+ * the remaining days keep the tapering motivational ladder — the longer the
+ * absence, the wider the gap. Nagging daily is what the spec warns against
+ * ("limit the number of notifications"), and since only opening the app
  * reschedules, a dense-but-short horizon would also abandon the very user who
- * stayed away longest. The ladder sends *fewer* messages across a *longer*
- * window, and the tone escalates to "overdue" after 3 idle days.
+ * stayed away longest.
  *
  * On the web build every export is a no-op.
  */
@@ -34,8 +36,11 @@ const CHANNEL_ID = 'vocabflow-reminders'
  * OVERDUE_AFTER_DAYS is a gentle come-back nudge, spaced ever wider.
  */
 const REMINDER_DAYS = [0, 1, 3, 6, 10, 15, 21, 30]
+const FORECAST_DAYS = 30 // SM-2 lookahead horizon (same as the ladder's reach)
 const OVERDUE_AFTER_DAYS = 3 // idle days before the message turns "overdue"
-const BASE_ID = 4200 // ids: BASE_ID .. BASE_ID+REMINDER_DAYS.length-1
+const BASE_ID = 4200
+// ids: BASE_ID .. BASE_ID+MAX_SCHEDULED-1 (ladder rungs + one per forecast day)
+const MAX_SCHEDULED = REMINDER_DAYS.length + FORECAST_DAYS
 
 /** The ladder days that use the "overdue" tone — drives message rotation. */
 const OVERDUE_DAYS = REMINDER_DAYS.filter((d) => d >= OVERDUE_AFTER_DAYS)
@@ -51,7 +56,7 @@ const OVERDUE_MESSAGES: { title: string; body: string }[] = [
   { title: '✨ هر وقت آماده بودی، از همون‌جا ادامه بده', body: 'شروع دوباره سخت نیست؛ از همون واژه بعدی.' },
 ]
 
-type Kind = 'daily' | 'overdue' | 'streak'
+type Kind = 'review' | 'daily' | 'overdue' | 'streak'
 
 interface Reminder {
   id: number
@@ -81,8 +86,12 @@ function fireDate(dayOffset: number, h: number, min: number): Date {
  * Build the message for a rung of the ladder. `day` selects the overdue variant
  * and decides whether exact counts are known (only day 0 is "today").
  */
-function messageFor(kind: Kind, s: NotificationStatus, day: number): { title: string; body: string } {
+function messageFor(kind: Kind, s: NotificationStatus, day: number, dueCount = 0): { title: string; body: string } {
   const exact = day === 0
+  if (kind === 'review') {
+    const count = exact ? s.dueCount : dueCount
+    return { title: '📚 مرور امروزت آماده‌ست', body: `${faNum(count)} واژه منتظر مرورن.` }
+  }
   if (kind === 'overdue') {
     const rung = OVERDUE_DAYS.indexOf(day)
     return OVERDUE_MESSAGES[(rung < 0 ? 0 : rung) % OVERDUE_MESSAGES.length]
@@ -133,20 +142,38 @@ function kindForDay(d: number, s: UserSettings, status: NotificationStatus): Kin
   return daily ? 'daily' : null
 }
 
-/** Compute the full set of reminders to schedule (native decision logic). */
-function planReminders(settings: UserSettings, status: NotificationStatus): Reminder[] {
+/**
+ * Compute the full set of reminders to schedule (native decision logic).
+ * `dueCounts` is the SM-2 forecast (index = day offset from today): a day with
+ * due reviews always gets a "review" reminder — outranking the ladder's tone —
+ * while days without reviews keep the tapering ladder (if the user has plans).
+ */
+function planReminders(settings: UserSettings, status: NotificationStatus, dueCounts: number[]): Reminder[] {
   const [h, min] = parseTime(settings.dailyReminderTime)
   const now = new Date()
   const out: Reminder[] = []
+  const daily = settings.notifyDailyStudy !== false
 
-  REMINDER_DAYS.forEach((d, idx) => {
+  const horizon = Math.min(FORECAST_DAYS, dueCounts.length)
+  const days = new Set<number>([...REMINDER_DAYS])
+  for (let d = 0; d < horizon; d++) if (dueCounts[d] > 0) days.add(d)
+
+  ;[...days].sort((a, b) => a - b).forEach((d) => {
     const at = fireDate(d, h, min)
+    const isDueDay = d < horizon && dueCounts[d] > 0
 
     if (d === 0) {
       // Today: skip if the time has passed, already studied, or nothing to do.
       if (at.getTime() <= now.getTime()) return
       if (status.studiedToday) return
       if (status.dueCount + status.newCount === 0) return
+    } else if (isDueDay) {
+      // A future day with actual due reviews — always remind (if daily
+      // reminders are on at all); ignore the ladder's tone for these.
+      if (!daily) return
+      const { title, body } = messageFor('review', status, d, dueCounts[d])
+      out.push({ id: BASE_ID + out.length, at, title, body })
+      return
     } else {
       // Future days: only meaningful if the user actually has a plan to study.
       if (!status.hasPlans) return
@@ -156,7 +183,7 @@ function planReminders(settings: UserSettings, status: NotificationStatus): Remi
     if (!kind) return
 
     const { title, body } = messageFor(kind, status, d)
-    out.push({ id: BASE_ID + idx, at, title, body })
+    out.push({ id: BASE_ID + out.length, at, title, body })
   })
 
   return out
@@ -168,7 +195,7 @@ function planReminders(settings: UserSettings, status: NotificationStatus): Remi
  * too — no orphaned notifications survive an app update.
  */
 async function cancelAll(LocalNotifications: typeof import('@capacitor/local-notifications').LocalNotifications) {
-  const ids = Array.from({ length: REMINDER_DAYS.length }, (_, i) => ({ id: BASE_ID + i }))
+  const ids = Array.from({ length: MAX_SCHEDULED }, (_, i) => ({ id: BASE_ID + i }))
   await LocalNotifications.cancel({ notifications: ids })
 }
 
@@ -218,7 +245,8 @@ export async function rescheduleNotifications(): Promise<void> {
     if (settings.dailyReminderEnabled === false) return
 
     const status = await repo.getNotificationStatus()
-    const reminders = planReminders(settings, status)
+    const dueCounts = await repo.getUpcomingDueCounts(FORECAST_DAYS)
+    const reminders = planReminders(settings, status, dueCounts)
     if (reminders.length === 0) return
 
     await LocalNotifications.schedule({
@@ -233,6 +261,36 @@ export async function rescheduleNotifications(): Promise<void> {
   } catch (e) {
     console.error('reschedule notifications failed', e)
   }
+}
+
+// ── In-session suppression ────────────────────────────────────────────────────
+// Local notifications can't run logic at fire time, so "don't notify while the
+// user is mid-session" is handled structurally: while a study session is live
+// (page mounted), all pending reminders are cancelled outright; leaving the
+// page re-plans the full schedule from fresh data. A reminder fired mid-review
+// would be wrong on every axis — the user is *already* studying today.
+
+let sessionDepth = 0 // ref-counted: nested/unexpected double-mounts stay safe
+
+/** Mark a live study session: cancels pending reminders until it ends. */
+export async function beginStudySession(): Promise<void> {
+  if (!isNative()) return
+  sessionDepth++
+  if (sessionDepth > 1) return
+  try {
+    const { LocalNotifications } = await import('@capacitor/local-notifications')
+    await cancelAll(LocalNotifications)
+  } catch (e) {
+    console.error('begin session notification cancel failed', e)
+  }
+}
+
+/** End a study session: rebuild the reminder schedule from current data. */
+export async function endStudySession(): Promise<void> {
+  if (!isNative()) return
+  sessionDepth = Math.max(0, sessionDepth - 1)
+  if (sessionDepth > 0) return
+  await rescheduleNotifications()
 }
 
 /**

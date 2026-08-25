@@ -12,7 +12,7 @@ import { useSettings } from '@/hooks/useSettings'
 import { studyService } from '@/services/study.service'
 import { cn } from '@/lib/utils'
 import { isNative } from '@/lib/platform'
-import { rescheduleNotifications } from '@/lib/notifications'
+import { beginStudySession, endStudySession, rescheduleNotifications } from '@/lib/notifications'
 import { playPronunciation, stopPronunciation, warmUpPronunciation } from '@/lib/pronounce'
 import type { ReviewMode, StudyAnswer, Word } from '@/types'
 
@@ -22,6 +22,14 @@ interface QueueItem {
 }
 
 const MUTE_KEY = 'vocab_review_muted'
+
+/**
+ * Safety net for the case where the app is killed while backgrounded (Android
+ * can do this) and the "hidden" pause never fires: a running segment is never
+ * credited past the last user interaction + this cap, so dead background time
+ * can't leak into `activeMs` even when the process dies mid-session.
+ */
+const IDLE_CAP_MS = 5 * 60 * 1000
 
 function loadMuted(): boolean {
   try {
@@ -94,6 +102,13 @@ interface PersistedSession {
   seenNewOnce: string[]
   startedAt: string
   /**
+   * Accumulated ACTIVE study time in ms (app foregrounded). Backgrounded/
+   minimized time is excluded — see the tracking refs in the component.
+   * Optional so an older persisted session (pre-dating this field) still
+   * resumes/flushes with the legacy wall-clock fallback.
+   */
+  activeMs?: number
+  /**
    * Timestamp of the last answer recorded into this session (updated on every
    * `persist()` call). Used only when this session turns out to be stale and
    * gets flushed instead of resumed — it bounds that flushed session's
@@ -155,8 +170,7 @@ function clearPersistedSession() {
 function computeSessionStats(
   outcomes: { rated: string[]; wrong: string[]; hard: string[]; skipped: string[] },
   newCount: number,
-  startedAt: Date,
-  endedAt: Date,
+  durationSec: number,
 ): SessionStats {
   const wrongSet = new Set(outcomes.wrong)
   const ratedSet = new Set(outcomes.rated)
@@ -169,7 +183,7 @@ function computeSessionStats(
     skippedCount,
     newCount,
     reviewedCount: correctCount + wrongSet.size,
-    durationSec: Math.max(0, Math.round((endedAt.getTime() - startedAt.getTime()) / 1000)),
+    durationSec: Math.max(0, Math.round(durationSec)),
   }
 }
 
@@ -297,6 +311,86 @@ export function StudySessionPage() {
   const [saving, setSaving] = useState(false)
 
   const startedAtRef = useRef<Date>(new Date())
+
+  // While a session is live, pending study reminders are cancelled (the user
+  // is already studying — a "you haven't reviewed today" ping mid-session is
+  // noise). Leaving the page re-plans the schedule from fresh data.
+  useEffect(() => {
+    beginStudySession()
+    return () => {
+      endStudySession()
+    }
+  }, [])
+  // ── Active-time tracking ─────────────────────────────────────────────────
+  // Duration must count only time the user is actually studying with the app
+  // in the foreground. Wall-clock `endedAt − startedAt` (the old approach)
+  // kept counting while the app was minimized/screen-locked on Android,
+  // inflating the day's stats. Instead we accumulate "active" milliseconds:
+  // a segment opens when the app becomes visible and closes on `visibilitychange`
+  // → hidden / Capacitor `appStateChange` → inactive (minimize, screen lock,
+  // app switch). Each segment is capped at lastActivity + IDLE_CAP_MS.
+  const activeMsRef = useRef(0)
+  const segmentStartRef = useRef<number | null>(null)
+  const lastActiveRef = useRef<number>(Date.now())
+  // True while a live, unfinished session is on screen — visibility resume
+  // must not start a segment on the summary screen or before the queue loads.
+  const sessionLiveRef = useRef(false)
+
+  const pauseTracking = useCallback(() => {
+    if (segmentStartRef.current == null) return
+    const end = Math.min(Date.now(), lastActiveRef.current + IDLE_CAP_MS)
+    activeMsRef.current += Math.max(0, end - segmentStartRef.current)
+    segmentStartRef.current = null
+  }, [])
+
+  const resumeTracking = useCallback(() => {
+    lastActiveRef.current = Date.now()
+    if (segmentStartRef.current == null && sessionLiveRef.current) {
+      segmentStartRef.current = Date.now()
+    }
+  }, [])
+
+  /** Total active ms so far, settling the running segment without closing it. */
+  const totalActiveMs = useCallback(() => {
+    pauseTracking()
+    resumeTracking()
+    return activeMsRef.current
+  }, [pauseTracking, resumeTracking])
+
+  useEffect(() => {
+    const live = queue !== null && !summary
+    if (live) resumeTracking()
+    else pauseTracking() // summary shown / queue gone → settle the open segment
+    sessionLiveRef.current = live
+  }, [queue, summary, pauseTracking, resumeTracking])
+
+  // Pause/resume the clock with app visibility (minimize, screen lock, app
+  // switch). `visibilitychange` covers the web + most WebView cases; the
+  // Capacitor App plugin is the reliable signal on native Android.
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') pauseTracking()
+      else resumeTracking()
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    let cleanupApp: (() => void) | undefined
+    if (isNative()) {
+      import('@capacitor/app')
+        .then(({ App }) => {
+          const listener = App.addListener('appStateChange', ({ isActive }) => {
+            if (isActive) resumeTracking()
+            else pauseTracking()
+          })
+          listener.then((h) => (cleanupApp = () => void h.remove()))
+        })
+        .catch((e) => console.error('appStateChange listener failed', e))
+    }
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility)
+      pauseTracking()
+      cleanupApp?.()
+    }
+  }, [pauseTracking, resumeTracking])
   // Per-word outcome sets (see SessionOutcomes) — one classification per word,
   // no matter how many times it comes back around in this session.
   const ratedWords = useRef<Set<string>>(new Set())
@@ -332,10 +426,11 @@ export function StudySessionPage() {
       introducedNew: [...introducedNew.current],
       seenNewOnce: [...seenNewOnce.current],
       startedAt: startedAtRef.current.toISOString(),
+      activeMs: totalActiveMs(),
       lastActivityAt: new Date().toISOString(),
       planIds: planIdsRef.current,
     })
-  }, [])
+  }, [totalActiveMs])
 
   // Resume an in-progress session if one was left mid-way (see SESSION_KEY);
   // otherwise freeze a fresh queue once today's data lands — but only when
@@ -381,6 +476,14 @@ export function StudySessionPage() {
         introducedNew.current = new Set(persisted.introducedNew)
         seenNewOnce.current = new Set(persisted.seenNewOnce)
         startedAtRef.current = persistedStart
+        // Restore accumulated active time. Sessions persisted by an older
+        // build (no `activeMs`) fall back to 0 — losing at most that one
+        // session's time once, after which every persist carries the field.
+        activeMsRef.current = persisted.activeMs ?? 0
+        lastActiveRef.current = Date.now()
+        // The session is live the moment this queue is adopted (the
+        // `sessionLiveRef` effect runs only after the state commits).
+        segmentStartRef.current = Date.now()
         return
       }
       // Discarding progress that was never recorded (plan set changed
@@ -389,6 +492,11 @@ export function StudySessionPage() {
       // aren't silently lost. Bounded by `lastActivityAt`, not "now": the app
       // may only be noticing this long after the user actually stopped.
       const flushEnd = persisted.lastActivityAt ? new Date(persisted.lastActivityAt) : persistedStart
+      const flushDurationSec =
+        persisted.activeMs != null
+          ? Math.round(persisted.activeMs / 1000)
+          : // Legacy persisted session (pre-activeMs): bounded wall clock.
+            Math.max(0, Math.round((flushEnd.getTime() - persistedStart.getTime()) / 1000))
       const flushStats = computeSessionStats(
         {
           rated: persisted.outcomes?.rated ?? [],
@@ -397,8 +505,7 @@ export function StudySessionPage() {
           skipped: persisted.outcomes?.skipped ?? [],
         },
         persisted.introducedNew?.length ?? 0,
-        persistedStart,
-        flushEnd,
+        flushDurationSec,
       )
       if (flushStats.reviewedCount + flushStats.skippedCount + flushStats.newCount > 0) {
         void studyService
@@ -425,6 +532,9 @@ export function StudySessionPage() {
       ]
       setQueue(initial)
       startedAtRef.current = new Date()
+      activeMsRef.current = 0
+      lastActiveRef.current = Date.now()
+      segmentStartRef.current = Date.now()
       if (initial.length > 0) persist(initial, 0)
     }
   }, [today, queue, isFetching, persist, plans, isPlansFetching])
@@ -456,7 +566,7 @@ export function StudySessionPage() {
       skipped: [...skippedWords.current],
     }
     const endedAt = new Date()
-    const stats = computeSessionStats(outcomes, introducedNew.current.size, startedAtRef.current, endedAt)
+    const stats = computeSessionStats(outcomes, introducedNew.current.size, totalActiveMs() / 1000)
     // Shown immediately as this visit's own numbers; replaced below with the
     // whole day's total once the server/local DB confirms it (the user may
     // have visited `/study` earlier today too — see `recordSession`).
@@ -489,12 +599,13 @@ export function StudySessionPage() {
           rescheduleNotifications()
         })
     }
-  }, [queryClient])
+  }, [queryClient, totalActiveMs])
 
   const handleAnswer = useCallback(
     (a: StudyAnswer) => {
       if (!current || !queue) return
       const cur = current
+      lastActiveRef.current = Date.now()
 
       // Persist (fire-and-forget; SKIP is a no-op server-side).
       if (a !== 'SKIP') {
@@ -539,7 +650,10 @@ export function StudySessionPage() {
     [current, queue, index, finish, persist],
   )
 
-  const toggleFlip = useCallback(() => setFlipped((f) => !f), [])
+  const toggleFlip = useCallback(() => {
+    lastActiveRef.current = Date.now()
+    setFlipped((f) => !f)
+  }, [])
 
   const toggleMuted = useCallback(() => {
     setMuted((m) => {
@@ -562,6 +676,7 @@ export function StudySessionPage() {
     skippedWords.current = new Set()
     introducedNew.current = new Set()
     seenNewOnce.current = new Set()
+    activeMsRef.current = 0
     setSummary(null)
     setQueue(null)
     setIndex(0)

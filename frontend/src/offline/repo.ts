@@ -1721,3 +1721,37 @@ export async function getNotificationStatus(): Promise<NotificationStatus> {
     hasPlans: todayQueue.meta.hasPlans,
   }
 }
+
+/**
+ * SM-2 forecast for the notification planner: how many words fall due on each
+ * of the next `days` study-days (index 0 = today, overdue folded into 0).
+ * Mirrors the forecast in getMemoryInsights but without per-plan caps — the
+ * planner only needs to know *whether* a day has reviews, not the exact queue.
+ */
+export async function getUpcomingDueCounts(days: number): Promise<number[]> {
+  const now = new Date()
+  const dayStart = startOfDay(now)
+  const dayEnd = endOfDay(now)
+  const until = new Date(dayStart)
+  until.setDate(until.getDate() + days)
+
+  const settings = await getSettings()
+  const rows = await query<{ next_review_at: string }>(
+    `SELECT next_review_at FROM progress
+     WHERE review_mode=? AND introduced_at IS NOT NULL
+       AND next_review_at IS NOT NULL AND next_review_at<?`,
+    [settings.studyDirection, until.toISOString()],
+  )
+
+  const counts = new Array<number>(days).fill(0)
+  for (const row of rows) {
+    const due = new Date(row.next_review_at)
+    if (due <= dayEnd) {
+      counts[0]++
+      continue
+    }
+    const offset = Math.floor((due.getTime() - dayEnd.getTime()) / 86_400_000) + 1
+    if (offset > 0 && offset < days) counts[offset]++
+  }
+  return counts
+}
