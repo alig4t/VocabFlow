@@ -149,8 +149,13 @@ export function MemoryOverview({
                 <span className="text-sm text-muted-foreground">واژه در حافظه</span>
               </div>
 
+              {/*
+                One pill, flat segments: the radius lives on the container, so
+                adjacent colors merge cleanly instead of leaving two rounded
+                ends butting into each other.
+              */}
               <div
-                className="flex h-4 w-full gap-1 overflow-hidden"
+                className="flex h-2.5 w-full overflow-hidden rounded-full"
                 role="img"
                 aria-label={`تازه ${memory.fresh}، در حال یادگیری ${memory.learning}، پایدار ${memory.stable}`}
               >
@@ -160,7 +165,7 @@ export function MemoryOverview({
                   return (
                     <span
                       key={b.key}
-                      className={cn('h-full rounded-full', b.bar)}
+                      className={cn('h-full', b.bar)}
                       style={{ width: `${(value / total) * 100}%` }}
                       title={`${b.label}: ${value}`}
                     />
