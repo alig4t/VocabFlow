@@ -11,11 +11,15 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/logo/logo-flow-192.png" />
     <link rel="shortcut icon" href="/logo/logo-flow-64.png" />
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover: required so env(safe-area-inset-*) resolves to real
+         values under the Android 15+ enforced edge-to-edge mode (and iOS notch). -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
-    <!-- Browser UI theme color (address bar) -->
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#faf7f1" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0f1a" />
+    <!-- Browser UI theme color (address bar). These match the exact CSS
+         --background of the light/dark themes so there is no visible seam.
+         The Android APK sets its status bar at runtime via @capacitor/status-bar. -->
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fbfaf8" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#080c16" />
 
     <meta name="description" content="وکب فلو — پلتفرم جامع یادگیری واژگان انگلیسی: واژه‌ها، افعال عبارتی و باهم‌آیی‌ها با فلش‌کارت دوطرفه و داشبورد پیشرفت شخصی." />
 

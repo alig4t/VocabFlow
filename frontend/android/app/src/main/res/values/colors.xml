@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand gold (matches the notification iconColor in capacitor.config.ts) -->
+    <color name="colorPrimary">#ECAD26</color>
+    <!-- Pre-JS status bar color: matches the light theme's --background
+         (#FBFAF8). At runtime ThemeProvider overrides it per active theme
+         via @capacitor/status-bar. -->
+    <color name="colorPrimaryDark">#FBFAF8</color>
+    <color name="colorAccent">#ECAD26</color>
+</resources>

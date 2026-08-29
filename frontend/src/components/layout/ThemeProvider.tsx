@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 
 type Theme = 'light' | 'dark' | 'study' | 'system'
-type ResolvedTheme = 'light' | 'dark' | 'study'
+export type ResolvedTheme = 'light' | 'dark' | 'study'
 
 interface ThemeContextValue {
   theme: Theme
