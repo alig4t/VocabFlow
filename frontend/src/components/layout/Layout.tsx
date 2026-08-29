@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Navbar } from './Navbar'
 import { Sidebar } from './Sidebar'
+import { BottomNav } from './BottomNav'
 import { SCROLL_CONTAINER_ID } from '@/lib/scroll'
 
 interface LayoutProps {
@@ -64,12 +65,15 @@ export function Layout({ children }: LayoutProps) {
         <main
           id={SCROLL_CONTAINER_ID}
           ref={mainRef}
-          className="flex-1 transform-gpu overflow-y-auto px-2 py-4 [backface-visibility:hidden] [overflow-anchor:none] sm:p-4 md:p-6 lg:p-8"
+          className="flex-1 transform-gpu overflow-y-auto px-2 py-4 [backface-visibility:hidden] [overflow-anchor:none] max-lg:pb-24 sm:p-4 md:p-6 lg:p-8"
         >
           {mergedHeroNav && <Navbar hero onMenuClick={() => setSidebarOpen(true)} />}
           {children}
         </main>
       </div>
+
+      {/* نوار ناوبری پایین موبایل */}
+      <BottomNav />
     </div>
   )
 }
