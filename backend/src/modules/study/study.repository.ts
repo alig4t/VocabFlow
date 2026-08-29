@@ -174,8 +174,10 @@ export class StudyRepository {
     result: SrsResult,
     now: Date,
     existingIntroducedAt: Date | null,
+    isFirstRead = false,
   ) {
     const introducedAt = existingIntroducedAt ?? now
+    const wrongInc = result.correct || isFirstRead ? 0 : 1
     return prisma.userWordProgress.upsert({
       where: { userId_wordId_reviewMode: { userId, wordId, reviewMode: mode } },
       create: {
@@ -188,7 +190,7 @@ export class StudyRepository {
         easeFactor: result.easeFactor,
         reviewCount: 1,
         correctCount: result.correct ? 1 : 0,
-        wrongCount: result.correct ? 0 : 1,
+        wrongCount: wrongInc,
         hardCount: result.hard ? 1 : 0,
         lastReviewedAt: now,
         nextReviewAt: result.nextReviewAt,
@@ -201,7 +203,7 @@ export class StudyRepository {
         easeFactor: result.easeFactor,
         reviewCount: { increment: 1 },
         correctCount: { increment: result.correct ? 1 : 0 },
-        wrongCount: { increment: result.correct ? 0 : 1 },
+        wrongCount: { increment: wrongInc },
         hardCount: { increment: result.hard ? 1 : 0 },
         lastReviewedAt: now,
         nextReviewAt: result.nextReviewAt,

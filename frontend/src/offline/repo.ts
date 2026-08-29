@@ -1401,6 +1401,9 @@ export async function answerStudy(wordId: string, answer: StudyAnswer): Promise<
 
   const introducedAt = existing?.introduced_at ?? nowIso
   const nextIso = res.nextReviewAt.toISOString()
+  // "خواندم" — the first AGAIN on a never-introduced word — is a read, not a
+  // mistake: it must not increment wrong_count (matches the session stats).
+  const wrongInc = !res.correct && existing?.introduced_at ? 1 : 0
 
   if (existing) {
     await run(
@@ -1410,7 +1413,7 @@ export async function answerStudy(wordId: string, answer: StudyAnswer): Promise<
        WHERE word_id=? AND review_mode=?`,
       [
         res.status, res.repetitions, res.intervalDays, res.easeFactor,
-        res.correct ? 1 : 0, res.correct ? 0 : 1, res.hard ? 1 : 0,
+        res.correct ? 1 : 0, wrongInc, res.hard ? 1 : 0,
         nowIso, nextIso, introducedAt, nowIso, wordId, mode,
       ],
     )
@@ -1421,7 +1424,7 @@ export async function answerStudy(wordId: string, answer: StudyAnswer): Promise<
        VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?)`,
       [
         wordId, mode, res.status, nowIso, res.repetitions, res.intervalDays, res.easeFactor,
-        res.correct ? 1 : 0, res.correct ? 0 : 1, res.hard ? 1 : 0, nowIso, nextIso, introducedAt,
+        res.correct ? 1 : 0, wrongInc, res.hard ? 1 : 0, nowIso, nextIso, introducedAt,
       ],
     )
   }

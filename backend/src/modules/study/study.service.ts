@@ -169,7 +169,19 @@ export class StudyService {
       return { wordId, skipped: true as const }
     }
 
-    await this.repo.saveSchedule(userId, wordId, mode, result, now, existing?.introducedAt ?? null)
+    // "خواندم" — the first AGAIN on a never-introduced word — is a read, not a
+    // mistake: it must not increment wrongCount (matches the session stats).
+    const isFirstRead = answer === 'AGAIN' && existing?.introducedAt == null
+
+    await this.repo.saveSchedule(
+      userId,
+      wordId,
+      mode,
+      result,
+      now,
+      existing?.introducedAt ?? null,
+      isFirstRead,
+    )
 
     // Append to the review log. `isFirst` is decided from the state *before*
     // saveSchedule stamped introducedAt; `isLapse` means a word that had
