@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Dark-mode variant of colorPrimaryDark: matches the dark theme's
-         --background (#080C16) so the status bar is correct before JS runs. -->
+         background (#080C16) so the status bar is correct before JS runs. -->
     <color name="colorPrimaryDark">#080C16</color>
 </resources>
