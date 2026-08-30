@@ -44,10 +44,11 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <div dir="rtl" className="flex h-[100dvh] overflow-hidden bg-background text-foreground">
-      {/* Mobile overlay */}
+      {/* Mobile overlay — z-30 sits above the BottomNav (z-20) so the dimmed
+          backdrop covers it too, but still under the sidebar panel itself. */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-20 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-30 bg-black/50 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
