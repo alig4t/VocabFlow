@@ -103,7 +103,7 @@ export default function App() {
   // Block route rendering until auth is restored from localStorage.
   if (!isReady) {
     return (
-      <ThemeProvider defaultTheme="light" storageKey="eng-theme">
+      <ThemeProvider defaultTheme="system" storageKey="eng-theme">
         <PageLoader />
       </ThemeProvider>
     )
@@ -112,14 +112,14 @@ export default function App() {
   // Native: block until the offline DB is seeded and ready.
   if (!dbReady) {
     return (
-      <ThemeProvider defaultTheme="light" storageKey="eng-theme">
+      <ThemeProvider defaultTheme="system" storageKey="eng-theme">
         <SeedLoader progress={seed.progress} label={seed.label} />
       </ThemeProvider>
     )
   }
 
   return (
-    <ThemeProvider defaultTheme="light" storageKey="eng-theme">
+    <ThemeProvider defaultTheme="system" storageKey="eng-theme">
       <BrowserRouter>
         <NativeBackButton />
         <StatusBarSync />

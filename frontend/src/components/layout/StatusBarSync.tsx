@@ -55,8 +55,10 @@ export function StatusBarSync() {
         // 15+ (targetSdk 35) edge-to-edge is enforced and would otherwise
         // slide content under it. Safe no-op on older versions.
         StatusBar.setOverlaysWebView({ overlay: false }).catch(() => undefined)
+        // Android style mapping (per the plugin's native source):
+        // Style.Light = light status bar → DARK icons; Style.Dark → LIGHT icons.
         StatusBar.setStyle({
-          style: spec.darkIcons ? Style.Dark : Style.Light,
+          style: spec.darkIcons ? Style.Light : Style.Dark,
         }).catch(() => undefined)
         StatusBar.setBackgroundColor({ color: spec.color }).catch(() => undefined)
       })
