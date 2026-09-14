@@ -51,9 +51,17 @@ export function StatusBarSync() {
           pathname === '/dashboard'
             ? DASHBOARD_HERO[resolvedTheme]
             : BACKGROUND[resolvedTheme]
-        // overlay:false keeps the WebView below the status bar — on Android
-        // 15+ (targetSdk 35) edge-to-edge is enforced and would otherwise
-        // slide content under it. Safe no-op on older versions.
+        // Onboarding paints a full-bleed background image from the very top of
+        // the screen, so the WebView must overlay a transparent status bar.
+        // Elsewhere overlay:false keeps the WebView below the status bar — on
+        // Android 15+ (targetSdk 35) edge-to-edge is enforced and would
+        // otherwise slide content under it. Safe no-op on older versions.
+        if (pathname === '/onboarding') {
+          StatusBar.setOverlaysWebView({ overlay: true }).catch(() => undefined)
+          StatusBar.setStyle({ style: Style.Light }).catch(() => undefined)
+          StatusBar.setBackgroundColor({ color: '#00000000' }).catch(() => undefined)
+          return
+        }
         StatusBar.setOverlaysWebView({ overlay: false }).catch(() => undefined)
         // Android style mapping (per the plugin's native source):
         // Style.Light = light status bar → DARK icons; Style.Dark → LIGHT icons.

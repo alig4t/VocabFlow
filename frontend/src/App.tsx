@@ -10,12 +10,14 @@ import { NativeBackButton } from './components/layout/NativeBackButton'
 import { StatusBarSync } from './components/layout/StatusBarSync'
 import { Toaster } from './components/ui/toast'
 import { isNative } from './lib/platform'
+import { isOnboardingCompleted } from './lib/onboarding'
 import { prepareNative } from './offline/bootstrap'
 import { initNotifications, rescheduleNotifications } from './lib/notifications'
 import { type Role } from './types'
 
 // ── Lazy-loaded pages (code-split; PageLoader shows while chunks load) ────────
 const LandingPage = lazy(() => import('./pages/LandingPage'))
+const OnboardingPage = lazy(() => import('./pages/onboarding/OnboardingPage'))
 const LoginPage = lazy(() => import('./pages/auth/LoginPage').then((m) => ({ default: m.LoginPage })))
 const RegisterPage = lazy(() => import('./pages/auth/RegisterPage').then((m) => ({ default: m.RegisterPage })))
 const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })))
@@ -128,9 +130,23 @@ export default function App() {
         <Suspense fallback={<PageLoader />}>
           <Routes>
             {/* Landing page (web) — native jumps straight into the app */}
+            {/* First-launch onboarding (native): shown once, then never again */}
+            <Route
+              path="/onboarding"
+              element={
+                isOnboardingCompleted() ? <Navigate to="/dashboard" replace /> : <OnboardingPage />
+              }
+            />
+
             <Route
               path="/"
-              element={isNative() ? <Navigate to="/dashboard" replace /> : <LandingPage />}
+              element={
+                isNative() ? (
+                  <Navigate to={isOnboardingCompleted() ? '/dashboard' : '/onboarding'} replace />
+                ) : (
+                  <LandingPage />
+                )
+              }
             />
 
             {/* Public auth routes */}
