@@ -1,37 +1,35 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronLeft } from 'lucide-react'
-import { OnboardingSlide } from './components/OnboardingSlide'
+import { OnboardingBackground } from './components/OnboardingBackground'
 import { PaginationDots } from './components/PaginationDots'
 import { OnboardingButton } from './components/OnboardingButton'
+import { OnboardingSlide } from './components/OnboardingSlide'
 import { completeOnboarding } from '../../lib/onboarding'
-import bg from '../../assets/onboarding/bg.png'
-import learn from '../../assets/onboarding/learn.jpg'
-import remember from '../../assets/onboarding/remember.png'
-import cont from '../../assets/onboarding/continue.png'
 
 const SLIDES = [
   {
-    image: learn,
     headline: 'یاد بگیر',
     subtitle: 'کتاب‌های کاربردی انگلیسی',
     body: 'کلمات جدید را از منابع معتبر یاد بگیر.',
   },
   {
-    image: remember,
     headline: 'فراموش نکن',
     subtitle: 'مرور هوشمند',
     body: 'VocabFlow تشخیص می‌دهد هر واژه را چه زمانی باید دوباره ببینی.',
   },
   {
-    image: cont,
     headline: 'ادامه بده',
     subtitle: 'عادت روزانه',
     body: 'زمان یادآوری را انتخاب کن و با ۶ روز استفاده رایگان شروع کن.',
   },
 ]
 
-/** Three-slide first-launch onboarding (RTL, swipeable, full-screen). */
+/**
+ * Three-slide first-launch onboarding (RTL, swipeable). Recreates the
+ * reference design: warm-yellow card on a light gray page, organic SVG
+ * line-art background, text-only slides, dots at bottom-left and a round
+ * black "next" button at bottom-right.
+ */
 export default function OnboardingPage() {
   const navigate = useNavigate()
   const [index, setIndex] = useState(0)
@@ -79,47 +77,34 @@ export default function OnboardingPage() {
   return (
     <div
       dir="rtl"
-      className="font-persian relative flex h-[100dvh] w-full flex-col overflow-hidden bg-[hsl(36,77%,95%)]"
+      className="font-persian flex h-[100dvh] w-full items-center justify-center bg-[#F4F4F4]"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
-      {/* Decorative full-bleed background — extends behind the status bar */}
-      <img
-        src={bg}
-        alt=""
-        aria-hidden
-        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
-        draggable={false}
-      />
+      {/* Mobile card — reference ratio 201:435, full-bleed on phones.
+          Sizing via container units keeps the design proportional. */}
+      <div className="relative aspect-[201/435] max-h-[calc(100dvh-24px)] w-[calc(100vw-24px)] max-w-[420px] overflow-hidden rounded-[22px] bg-[#F9D040] [container-type:size]">
+        {/* Decorative background (SVG, clipped by the card) */}
+        <OnboardingBackground className="pointer-events-none absolute inset-0 h-full w-full" />
 
-      {/* Sliding track (RTL flex overflows to the LEFT, so the track must
-          translate rightward — positive X — to reveal the next slide) */}
-      <div
-        className="flex h-full w-full transition-transform duration-300 ease-out"
-        style={{ transform: `translateX(${index * 100}%)` }}
-      >
-        {SLIDES.map((s) => (
-          <OnboardingSlide key={s.headline} {...s} />
-        ))}
+        {/* Sliding track (RTL flex overflows to the LEFT, so the track must
+            translate rightward — positive X — to reveal the next slide) */}
+        <div
+          className="absolute inset-0 flex transition-transform duration-300 ease-out"
+          style={{ transform: `translateX(${index * 100}%)` }}
+        >
+          {SLIDES.map((s) => (
+            <OnboardingSlide key={s.headline} {...s} />
+          ))}
+        </div>
+
+        {/* Bottom controls — dots at bottom-right, next button at bottom-left
+            (in RTL the first flex child is laid out on the RIGHT) */}
+        <div className="absolute inset-x-0 bottom-[7%] flex items-center justify-between px-[7.5%]">
+          <PaginationDots count={SLIDES.length} active={index} />
+          <OnboardingButton label={isLast ? 'شروع' : 'بعدی'} onClick={next} />
+        </div>
       </div>
-
-      {/* Bottom controls */}
-      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-6 pb-[calc(env(safe-area-inset-bottom)+24px)]">
-        <PaginationDots count={SLIDES.length} active={index} />
-        {isLast ? (
-          <OnboardingButton isLast onClick={finish} />
-        ) : (
-          <OnboardingButton isLast={false} onClick={next} />
-        )}
-      </div>
-
-      {/* Direction hint (subtle, first slide only) */}
-      {index === 0 && (
-        <ChevronLeft
-          className="pointer-events-none absolute left-4 top-1/2 h-6 w-6 -translate-y-1/2 animate-pulse text-[hsl(217,63%,16%,0.25)]"
-          aria-hidden
-        />
-      )}
     </div>
   )
 }

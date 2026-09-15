@@ -2,11 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
+/* AnjomanMax — variable weights registered under the 'Anjoman' family so
+   font-weight utilities (normal/medium/bold/black) resolve to real files */
 @font-face {
   font-family: 'Anjoman';
-  src: url('/fonts/7285anjoman.woff2') format('woff2'),
-       url('/fonts/7285anjoman.woff') format('woff');
-  font-weight: normal;
+  src: url('/fonts/AnjomanMax-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Anjoman';
+  src: url('/fonts/AnjomanMax-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Anjoman';
+  src: url('/fonts/AnjomanMax-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Anjoman';
+  src: url('/fonts/AnjomanMax-Black.woff2') format('woff2');
+  font-weight: 900;
   font-style: normal;
   font-display: swap;
 }
