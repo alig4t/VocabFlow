@@ -11,16 +11,19 @@ const SLIDES = [
     headline: 'یاد بگیر',
     subtitle: 'کتاب‌های کاربردی انگلیسی',
     body: 'کلمات جدید را از منابع معتبر یاد بگیر.',
+    imgSrc:'/vector/step1-removebg-preview.png',
   },
   {
     headline: 'فراموش نکن',
     subtitle: 'مرور هوشمند',
     body: 'VocabFlow تشخیص می‌دهد هر واژه را چه زمانی باید دوباره ببینی.',
+    imgSrc:'/vector/step2-removebg-preview.png',
   },
   {
     headline: 'ادامه بده',
     subtitle: 'عادت روزانه',
     body: 'زمان یادآوری را انتخاب کن و با ۶ روز استفاده رایگان شروع کن.',
+    imgSrc:'/vector/step3-cut.png',
   },
 ]
 
