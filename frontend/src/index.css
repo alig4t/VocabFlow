@@ -15,7 +15,7 @@
   font-display: swap;
 }
 @font-face {
-  font-family: "Anjoman";
+  font-family: "Anjoman-bold";
   src: url("/fonts/AnjomanMax-Bold.woff2") format("woff2");
   font-weight: 700;
   font-style: normal;
@@ -23,7 +23,7 @@
 }
 
 @font-face {
-  font-family: "Anjoman";
+  font-family: "Anjoman-bold";
   src: url("/fonts/AnjomanMax-Black.woff2") format("woff2");
   font-weight: 900;
   font-style: normal;
@@ -325,6 +325,10 @@
   }
   .font-persian {
     font-family: "Anjoman", system-ui, sans-serif;
+  }
+
+  .font-anjoman-bold{
+    font-family: "Anjoman-bold";
   }
 
   /* IPA phonetic transcriptions. The monospace generic (font-mono) resolves to
