@@ -1,5 +1,5 @@
 interface OnboardingButtonProps {
-  label: string
+  label: string | React.ReactNode
   onClick: () => void
 }
 

@@ -15,18 +15,18 @@ export function OnboardingSlide({ headline, subtitle, body,imgSrc }: OnboardingS
     <div className="relative h-full w-full shrink-0">
 
 
-        <img src={imgSrc} className={'mx-auto mt-10 max-w-[60%]'} />
+        <img src={imgSrc} className={'mx-auto mt-10 max-w-[60%] mb-6'} />
 
         {/*<p className="absolute right-[8%] top-[24.8%] text-[4.5cqw] font-bold text-[#111111]">
         VocabFlow
       </p>*/}
-      <h1 className="absolute right-[8%] top-[39.1%] text-[12cqw] font-bold leading-[1.15] text-[#111111]">
+      <h1 className="absolute right-[8%] top-[43.1%] text-[10cqw] font-bold leading-[1.15] text-[#111111]">
         {headline}
       </h1>
-      <p className="absolute right-[8%] top-[57%] max-w-[80%] text-[5.5cqw] font-bold leading-[1.6] text-[#111111]">
+      <p className="absolute right-[8%] top-[59%] max-w-[80%] text-[5.5cqw] font-bold leading-[1.6] text-[#111111]">
         {subtitle}
       </p>
-      <p className="absolute right-[8%] top-[66%] max-w-[80%] text-[5cqw] leading-[1.6] text-[#6F663D]">
+      <p className="absolute right-[8%] top-[68%] max-w-[80%] text-[5cqw] leading-[1.6] text-[#6F663D]">
         {body}
       </p>
     </div>
