@@ -1,13 +1,13 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Upload, X, Loader2, BookOpen, Image } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useBook, useCreateBook, useUpdateBook } from '@/hooks/useBooks'
-import { toast } from '@/components/ui/use-toast'
-import { cn } from '@/lib/utils'
+import { useState, useRef, useCallback, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Upload, X, Loader2, BookOpen, Image } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useBook, useCreateBook, useUpdateBook } from "@/hooks/useBooks";
+import { toast } from "@/components/ui/use-toast";
+import { cn } from "@/lib/utils";
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
@@ -15,8 +15,8 @@ function CoverPreview({
   src,
   onRemove,
 }: {
-  src: string
-  onRemove: () => void
+  src: string;
+  onRemove: () => void;
 }) {
   return (
     <figure className="relative inline-block">
@@ -34,7 +34,7 @@ function CoverPreview({
         <X className="h-3.5 w-3.5" />
       </button>
     </figure>
-  )
+  );
 }
 
 function DropZone({
@@ -44,11 +44,11 @@ function DropZone({
   onDragLeave,
   onClick,
 }: {
-  isDragOver: boolean
-  onDrop: (e: React.DragEvent) => void
-  onDragOver: (e: React.DragEvent) => void
-  onDragLeave: () => void
-  onClick: () => void
+  isDragOver: boolean;
+  onDrop: (e: React.DragEvent) => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDragLeave: () => void;
+  onClick: () => void;
 }) {
   return (
     <div
@@ -58,112 +58,119 @@ function DropZone({
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onClick={onClick}
-      onKeyDown={(e) => e.key === 'Enter' && onClick()}
+      onKeyDown={(e) => e.key === "Enter" && onClick()}
       className={cn(
-        'border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors select-none',
+        "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors select-none",
         isDragOver
-          ? 'border-primary bg-primary/5'
-          : 'border-border hover:border-primary/50 hover:bg-muted/30',
+          ? "border-primary bg-primary/5"
+          : "border-border hover:border-primary/50 hover:bg-muted/30",
       )}
     >
-      <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" aria-hidden />
-      <p className="text-sm font-medium text-foreground">تصویر را اینجا بکشید یا کلیک کنید</p>
-      <p className="text-xs text-muted-foreground mt-1">PNG, JPG, WEBP پشتیبانی می‌شود</p>
+      <Upload
+        className="h-8 w-8 text-muted-foreground mx-auto mb-2"
+        aria-hidden
+      />
+      <p className="text-sm font-medium text-foreground">
+        تصویر را اینجا بکشید یا کلیک کنید
+      </p>
+      <p className="text-xs text-muted-foreground mt-1">
+        PNG, JPG, WEBP پشتیبانی می‌شود
+      </p>
     </div>
-  )
+  );
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function BookFormPage() {
-  const navigate = useNavigate()
-  const { id } = useParams<{ id?: string }>()
-  const isEditMode = Boolean(id)
+  const navigate = useNavigate();
+  const { id } = useParams<{ id?: string }>();
+  const isEditMode = Boolean(id);
 
-  const { data: book, isLoading } = useBook(id ?? '')
-  const createBook = useCreateBook()
-  const updateBook = useUpdateBook()
+  const { data: book, isLoading } = useBook(id ?? "");
+  const createBook = useCreateBook();
+  const updateBook = useUpdateBook();
 
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [coverPreview, setCoverPreview] = useState<string | null>(null)
-  const [isDragOver, setIsDragOver] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isEditMode && book) {
-      setTitle(book.title)
-      setDescription(book.description ?? '')
-      if (book.coverImage) setCoverPreview(book.coverImage)
+      setTitle(book.title);
+      setDescription(book.description ?? "");
+      if (book.coverImage) setCoverPreview(book.coverImage);
     }
-  }, [isEditMode, book])
+  }, [isEditMode, book]);
 
   function readFileAsDataUrl(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = (e) => resolve(e.target?.result as string)
-      reader.onerror = reject
-      reader.readAsDataURL(file)
-    })
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   }
 
   async function handleFile(file: File) {
-    if (!file.type.startsWith('image/')) {
-      toast({ title: 'لطفاً یک فایل تصویری انتخاب کنید', variant: 'destructive' })
-      return
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "لطفاً یک فایل تصویری انتخاب کنید",
+        variant: "destructive",
+      });
+      return;
     }
-    const dataUrl = await readFileAsDataUrl(file)
-    setCoverPreview(dataUrl)
+    const dataUrl = await readFileAsDataUrl(file);
+    setCoverPreview(dataUrl);
   }
 
-  const handleDrop = useCallback(
-    async (e: React.DragEvent) => {
-      e.preventDefault()
-      setIsDragOver(false)
-      const file = e.dataTransfer.files[0]
-      if (file) await handleFile(file)
-    },
-    [],
-  )
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) await handleFile(file);
+  }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(true)
-  }, [])
+    e.preventDefault();
+    setIsDragOver(true);
+  }, []);
 
-  const handleDragLeave = useCallback(() => setIsDragOver(false), [])
+  const handleDragLeave = useCallback(() => setIsDragOver(false), []);
 
   async function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (file) await handleFile(file)
+    const file = e.target.files?.[0];
+    if (file) await handleFile(file);
   }
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+    e.preventDefault();
     if (!title.trim()) {
-      toast({ title: 'عنوان کتاب الزامی است', variant: 'destructive' })
-      return
+      toast({ title: "عنوان کتاب الزامی است", variant: "destructive" });
+      return;
     }
-    setSubmitting(true)
+    setSubmitting(true);
     try {
       const payload = {
         title: title.trim(),
         description: description.trim() || undefined,
         coverImage: coverPreview ?? undefined,
-      }
+      };
       if (isEditMode && id) {
-        await updateBook.mutateAsync({ id, data: payload })
-        toast({ title: 'کتاب ویرایش شد', variant: 'success' })
+        await updateBook.mutateAsync({ id, data: payload });
+        toast({ title: "کتاب ویرایش شد", variant: "success" });
       } else {
-        await createBook.mutateAsync(payload)
-        toast({ title: 'کتاب اضافه شد', variant: 'success' })
+        await createBook.mutateAsync(payload);
+        toast({ title: "کتاب اضافه شد", variant: "success" });
       }
-      navigate('/admin/books')
+      navigate("/admin/books");
     } catch {
-      toast({ title: 'خطا در ذخیره کتاب', variant: 'destructive' })
+      toast({ title: "خطا در ذخیره کتاب", variant: "destructive" });
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
   }
 
@@ -172,17 +179,24 @@ export function BookFormPage() {
       <div className="flex items-center justify-center min-h-[300px]">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
-    )
+    );
   }
 
   return (
-    <section className="max-w-2xl mx-auto space-y-6 pb-12 font-persian" dir="rtl">
+    <section
+      className="max-w-2xl mx-auto space-y-6 pb-12 font-persian"
+      dir="rtl"
+    >
       <header className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/admin/books')}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate("/admin/books")}
+        >
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <h1 className="text-2xl font-bold">
-          {isEditMode ? 'ویرایش کتاب' : 'افزودن کتاب جدید'}
+          {isEditMode ? "ویرایش کتاب" : "افزودن کتاب جدید"}
         </h1>
       </header>
 
@@ -242,7 +256,10 @@ export function BookFormPage() {
               onChange={handleFileInput}
             />
             {coverPreview && (
-              <CoverPreview src={coverPreview} onRemove={() => setCoverPreview(null)} />
+              <CoverPreview
+                src={coverPreview}
+                onRemove={() => setCoverPreview(null)}
+              />
             )}
           </CardContent>
         </Card>
@@ -251,17 +268,17 @@ export function BookFormPage() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate('/admin/books')}
+            onClick={() => navigate("/admin/books")}
             disabled={submitting}
           >
             انصراف
           </Button>
           <Button type="submit" disabled={submitting}>
             {submitting && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
-            {isEditMode ? 'ذخیره تغییرات' : 'افزودن کتاب'}
+            {isEditMode ? "ذخیره تغییرات" : "افزودن کتاب"}
           </Button>
         </footer>
       </form>
     </section>
-  )
+  );
 }

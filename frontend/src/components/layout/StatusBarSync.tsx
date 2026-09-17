@@ -1,11 +1,11 @@
-import { useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
-import { Capacitor } from '@capacitor/core'
-import { useTheme, type ResolvedTheme } from './ThemeProvider'
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
+import { useTheme, type ResolvedTheme } from "./ThemeProvider";
 
 interface StatusBarSpec {
-  color: string
-  darkIcons: boolean
+  color: string;
+  darkIcons: boolean;
 }
 
 /*
@@ -14,10 +14,10 @@ interface StatusBarSpec {
   the page surface.
 */
 const BACKGROUND: Record<ResolvedTheme, StatusBarSpec> = {
-  light: { color: '#FBFAF8', darkIcons: true },
-  dark: { color: '#080C16', darkIcons: false },
-  study: { color: '#EFE9DC', darkIcons: true },
-}
+  light: { color: "#FBFAF8", darkIcons: true },
+  dark: { color: "#080C16", darkIcons: false },
+  study: { color: "#EFE9DC", darkIcons: true },
+};
 
 /*
   The dashboard's hero band (`.bg-hero-deep`) opens the page with a gold
@@ -27,10 +27,10 @@ const BACKGROUND: Record<ResolvedTheme, StatusBarSpec> = {
   the band instead of cutting it with a background-colored strip.
 */
 const DASHBOARD_HERO: Record<ResolvedTheme, StatusBarSpec> = {
-  light: { color: '#FFE687', darkIcons: true },
-  dark: { color: '#FAD264', darkIcons: true },
-  study: { color: '#F8D67C', darkIcons: true },
-}
+  light: { color: "#FFE687", darkIcons: true },
+  dark: { color: "#FAD264", darkIcons: true },
+  study: { color: "#F8D67C", darkIcons: true },
+};
 
 /**
  * Keeps the Android status bar in sync with the active theme and route.
@@ -38,43 +38,49 @@ const DASHBOARD_HERO: Record<ResolvedTheme, StatusBarSpec> = {
  * No-op on the web — every call is native-only and failure-tolerant.
  */
 export function StatusBarSync() {
-  const { resolvedTheme } = useTheme()
-  const { pathname } = useLocation()
+  const { resolvedTheme } = useTheme();
+  const { pathname } = useLocation();
 
   useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return
-    let cancelled = false
-    import('@capacitor/status-bar')
+    if (!Capacitor.isNativePlatform()) return;
+    let cancelled = false;
+    import("@capacitor/status-bar")
       .then(({ StatusBar, Style }) => {
-        if (cancelled) return
+        if (cancelled) return;
         const spec =
-          pathname === '/dashboard'
+          pathname === "/dashboard"
             ? DASHBOARD_HERO[resolvedTheme]
-            : BACKGROUND[resolvedTheme]
+            : BACKGROUND[resolvedTheme];
         // Onboarding paints a full-bleed background image from the very top of
         // the screen, so the WebView must overlay a transparent status bar.
         // Elsewhere overlay:false keeps the WebView below the status bar — on
         // Android 15+ (targetSdk 35) edge-to-edge is enforced and would
         // otherwise slide content under it. Safe no-op on older versions.
-        if (pathname === '/onboarding') {
-          StatusBar.setOverlaysWebView({ overlay: true }).catch(() => undefined)
-          StatusBar.setStyle({ style: Style.Light }).catch(() => undefined)
-          StatusBar.setBackgroundColor({ color: '#00000000' }).catch(() => undefined)
-          return
+        if (pathname === "/onboarding") {
+          StatusBar.setOverlaysWebView({ overlay: true }).catch(
+            () => undefined,
+          );
+          StatusBar.setStyle({ style: Style.Light }).catch(() => undefined);
+          StatusBar.setBackgroundColor({ color: "#00000000" }).catch(
+            () => undefined,
+          );
+          return;
         }
-        StatusBar.setOverlaysWebView({ overlay: false }).catch(() => undefined)
+        StatusBar.setOverlaysWebView({ overlay: false }).catch(() => undefined);
         // Android style mapping (per the plugin's native source):
         // Style.Light = light status bar → DARK icons; Style.Dark → LIGHT icons.
         StatusBar.setStyle({
           style: spec.darkIcons ? Style.Light : Style.Dark,
-        }).catch(() => undefined)
-        StatusBar.setBackgroundColor({ color: spec.color }).catch(() => undefined)
+        }).catch(() => undefined);
+        StatusBar.setBackgroundColor({ color: spec.color }).catch(
+          () => undefined,
+        );
       })
-      .catch(() => undefined)
+      .catch(() => undefined);
     return () => {
-      cancelled = true
-    }
-  }, [resolvedTheme, pathname])
+      cancelled = true;
+    };
+  }, [resolvedTheme, pathname]);
 
-  return null
+  return null;
 }

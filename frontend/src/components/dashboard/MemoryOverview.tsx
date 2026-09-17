@@ -1,69 +1,69 @@
-import { useMemo } from 'react'
-import { Brain, Sprout, Leaf, TreeDeciduous, TrendingUp } from 'lucide-react'
-import { MemoryWordHalo } from './MemoryWordHalo'
-import { faNum } from '../../lib/format'
-import { cn } from '../../lib/utils'
-import type { GrowthPoint, MemoryBreakdown } from '../../types'
+import { useMemo } from "react";
+import { Brain, Sprout, Leaf, TreeDeciduous, TrendingUp } from "lucide-react";
+import { MemoryWordHalo } from "./MemoryWordHalo";
+import { faNum } from "../../lib/format";
+import { cn } from "../../lib/utils";
+import type { GrowthPoint, MemoryBreakdown } from "../../types";
 
 interface MemoryOverviewProps {
-  memory: MemoryBreakdown
-  growth: GrowthPoint[]
+  memory: MemoryBreakdown;
+  growth: GrowthPoint[];
   /** The reader's own words, drifting around the brain at the top of the card. */
-  words?: string[]
+  words?: string[];
   /** Window the curve covers, for the caption. Defaults to the dashboard's 30. */
-  growthDays?: number
+  growthDays?: number;
   /**
    * The dashboard's curve is reconstructed backwards and only approximate; the
    * statistics page replays `review_events` and is exact. Drops the hedge.
    */
-  growthExact?: boolean
+  growthExact?: boolean;
 }
 
 const BUCKETS = [
   {
-    key: 'fresh' as const,
+    key: "fresh" as const,
     icon: Sprout,
-    label: 'تازه',
-    hint: 'تازه وارد چرخه مرور شده',
-    bar: 'bg-violet',
-    chip: 'bg-violet/10 text-violet',
+    label: "تازه",
+    hint: "تازه وارد چرخه مرور شده",
+    bar: "bg-violet",
+    chip: "bg-violet/10 text-violet",
   },
   {
-    key: 'learning' as const,
+    key: "learning" as const,
     icon: Leaf,
-    label: 'در حال یادگیری',
-    hint: 'هنوز به فاصله مرور بلند نرسیده',
-    bar: 'bg-warning',
-    chip: 'bg-warning/15 text-warning',
+    label: "در حال یادگیری",
+    hint: "هنوز به فاصله مرور بلند نرسیده",
+    bar: "bg-warning",
+    chip: "bg-warning/15 text-warning",
   },
   {
-    key: 'stable' as const,
+    key: "stable" as const,
     icon: TreeDeciduous,
-    label: 'پایدار',
-    hint: 'فاصله مرور بیش از ۲۱ روز',
-    bar: 'bg-mint',
-    chip: 'bg-mint/10 text-mint',
+    label: "پایدار",
+    hint: "فاصله مرور بیش از ۲۱ روز",
+    bar: "bg-mint",
+    chip: "bg-mint/10 text-mint",
   },
-]
+];
 
 /** Smoothed polyline for the 30-day stable-words curve (viewBox 100×32). */
 function GrowthSparkline({ points }: { points: GrowthPoint[] }) {
   const path = useMemo(() => {
-    if (points.length < 2) return ''
-    const values = points.map((p) => p.count)
-    const min = Math.min(...values)
-    const max = Math.max(...values)
-    const span = max - min || 1
+    if (points.length < 2) return "";
+    const values = points.map((p) => p.count);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const span = max - min || 1;
     return values
       .map((v, i) => {
-        const x = (i / (values.length - 1)) * 100
-        const y = 30 - ((v - min) / span) * 28
-        return `${i === 0 ? 'M' : 'L'}${x.toFixed(2)},${y.toFixed(2)}`
+        const x = (i / (values.length - 1)) * 100;
+        const y = 30 - ((v - min) / span) * 28;
+        return `${i === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`;
       })
-      .join(' ')
-  }, [points])
+      .join(" ");
+  }, [points]);
 
-  if (!path) return null
+  if (!path) return null;
 
   return (
     <svg
@@ -83,7 +83,7 @@ function GrowthSparkline({ points }: { points: GrowthPoint[] }) {
         vectorEffect="non-scaling-stroke"
       />
     </svg>
-  )
+  );
 }
 
 /**
@@ -101,8 +101,9 @@ export function MemoryOverview({
   growthDays = 30,
   growthExact = false,
 }: MemoryOverviewProps) {
-  const total = memory.total
-  const gained = growth.length > 1 ? growth[growth.length - 1].count - growth[0].count : 0
+  const total = memory.total;
+  const gained =
+    growth.length > 1 ? growth[growth.length - 1].count - growth[0].count : 0;
 
   return (
     <section className="surface rounded-3xl p-5 sm:p-6">
@@ -118,7 +119,8 @@ export function MemoryOverview({
             <span className="text-accent-foreground">وضعیت</span> حافظه
           </span>
           <span className="mr-auto text-xs font-normal text-muted-foreground">
-            {faNum(Math.round((memory.stable / Math.max(1, total)) * 100))}٪ پایدار
+            {faNum(Math.round((memory.stable / Math.max(1, total)) * 100))}٪
+            پایدار
           </span>
         </div>
       </header>
@@ -128,7 +130,8 @@ export function MemoryOverview({
 
         {total === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">
-            هنوز واژه‌ای وارد چرخه مرور نشده — با شروع مطالعه امروز اینجا پر می‌شود.
+            هنوز واژه‌ای وارد چرخه مرور نشده — با شروع مطالعه امروز اینجا پر
+            می‌شود.
           </p>
         ) : (
           <>
@@ -146,7 +149,9 @@ export function MemoryOverview({
                 <span className="text-4xl font-black tabular-nums leading-none text-foreground">
                   {faNum(total)}
                 </span>
-                <span className="text-sm text-muted-foreground">واژه در حافظه</span>
+                <span className="text-sm text-muted-foreground">
+                  واژه در حافظه
+                </span>
               </div>
 
               {/*
@@ -160,16 +165,16 @@ export function MemoryOverview({
                 aria-label={`تازه ${memory.fresh}، در حال یادگیری ${memory.learning}، پایدار ${memory.stable}`}
               >
                 {BUCKETS.map((b) => {
-                  const value = memory[b.key]
-                  if (value === 0) return null
+                  const value = memory[b.key];
+                  if (value === 0) return null;
                   return (
                     <span
                       key={b.key}
-                      className={cn('h-full', b.bar)}
+                      className={cn("h-full", b.bar)}
                       style={{ width: `${(value / total) * 100}%` }}
                       title={`${b.label}: ${value}`}
                     />
-                  )
+                  );
                 })}
               </div>
             </div>
@@ -179,54 +184,54 @@ export function MemoryOverview({
               compare at a glance, where three stacked rows read as a table.
             */}
             <ul className="grid w-full grid-cols-3 gap-2">
-                {BUCKETS.map((b) => {
-                  const Icon = b.icon
-                  const value = memory[b.key]
-                  const share = Math.round((value / total) * 100)
-                  return (
-                    <li
-                      key={b.key}
-                      className="surface-sunken flex flex-col items-center gap-1.5 rounded-2xl px-2 py-4 text-center"
+              {BUCKETS.map((b) => {
+                const Icon = b.icon;
+                const value = memory[b.key];
+                const share = Math.round((value / total) * 100);
+                return (
+                  <li
+                    key={b.key}
+                    className="surface-sunken flex flex-col items-center gap-1.5 rounded-2xl px-2 py-4 text-center"
+                  >
+                    <span
+                      className={cn(
+                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
+                        b.chip,
+                      )}
+                      aria-hidden="true"
                     >
-                      <span
-                        className={cn(
-                          'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl',
-                          b.chip,
-                        )}
-                        aria-hidden="true"
-                      >
-                        <Icon className="h-4 w-4" />
-                      </span>
-                      {/*
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    {/*
                         An empty bucket says so in words. Three tiles reading
                         «۰ / ۰٪» is the shape of a broken dashboard, not of an
                         account that simply hasn't got there yet.
                       */}
-                      {value === 0 ? (
-                        <>
-                          <p className="text-[11px] font-medium leading-tight text-foreground">
-                            {b.label}
-                          </p>
-                          <p className="text-[11px] leading-tight text-muted-foreground/80">
-                            هنوز نرسیده
-                          </p>
-                        </>
-                      ) : (
-                        <>
-                          <p className="text-xl font-black tabular-nums leading-none text-foreground">
-                            {faNum(value)}
-                          </p>
-                          <p className="text-[11px] font-medium leading-tight text-foreground">
-                            {b.label}
-                          </p>
-                          <p className="text-[11px] tabular-nums text-muted-foreground">
-                            {faNum(share)}٪
-                          </p>
-                        </>
-                      )}
-                    </li>
-                  )
-                })}
+                    {value === 0 ? (
+                      <>
+                        <p className="text-[11px] font-medium leading-tight text-foreground">
+                          {b.label}
+                        </p>
+                        <p className="text-[11px] leading-tight text-muted-foreground/80">
+                          هنوز نرسیده
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-xl font-black tabular-nums leading-none text-foreground">
+                          {faNum(value)}
+                        </p>
+                        <p className="text-[11px] font-medium leading-tight text-foreground">
+                          {b.label}
+                        </p>
+                        <p className="text-[11px] tabular-nums text-muted-foreground">
+                          {faNum(share)}٪
+                        </p>
+                      </>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
 
             {/*
@@ -236,31 +241,35 @@ export function MemoryOverview({
             */}
             {memory.stable === 0 ? (
               <p className="surface-sunken rounded-2xl px-4 py-3 text-center text-xs text-muted-foreground">
-                وقتی اولین واژه‌ها به فاصله مرور بلند برسند، روند رشدشان اینجا رسم می‌شود.
+                وقتی اولین واژه‌ها به فاصله مرور بلند برسند، روند رشدشان اینجا
+                رسم می‌شود.
               </p>
             ) : (
-            <div className="surface-sunken space-y-1.5 rounded-2xl p-4">
-              <div className="flex items-center gap-2 text-xs">
-                <TrendingUp className="h-4 w-4 text-mint" aria-hidden="true" />
-                <span className="text-muted-foreground">
-                  روند واژه‌های پایدار ({faNum(growthDays)} روز اخیر
-                  {growthExact ? '' : ' — تقریبی'})
-                </span>
-                <span
-                  className={cn(
-                    'mr-auto font-bold tabular-nums',
-                    gained > 0 ? 'text-mint' : 'text-muted-foreground',
-                  )}
-                >
-                  {gained > 0 ? `+${faNum(gained)}` : faNum(gained)} واژه
-                </span>
+              <div className="surface-sunken space-y-1.5 rounded-2xl p-4">
+                <div className="flex items-center gap-2 text-xs">
+                  <TrendingUp
+                    className="h-4 w-4 text-mint"
+                    aria-hidden="true"
+                  />
+                  <span className="text-muted-foreground">
+                    روند واژه‌های پایدار ({faNum(growthDays)} روز اخیر
+                    {growthExact ? "" : " — تقریبی"})
+                  </span>
+                  <span
+                    className={cn(
+                      "mr-auto font-bold tabular-nums",
+                      gained > 0 ? "text-mint" : "text-muted-foreground",
+                    )}
+                  >
+                    {gained > 0 ? `+${faNum(gained)}` : faNum(gained)} واژه
+                  </span>
+                </div>
+                <GrowthSparkline points={growth} />
               </div>
-              <GrowthSparkline points={growth} />
-            </div>
             )}
           </>
         )}
       </div>
     </section>
-  )
+  );
 }

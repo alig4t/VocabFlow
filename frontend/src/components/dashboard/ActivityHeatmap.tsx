@@ -1,9 +1,9 @@
-import { useMemo } from 'react'
-import { faNum } from '../../lib/format'
-import type { HeatmapDay } from '../../types'
+import { useMemo } from "react";
+import { faNum } from "../../lib/format";
+import type { HeatmapDay } from "../../types";
 
 interface ActivityHeatmapProps {
-  days: HeatmapDay[]
+  days: HeatmapDay[];
 }
 
 /**
@@ -16,39 +16,52 @@ interface ActivityHeatmapProps {
  * different from a light one.
  */
 function level(count: number): 0 | 1 | 2 | 3 | 4 {
-  if (count <= 0) return 0
-  if (count <= 5) return 1
-  if (count <= 15) return 2
-  if (count <= 30) return 3
-  return 4
+  if (count <= 0) return 0;
+  if (count <= 5) return 1;
+  if (count <= 15) return 2;
+  if (count <= 30) return 3;
+  return 4;
 }
 
 export function ActivityHeatmap({ days }: ActivityHeatmapProps) {
   // Group consecutive days into week columns of 7 (oldest → newest).
   const weeks = useMemo(() => {
-    const out: HeatmapDay[][] = []
-    for (let i = 0; i < days.length; i += 7) out.push(days.slice(i, i + 7))
-    return out
-  }, [days])
+    const out: HeatmapDay[][] = [];
+    for (let i = 0; i < days.length; i += 7) out.push(days.slice(i, i + 7));
+    return out;
+  }, [days]);
 
-  const totalReviews = useMemo(() => days.reduce((s, d) => s + d.count, 0), [days])
-  const activeDays = useMemo(() => days.filter((d) => d.count > 0).length, [days])
-  const bestDay = useMemo(() => days.reduce((m, d) => Math.max(m, d.count), 0), [days])
+  const totalReviews = useMemo(
+    () => days.reduce((s, d) => s + d.count, 0),
+    [days],
+  );
+  const activeDays = useMemo(
+    () => days.filter((d) => d.count > 0).length,
+    [days],
+  );
+  const bestDay = useMemo(
+    () => days.reduce((m, d) => Math.max(m, d.count), 0),
+    [days],
+  );
 
   return (
     <figure className="m-0">
       {/* Accessible summary — the cells themselves are decorative. */}
       <figcaption className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
         <span>
-          <span className="font-semibold tabular-nums text-foreground">{faNum(activeDays)}</span> روز
-          فعال
+          <span className="font-semibold tabular-nums text-foreground">
+            {faNum(activeDays)}
+          </span>{" "}
+          روز فعال
         </span>
         <span
           aria-hidden="true"
           className="h-1 w-1 shrink-0 rounded-full bg-current opacity-40"
         />
         <span>
-          <span className="font-semibold tabular-nums text-foreground">{faNum(totalReviews)}</span>{' '}
+          <span className="font-semibold tabular-nums text-foreground">
+            {faNum(totalReviews)}
+          </span>{" "}
           مرور
         </span>
         <span
@@ -56,16 +69,25 @@ export function ActivityHeatmap({ days }: ActivityHeatmapProps) {
           className="h-1 w-1 shrink-0 rounded-full bg-current opacity-40"
         />
         <span>
-          پرکارترین روز{' '}
-          <span className="font-semibold tabular-nums text-foreground">{faNum(bestDay)}</span> مرور
+          پرکارترین روز{" "}
+          <span className="font-semibold tabular-nums text-foreground">
+            {faNum(bestDay)}
+          </span>{" "}
+          مرور
         </span>
       </figcaption>
 
       {/* Cells flex to fill the card width (newest week on the right, RTL-friendly). */}
       <div dir="ltr" className="w-full pb-1">
-        <div className="flex w-full flex-row-reverse gap-[3px] sm:gap-1" aria-hidden="true">
+        <div
+          className="flex w-full flex-row-reverse gap-[3px] sm:gap-1"
+          aria-hidden="true"
+        >
           {weeks.map((week, wi) => (
-            <div key={wi} className="flex min-w-0 flex-1 flex-col gap-[3px] sm:gap-1">
+            <div
+              key={wi}
+              className="flex min-w-0 flex-1 flex-col gap-[3px] sm:gap-1"
+            >
               {week.map((day) => (
                 <span
                   key={day.date}
@@ -89,5 +111,5 @@ export function ActivityHeatmap({ days }: ActivityHeatmapProps) {
         <span>بیشتر</span>
       </div>
     </figure>
-  )
+  );
 }

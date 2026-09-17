@@ -1,51 +1,55 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { planService, CreatePlanInput, UpdatePlanInput } from '@/services/plan.service'
-import type { LearningPlan } from '@/types'
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  planService,
+  CreatePlanInput,
+  UpdatePlanInput,
+} from "@/services/plan.service";
+import type { LearningPlan } from "@/types";
 
 export function usePlans() {
   return useQuery<LearningPlan[], Error>({
-    queryKey: ['plans'],
+    queryKey: ["plans"],
     queryFn: () => planService.list(),
-  })
+  });
 }
 
 /** Invalidate every query that reflects the learning list after a plan change. */
 function useInvalidatePlanViews() {
-  const qc = useQueryClient()
+  const qc = useQueryClient();
   return () => {
-    qc.invalidateQueries({ queryKey: ['plans'] })
-    qc.invalidateQueries({ queryKey: ['dashboard'] })
-    qc.invalidateQueries({ queryKey: ['discovery-books'] })
-    qc.invalidateQueries({ queryKey: ['watchlist', 'books'] })
-    qc.invalidateQueries({ queryKey: ['study', 'today'] })
+    qc.invalidateQueries({ queryKey: ["plans"] });
+    qc.invalidateQueries({ queryKey: ["dashboard"] });
+    qc.invalidateQueries({ queryKey: ["discovery-books"] });
+    qc.invalidateQueries({ queryKey: ["watchlist", "books"] });
+    qc.invalidateQueries({ queryKey: ["study", "today"] });
     // Separate query/cache key from ['study','today'] — same underlying data
     // source (today's watchlist-scoped words), so it needs the same
     // invalidation or ReviewTodayPage keeps serving a pre-change cached list.
-    qc.invalidateQueries({ queryKey: ['study', 'today-new'] })
-  }
+    qc.invalidateQueries({ queryKey: ["study", "today-new"] });
+  };
 }
 
 export function useCreatePlan() {
-  const invalidate = useInvalidatePlanViews()
+  const invalidate = useInvalidatePlanViews();
   return useMutation({
     mutationFn: (input: CreatePlanInput) => planService.create(input),
     onSuccess: invalidate,
-  })
+  });
 }
 
 export function useUpdatePlan() {
-  const invalidate = useInvalidatePlanViews()
+  const invalidate = useInvalidatePlanViews();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: UpdatePlanInput }) =>
       planService.update(id, input),
     onSuccess: invalidate,
-  })
+  });
 }
 
 export function useDeletePlan() {
-  const invalidate = useInvalidatePlanViews()
+  const invalidate = useInvalidatePlanViews();
   return useMutation({
     mutationFn: (id: string) => planService.remove(id),
     onSuccess: invalidate,
-  })
+  });
 }

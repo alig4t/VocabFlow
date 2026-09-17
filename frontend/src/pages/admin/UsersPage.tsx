@@ -1,35 +1,37 @@
-import { useMemo, useState } from 'react'
-import { Users, Search, ShieldCheck, UserRound } from 'lucide-react'
-import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
-import { useUsers } from '@/hooks/useUsers'
-import { faNum } from '@/lib/format'
-import type { AdminUser } from '@/services/user.service'
+import { useMemo, useState } from "react";
+import { Users, Search, ShieldCheck, UserRound } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useUsers } from "@/hooks/useUsers";
+import { faNum } from "@/lib/format";
+import type { AdminUser } from "@/services/user.service";
 
 function formatJoinDate(iso: string): string {
-  return new Intl.DateTimeFormat('fa-IR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(new Date(iso))
+  return new Intl.DateTimeFormat("fa-IR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(new Date(iso));
 }
 
 function initial(name: string): string {
-  return name.trim().charAt(0).toUpperCase() || '؟'
+  return name.trim().charAt(0).toUpperCase() || "؟";
 }
 
 function UserRow({ user }: { user: AdminUser }) {
-  const isAdmin = user.role === 'ADMIN'
+  const isAdmin = user.role === "ADMIN";
   return (
     <tr className="border-t border-border transition-colors hover:bg-muted/40">
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
           <span
             className={
-              'flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ' +
-              (isAdmin ? 'bg-amber-500/15 text-amber-600 dark:text-amber-500' : 'bg-primary/10 text-primary')
+              "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold " +
+              (isAdmin
+                ? "bg-amber-500/15 text-amber-600 dark:text-amber-500"
+                : "bg-primary/10 text-primary")
             }
             aria-hidden="true"
           >
@@ -38,7 +40,12 @@ function UserRow({ user }: { user: AdminUser }) {
           <span className="font-medium text-foreground">{user.name}</span>
         </div>
       </td>
-      <td dir="ltr" className="px-4 py-3 text-right text-sm text-muted-foreground">{user.email}</td>
+      <td
+        dir="ltr"
+        className="px-4 py-3 text-right text-sm text-muted-foreground"
+      >
+        {user.email}
+      </td>
       <td className="px-4 py-3">
         {isAdmin ? (
           <Badge className="gap-1 bg-amber-600 hover:bg-amber-600/90">
@@ -52,24 +59,30 @@ function UserRow({ user }: { user: AdminUser }) {
           </Badge>
         )}
       </td>
-      <td className="px-4 py-3 text-sm text-muted-foreground">{formatJoinDate(user.createdAt)}</td>
+      <td className="px-4 py-3 text-sm text-muted-foreground">
+        {formatJoinDate(user.createdAt)}
+      </td>
     </tr>
-  )
+  );
 }
 
 export function UsersPage() {
-  const { data: users, isLoading, isError } = useUsers()
-  const [query, setQuery] = useState('')
+  const { data: users, isLoading, isError } = useUsers();
+  const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return users ?? []
+    const q = query.trim().toLowerCase();
+    if (!q) return users ?? [];
     return (users ?? []).filter(
-      (u) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q),
-    )
-  }, [users, query])
+      (u) =>
+        u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q),
+    );
+  }, [users, query]);
 
-  const adminCount = useMemo(() => (users ?? []).filter((u) => u.role === 'ADMIN').length, [users])
+  const adminCount = useMemo(
+    () => (users ?? []).filter((u) => u.role === "ADMIN").length,
+    [users],
+  );
 
   return (
     <div dir="rtl" className="font-persian mx-auto max-w-5xl space-y-6">
@@ -86,7 +99,10 @@ export function UsersPage() {
           )}
         </div>
         <div className="relative w-full sm:w-72">
-          <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <Search
+            className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden="true"
+          />
           <Input
             type="text"
             placeholder="جستجوی نام یا ایمیل..."
@@ -105,14 +121,23 @@ export function UsersPage() {
         </Card>
       ) : isError ? (
         <Card className="px-6 py-12 text-center">
-          <p className="text-sm font-medium text-destructive">خطا در بارگذاری کاربران.</p>
-          <p className="mt-1 text-xs text-muted-foreground">لطفاً بعداً دوباره تلاش کنید.</p>
+          <p className="text-sm font-medium text-destructive">
+            خطا در بارگذاری کاربران.
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            لطفاً بعداً دوباره تلاش کنید.
+          </p>
         </Card>
       ) : filtered.length === 0 ? (
         <Card className="flex flex-col items-center gap-3 px-6 py-14 text-center">
-          <Users className="h-10 w-10 text-muted-foreground opacity-40" aria-hidden="true" />
+          <Users
+            className="h-10 w-10 text-muted-foreground opacity-40"
+            aria-hidden="true"
+          />
           <p className="text-base font-medium text-foreground">
-            {query ? 'کاربری با این مشخصات یافت نشد' : 'هنوز کاربری ثبت نشده است'}
+            {query
+              ? "کاربری با این مشخصات یافت نشد"
+              : "هنوز کاربری ثبت نشده است"}
           </p>
         </Card>
       ) : (
@@ -137,5 +162,5 @@ export function UsersPage() {
         </Card>
       )}
     </div>
-  )
+  );
 }

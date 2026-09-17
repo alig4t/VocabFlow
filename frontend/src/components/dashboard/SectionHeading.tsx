@@ -1,21 +1,26 @@
-import type { LucideIcon } from 'lucide-react'
-import type { ReactNode } from 'react'
+import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 
 interface SectionHeadingProps {
-  icon: LucideIcon
+  icon: LucideIcon;
   /** First word, printed in the brand gold. */
-  accent: string
+  accent: string;
   /** The rest of the title, in ink. */
-  children: ReactNode
+  children: ReactNode;
   /** Optional right-aligned control, e.g. a "see all" link. */
-  action?: ReactNode
+  action?: ReactNode;
 }
 
 /**
  * Section titles across the dashboard: one gold word, then ink. It gives the
  * page a repeating rhythm without adding another card or divider.
  */
-export function SectionHeading({ icon: Icon, accent, children, action }: SectionHeadingProps) {
+export function SectionHeading({
+  icon: Icon,
+  accent,
+  children,
+  action,
+}: SectionHeadingProps) {
   return (
     <div className="flex items-center gap-3 px-0.5">
       {/*
@@ -34,5 +39,5 @@ export function SectionHeading({ icon: Icon, accent, children, action }: Section
       </h2>
       {action && <div className="mr-auto">{action}</div>}
     </div>
-  )
+  );
 }

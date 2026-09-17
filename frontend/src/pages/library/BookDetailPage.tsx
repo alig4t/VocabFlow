@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowRight,
   BookText,
@@ -7,42 +7,43 @@ import {
   GraduationCap,
   Layers,
   UserRound,
-} from 'lucide-react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
-import { StartPlanDialog } from '@/components/library/StartPlanDialog'
-import { useDiscoveryBooks } from '@/hooks/useDashboard'
-import { useVolumes } from '@/hooks/useBooks'
-import { usePlans } from '@/hooks/usePlans'
-import { faNum } from '@/lib/format'
-import {
-  CATEGORY_META,
-  getBookMeta,
-  LEVEL_CLASS,
-} from '@/lib/bookMeta'
+} from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { StartPlanDialog } from "@/components/library/StartPlanDialog";
+import { useDiscoveryBooks } from "@/hooks/useDashboard";
+import { useVolumes } from "@/hooks/useBooks";
+import { usePlans } from "@/hooks/usePlans";
+import { faNum } from "@/lib/format";
+import { CATEGORY_META, getBookMeta, LEVEL_CLASS } from "@/lib/bookMeta";
 
 export function BookDetailPage() {
-  const { bookId = '' } = useParams()
-  const navigate = useNavigate()
+  const { bookId = "" } = useParams();
+  const navigate = useNavigate();
 
-  const { data: books, isLoading, isError } = useDiscoveryBooks()
-  const book = useMemo(() => books?.find((b) => b.id === bookId), [books, bookId])
-  const { data: volumes, isLoading: volumesLoading } = useVolumes(bookId)
-  const { data: plans } = usePlans()
+  const { data: books, isLoading, isError } = useDiscoveryBooks();
+  const book = useMemo(
+    () => books?.find((b) => b.id === bookId),
+    [books, bookId],
+  );
+  const { data: volumes, isLoading: volumesLoading } = useVolumes(bookId);
+  const { data: plans } = usePlans();
 
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [initialVolumeId, setInitialVolumeId] = useState<string | undefined>(undefined)
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [initialVolumeId, setInitialVolumeId] = useState<string | undefined>(
+    undefined,
+  );
 
   const plannedVolumeIds = useMemo(
     () => new Set((plans ?? []).map((p) => p.volumeId)),
     [plans],
-  )
+  );
 
   function openPlan(volumeId?: string) {
-    setInitialVolumeId(volumeId)
-    setDialogOpen(true)
+    setInitialVolumeId(volumeId);
+    setDialogOpen(true);
   }
 
   if (isLoading) {
@@ -52,34 +53,43 @@ export function BookDetailPage() {
         <Skeleton className="h-56 rounded-2xl" />
         <Skeleton className="h-40 rounded-2xl" />
       </div>
-    )
+    );
   }
 
   if (isError || !book) {
     return (
       <div dir="rtl" className="font-persian mx-auto max-w-4xl space-y-6">
         <Card className="flex flex-col items-center gap-4 px-6 py-16 text-center">
-          <BookText className="h-10 w-10 text-muted-foreground opacity-40" aria-hidden="true" />
-          <p className="text-base font-medium text-foreground">این کتاب پیدا نشد.</p>
-          <Button variant="outline" className="gap-2" onClick={() => navigate('/library')}>
+          <BookText
+            className="h-10 w-10 text-muted-foreground opacity-40"
+            aria-hidden="true"
+          />
+          <p className="text-base font-medium text-foreground">
+            این کتاب پیدا نشد.
+          </p>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => navigate("/library")}
+          >
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
             بازگشت به کتابخانه
           </Button>
         </Card>
       </div>
-    )
+    );
   }
 
-  const meta = getBookMeta(book.title)
-  const category = CATEGORY_META[meta.category]
-  const about = meta.about || book.description
+  const meta = getBookMeta(book.title);
+  const category = CATEGORY_META[meta.category];
+  const about = meta.about || book.description;
 
   return (
     <div dir="rtl" className="font-persian mx-auto max-w-4xl space-y-8">
       {/* Back */}
       <button
         type="button"
-        onClick={() => navigate('/library')}
+        onClick={() => navigate("/library")}
         className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowRight className="h-4 w-4" aria-hidden="true" />
@@ -90,7 +100,10 @@ export function BookDetailPage() {
       <Card className="overflow-hidden">
         <div className="relative">
           {/* Soft brand gradient behind the header */}
-          <div className="absolute inset-0 bg-gradient-to-bl from-primary/[0.08] via-transparent to-transparent" aria-hidden="true" />
+          <div
+            className="absolute inset-0 bg-gradient-to-bl from-primary/[0.08] via-transparent to-transparent"
+            aria-hidden="true"
+          />
           <div className="relative flex flex-col gap-5 p-6 sm:flex-row sm:gap-6">
             {book.coverImage ? (
               <img
@@ -108,10 +121,12 @@ export function BookDetailPage() {
               <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
                 {category.title}
               </span>
-              <h1 className="mt-3 text-2xl font-bold leading-tight text-foreground">{book.title}</h1>
+              <h1 className="mt-3 text-2xl font-bold leading-tight text-foreground">
+                {book.title}
+              </h1>
 
               <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted-foreground">
-                {meta.author !== '—' && (
+                {meta.author !== "—" && (
                   <span className="inline-flex items-center gap-1.5">
                     <UserRound className="h-4 w-4" aria-hidden="true" />
                     {meta.author}
@@ -138,7 +153,9 @@ export function BookDetailPage() {
               </div>
 
               {about && (
-                <p className="mt-4 text-[15px] leading-8 text-muted-foreground">{about}</p>
+                <p className="mt-4 text-[15px] leading-8 text-muted-foreground">
+                  {about}
+                </p>
               )}
 
               <div className="mt-5">
@@ -159,7 +176,9 @@ export function BookDetailPage() {
             <Layers className="h-5 w-5" aria-hidden="true" />
           </span>
           <div>
-            <h2 className="text-lg font-bold text-foreground">جلدهای این کتاب</h2>
+            <h2 className="text-lg font-bold text-foreground">
+              جلدهای این کتاب
+            </h2>
             <p className="text-sm text-muted-foreground">
               جلد دلخواهت را انتخاب کن و به برنامه‌ی روزانه اضافه کن.
             </p>
@@ -169,21 +188,27 @@ export function BookDetailPage() {
         {volumesLoading ? (
           <div className="flex gap-6 pb-2">
             {[...Array(4)].map((_, i) => (
-              <Skeleton key={i} className="aspect-[2/3] w-32 shrink-0 rounded-lg" />
+              <Skeleton
+                key={i}
+                className="aspect-[2/3] w-32 shrink-0 rounded-lg"
+              />
             ))}
           </div>
         ) : (
           <div className="book-shelf flex flex-wrap items-end justify-center gap-y-10 px-2 pb-6 pt-6">
             {volumes?.map((v, i) => {
-              const planned = plannedVolumeIds.has(v.id)
-              const label = v.title ?? `جلد ${faNum(v.volumeNumber)}`
+              const planned = plannedVolumeIds.has(v.id);
+              const label = v.title ?? `جلد ${faNum(v.volumeNumber)}`;
               return (
                 <button
                   key={v.id}
                   type="button"
                   onClick={() => openPlan(v.id)}
                   title={label}
-                  style={{ zIndex: i, marginInlineStart: i === 0 ? 0 : '-2.75rem' }}
+                  style={{
+                    zIndex: i,
+                    marginInlineStart: i === 0 ? 0 : "-2.75rem",
+                  }}
                   className="group relative w-32 shrink-0 text-right transition-[z-index] focus:outline-none hover:z-30 focus-visible:z-30"
                 >
                   <div className="book3d">
@@ -213,7 +238,7 @@ export function BookDetailPage() {
                     {label}
                   </p>
                 </button>
-              )
+              );
             })}
           </div>
         )}
@@ -226,5 +251,5 @@ export function BookDetailPage() {
         initialVolumeId={initialVolumeId}
       />
     </div>
-  )
+  );
 }

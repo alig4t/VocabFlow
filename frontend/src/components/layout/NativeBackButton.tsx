@@ -1,11 +1,11 @@
-import { useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { isNative } from '../../lib/platform'
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { isNative } from "../../lib/platform";
 
 // Paths treated as the app "home": pressing hardware back here exits the app
 // instead of navigating. On native, `/` immediately redirects to `/dashboard`,
 // so both count as home.
-const HOME_PATHS = new Set(['/dashboard', '/'])
+const HOME_PATHS = new Set(["/dashboard", "/"]);
 
 /**
  * Wires the Android hardware back button to sensible behaviour on the native
@@ -18,34 +18,36 @@ const HOME_PATHS = new Set(['/dashboard', '/'])
  * nothing on the dashboard. Renders nothing; web build is a no-op.
  */
 export function NativeBackButton() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isNative()) return
+    if (!isNative()) return;
 
-    let handle: { remove: () => void } | undefined
-    let cancelled = false
+    let handle: { remove: () => void } | undefined;
+    let cancelled = false;
 
-    import('@capacitor/app')
-      .then((m) => m.App.addListener('backButton', () => {
-        // Read the live path so the handler never closes over a stale route.
-        if (HOME_PATHS.has(window.location.pathname)) {
-          m.App.exitApp()
-        } else {
-          navigate(-1)
-        }
-      }))
+    import("@capacitor/app")
+      .then((m) =>
+        m.App.addListener("backButton", () => {
+          // Read the live path so the handler never closes over a stale route.
+          if (HOME_PATHS.has(window.location.pathname)) {
+            m.App.exitApp();
+          } else {
+            navigate(-1);
+          }
+        }),
+      )
       .then((h) => {
-        if (cancelled) h.remove()
-        else handle = h
+        if (cancelled) h.remove();
+        else handle = h;
       })
-      .catch(() => { })
+      .catch(() => {});
 
     return () => {
-      cancelled = true
-      handle?.remove()
-    }
-  }, [navigate])
+      cancelled = true;
+      handle?.remove();
+    };
+  }, [navigate]);
 
-  return null
+  return null;
 }

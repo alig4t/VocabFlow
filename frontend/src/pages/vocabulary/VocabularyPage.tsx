@@ -1,20 +1,31 @@
-import { useEffect, useRef, useCallback } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { BookOpen, CheckCircle2, XCircle, Eye, ChevronLeft, ChevronRight, LayoutGrid } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { WordCard } from '@/components/vocabulary/WordCard'
-import { WordFilters, type WordFiltersState } from '@/components/vocabulary/WordFilters'
-import { useWords } from '@/hooks/useVocabulary'
-import { useProgressStats } from '@/hooks/useProgress'
-import { scrollToTop } from '@/lib/scroll'
+import { useEffect, useRef, useCallback } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import {
+  BookOpen,
+  CheckCircle2,
+  XCircle,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+  LayoutGrid,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { WordCard } from "@/components/vocabulary/WordCard";
+import {
+  WordFilters,
+  type WordFiltersState,
+} from "@/components/vocabulary/WordFilters";
+import { useWords } from "@/hooks/useVocabulary";
+import { useProgressStats } from "@/hooks/useProgress";
+import { scrollToTop } from "@/lib/scroll";
 import {
   parseVocabParams,
   serializeVocabParams,
   toApiFilters,
   VOCAB_PARAMS_STORAGE_KEY,
-} from '@/lib/vocabFilters'
+} from "@/lib/vocabFilters";
 
-const LIMIT = 20
+const LIMIT = 20;
 
 function SkeletonCard() {
   return (
@@ -32,82 +43,87 @@ function SkeletonCard() {
         <div className="h-7 w-20 rounded bg-muted" />
       </div>
     </div>
-  )
+  );
 }
 
 export function VocabularyPage() {
-  const navigate = useNavigate()
-  const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // On first mount with an empty query string, restore the last-used filters
   // from localStorage so returning to the page resumes where you left off.
-  const didRestore = useRef(false)
+  const didRestore = useRef(false);
   useEffect(() => {
-    if (didRestore.current) return
-    didRestore.current = true
-    if (searchParams.toString() === '') {
+    if (didRestore.current) return;
+    didRestore.current = true;
+    if (searchParams.toString() === "") {
       try {
-        const saved = localStorage.getItem(VOCAB_PARAMS_STORAGE_KEY)
-        if (saved) setSearchParams(new URLSearchParams(saved), { replace: true })
+        const saved = localStorage.getItem(VOCAB_PARAMS_STORAGE_KEY);
+        if (saved)
+          setSearchParams(new URLSearchParams(saved), { replace: true });
       } catch {
         // ignore
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, []);
 
   // URL is the single source of truth for filters + page.
-  const { filters, page } = parseVocabParams(searchParams)
+  const { filters, page } = parseVocabParams(searchParams);
 
   // Persist the current query string (and review mode) for the next visit.
   useEffect(() => {
-    const qs = searchParams.toString()
+    const qs = searchParams.toString();
     try {
-      if (qs) localStorage.setItem(VOCAB_PARAMS_STORAGE_KEY, qs)
-      localStorage.setItem('vocab_review_mode', filters.mode)
+      if (qs) localStorage.setItem(VOCAB_PARAMS_STORAGE_KEY, qs);
+      localStorage.setItem("vocab_review_mode", filters.mode);
     } catch {
       // ignore
     }
-  }, [searchParams, filters.mode])
+  }, [searchParams, filters.mode]);
 
   // Changing any filter resets to page 1 and pushes to the URL (applies immediately).
   const handleFiltersChange = useCallback(
     (newFilters: WordFiltersState) => {
-      setSearchParams(serializeVocabParams(newFilters, 1))
-      scrollToTop('smooth')
+      setSearchParams(serializeVocabParams(newFilters, 1));
+      scrollToTop("smooth");
     },
     [setSearchParams],
-  )
+  );
 
-  const apiFilters = toApiFilters(filters, page, LIMIT)
+  const apiFilters = toApiFilters(filters, page, LIMIT);
 
-  const { data, isLoading, isError } = useWords(apiFilters)
-  const { data: stats } = useProgressStats()
+  const { data, isLoading, isError } = useWords(apiFilters);
+  const { data: stats } = useProgressStats();
 
-  const words = data?.data ?? []
-  const meta = data?.meta
-  const totalPages = meta?.totalPages ?? 1
+  const words = data?.data ?? [];
+  const meta = data?.meta;
+  const totalPages = meta?.totalPages ?? 1;
 
-  const currentStats = stats?.[filters.mode]
+  const currentStats = stats?.[filters.mode];
 
   function goToPage(p: number) {
-    setSearchParams(serializeVocabParams(filters, p))
-    scrollToTop('smooth')
+    setSearchParams(serializeVocabParams(filters, p));
+    scrollToTop("smooth");
   }
 
   function renderPageButtons() {
-    if (totalPages <= 1) return null
-    const pages: (number | '...')[] = []
+    if (totalPages <= 1) return null;
+    const pages: (number | "...")[] = [];
     if (totalPages <= 7) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i)
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
     } else {
-      pages.push(1)
-      if (page > 3) pages.push('...')
-      for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) {
-        pages.push(i)
+      pages.push(1);
+      if (page > 3) pages.push("...");
+      for (
+        let i = Math.max(2, page - 1);
+        i <= Math.min(totalPages - 1, page + 1);
+        i++
+      ) {
+        pages.push(i);
       }
-      if (page < totalPages - 2) pages.push('...')
-      pages.push(totalPages)
+      if (page < totalPages - 2) pages.push("...");
+      pages.push(totalPages);
     }
 
     return (
@@ -123,14 +139,17 @@ export function VocabularyPage() {
         </Button>
 
         {pages.map((p, i) =>
-          p === '...' ? (
-            <span key={`ellipsis-${i}`} className="px-2 text-muted-foreground text-sm">
+          p === "..." ? (
+            <span
+              key={`ellipsis-${i}`}
+              className="px-2 text-muted-foreground text-sm"
+            >
               ...
             </span>
           ) : (
             <Button
               key={p}
-              variant={p === page ? 'default' : 'outline'}
+              variant={p === page ? "default" : "outline"}
               size="icon"
               className="h-9 w-9 text-sm"
               onClick={() => goToPage(p as number)}
@@ -150,11 +169,14 @@ export function VocabularyPage() {
           <ChevronLeft className="h-4 w-4" />
         </Button>
       </div>
-    )
+    );
   }
 
   return (
-    <div dir="rtl" className="font-persian max-w-5xl mx-auto px-2 sm:px-4 py-5 sm:py-8 space-y-6">
+    <div
+      dir="rtl"
+      className="font-persian max-w-5xl mx-auto px-2 sm:px-4 py-5 sm:py-8 space-y-6"
+    >
       {/* Page header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -170,7 +192,9 @@ export function VocabularyPage() {
         </div>
         <Button
           onClick={() =>
-            navigate(`/vocabulary/review?${serializeVocabParams(filters, 1).toString()}`)
+            navigate(
+              `/vocabulary/review?${serializeVocabParams(filters, 1).toString()}`,
+            )
           }
           className="gap-2 self-start sm:self-auto"
         >
@@ -185,7 +209,9 @@ export function VocabularyPage() {
           <div className="flex items-center gap-2.5 rounded-lg border border-border bg-card px-3 py-3 min-w-0 overflow-hidden">
             <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
             <div className="min-w-0">
-              <p className="text-xs text-muted-foreground truncate">یاد گرفتم</p>
+              <p className="text-xs text-muted-foreground truncate">
+                یاد گرفتم
+              </p>
               <p className="text-base sm:text-xl font-bold text-foreground tabular-nums truncate">
                 {currentStats.KNOWN.toLocaleString()}
               </p>
@@ -194,7 +220,9 @@ export function VocabularyPage() {
           <div className="flex items-center gap-2.5 rounded-lg border border-border bg-card px-3 py-3 min-w-0 overflow-hidden">
             <XCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
             <div className="min-w-0">
-              <p className="text-xs text-muted-foreground truncate">یاد نگرفتم</p>
+              <p className="text-xs text-muted-foreground truncate">
+                یاد نگرفتم
+              </p>
               <p className="text-base sm:text-xl font-bold text-foreground tabular-nums truncate">
                 {currentStats.NOT_KNOWN.toLocaleString()}
               </p>
@@ -226,13 +254,19 @@ export function VocabularyPage() {
         </div>
       ) : isError ? (
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-6 py-10 text-center">
-          <p className="text-sm text-destructive font-medium">خطا در بارگذاری واژگان.</p>
-          <p className="text-xs text-muted-foreground mt-1">لطفاً بعداً دوباره تلاش کنید.</p>
+          <p className="text-sm text-destructive font-medium">
+            خطا در بارگذاری واژگان.
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            لطفاً بعداً دوباره تلاش کنید.
+          </p>
         </div>
       ) : words.length === 0 ? (
         <div className="rounded-lg border border-border bg-card px-6 py-16 text-center">
           <BookOpen className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-40" />
-          <p className="text-base font-medium text-foreground">واژه‌ای یافت نشد</p>
+          <p className="text-base font-medium text-foreground">
+            واژه‌ای یافت نشد
+          </p>
           <p className="text-sm text-muted-foreground mt-1">
             فیلترها یا عبارت جستجو را تغییر دهید.
           </p>
@@ -251,12 +285,13 @@ export function VocabularyPage() {
           {renderPageButtons()}
           {meta && (
             <p className="text-xs text-muted-foreground">
-              نمایش {(page - 1) * LIMIT + 1}–{Math.min(page * LIMIT, meta.total)} از{' '}
+              نمایش {(page - 1) * LIMIT + 1}–
+              {Math.min(page * LIMIT, meta.total)} از{" "}
               {meta.total.toLocaleString()} واژه
             </p>
           )}
         </div>
       )}
     </div>
-  )
+  );
 }

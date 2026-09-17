@@ -1,38 +1,50 @@
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { Plus, Pencil, Trash2, Check, X, ChevronUp, ChevronDown } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { useAddExample, useDeleteExample, useUpdateExample } from '@/hooks/useVocabulary'
-import type { WordExample } from '@/types'
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Check,
+  X,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  useAddExample,
+  useDeleteExample,
+  useUpdateExample,
+} from "@/hooks/useVocabulary";
+import type { WordExample } from "@/types";
 
 const exampleSchema = z.object({
-  engSentence: z.string().min(1, 'English sentence is required'),
-  perTranslation: z.string().min(1, 'Persian translation is required'),
-})
+  engSentence: z.string().min(1, "English sentence is required"),
+  perTranslation: z.string().min(1, "Persian translation is required"),
+});
 
-type ExampleFormValues = z.infer<typeof exampleSchema>
+type ExampleFormValues = z.infer<typeof exampleSchema>;
 
 // Draft example used when creating a new word (no wordId yet)
 export interface DraftExample {
-  tempId: string
-  engSentence: string
-  perTranslation: string
-  order: number
+  tempId: string;
+  engSentence: string;
+  perTranslation: string;
+  order: number;
 }
 
 interface ExampleManagerProps {
   // Pass wordId when editing an existing word; omit when creating a new word
-  wordId?: string
+  wordId?: string;
   // Used in create mode: controlled list managed by parent
-  draftExamples?: DraftExample[]
-  onDraftChange?: (examples: DraftExample[]) => void
+  draftExamples?: DraftExample[];
+  onDraftChange?: (examples: DraftExample[]) => void;
   // Used in edit mode: existing persisted examples
-  existingExamples?: WordExample[]
-  onExamplesChange?: () => void
+  existingExamples?: WordExample[];
+  onExamplesChange?: () => void;
 }
 
 function ExampleForm({
@@ -41,10 +53,10 @@ function ExampleForm({
   onCancel,
   isSaving,
 }: {
-  defaultValues?: ExampleFormValues
-  onSave: (values: ExampleFormValues) => void
-  onCancel: () => void
-  isSaving?: boolean
+  defaultValues?: ExampleFormValues;
+  onSave: (values: ExampleFormValues) => void;
+  onCancel: () => void;
+  isSaving?: boolean;
 }) {
   const {
     register,
@@ -52,8 +64,8 @@ function ExampleForm({
     formState: { errors },
   } = useForm<ExampleFormValues>({
     resolver: zodResolver(exampleSchema),
-    defaultValues: defaultValues ?? { engSentence: '', perTranslation: '' },
-  })
+    defaultValues: defaultValues ?? { engSentence: "", perTranslation: "" },
+  });
 
   return (
     <form
@@ -65,10 +77,12 @@ function ExampleForm({
         <Input
           id="engSentence"
           placeholder="Enter English sentence..."
-          {...register('engSentence')}
+          {...register("engSentence")}
         />
         {errors.engSentence && (
-          <p className="text-xs text-destructive">{errors.engSentence.message}</p>
+          <p className="text-xs text-destructive">
+            {errors.engSentence.message}
+          </p>
         )}
       </div>
       <div className="space-y-1">
@@ -77,24 +91,32 @@ function ExampleForm({
           id="perTranslation"
           placeholder="Enter Persian translation..."
           dir="rtl"
-          {...register('perTranslation')}
+          {...register("perTranslation")}
         />
         {errors.perTranslation && (
-          <p className="text-xs text-destructive">{errors.perTranslation.message}</p>
+          <p className="text-xs text-destructive">
+            {errors.perTranslation.message}
+          </p>
         )}
       </div>
       <div className="flex gap-2 justify-end">
-        <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={isSaving}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onCancel}
+          disabled={isSaving}
+        >
           <X className="h-4 w-4 mr-1" />
           Cancel
         </Button>
         <Button type="submit" size="sm" disabled={isSaving}>
           <Check className="h-4 w-4 mr-1" />
-          {isSaving ? 'Saving...' : 'Save'}
+          {isSaving ? "Saving..." : "Save"}
         </Button>
       </div>
     </form>
-  )
+  );
 }
 
 export function ExampleManager({
@@ -104,61 +126,61 @@ export function ExampleManager({
   existingExamples = [],
   onExamplesChange,
 }: ExampleManagerProps) {
-  const isEditMode = Boolean(wordId)
+  const isEditMode = Boolean(wordId);
 
-  const addExampleMutation = useAddExample()
-  const deleteExampleMutation = useDeleteExample()
-  const updateExampleMutation = useUpdateExample()
+  const addExampleMutation = useAddExample();
+  const deleteExampleMutation = useDeleteExample();
+  const updateExampleMutation = useUpdateExample();
 
-  const [showAddForm, setShowAddForm] = useState(false)
-  const [editingExampleId, setEditingExampleId] = useState<string | null>(null)
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingExampleId, setEditingExampleId] = useState<string | null>(null);
 
   // --- Draft mode (create new word) ---
 
   function handleAddDraft(values: ExampleFormValues) {
-    if (!onDraftChange) return
+    if (!onDraftChange) return;
     const newExample: DraftExample = {
       tempId: crypto.randomUUID(),
       engSentence: values.engSentence,
       perTranslation: values.perTranslation,
       order: draftExamples.length,
-    }
-    onDraftChange([...draftExamples, newExample])
-    setShowAddForm(false)
+    };
+    onDraftChange([...draftExamples, newExample]);
+    setShowAddForm(false);
   }
 
   function handleDeleteDraft(tempId: string) {
-    if (!onDraftChange) return
+    if (!onDraftChange) return;
     const updated = draftExamples
       .filter((e) => e.tempId !== tempId)
-      .map((e, i) => ({ ...e, order: i }))
-    onDraftChange(updated)
+      .map((e, i) => ({ ...e, order: i }));
+    onDraftChange(updated);
   }
 
   function handleEditDraft(tempId: string, values: ExampleFormValues) {
-    if (!onDraftChange) return
+    if (!onDraftChange) return;
     const updated = draftExamples.map((e) =>
       e.tempId === tempId ? { ...e, ...values } : e,
-    )
-    onDraftChange(updated)
-    setEditingExampleId(null)
+    );
+    onDraftChange(updated);
+    setEditingExampleId(null);
   }
 
-  function moveDraft(tempId: string, direction: 'up' | 'down') {
-    if (!onDraftChange) return
-    const idx = draftExamples.findIndex((e) => e.tempId === tempId)
-    if (idx === -1) return
-    const newList = [...draftExamples]
-    const swapWith = direction === 'up' ? idx - 1 : idx + 1
-    if (swapWith < 0 || swapWith >= newList.length) return
-    ;[newList[idx], newList[swapWith]] = [newList[swapWith], newList[idx]]
-    onDraftChange(newList.map((e, i) => ({ ...e, order: i })))
+  function moveDraft(tempId: string, direction: "up" | "down") {
+    if (!onDraftChange) return;
+    const idx = draftExamples.findIndex((e) => e.tempId === tempId);
+    if (idx === -1) return;
+    const newList = [...draftExamples];
+    const swapWith = direction === "up" ? idx - 1 : idx + 1;
+    if (swapWith < 0 || swapWith >= newList.length) return;
+    [newList[idx], newList[swapWith]] = [newList[swapWith], newList[idx]];
+    onDraftChange(newList.map((e, i) => ({ ...e, order: i })));
   }
 
   // --- Edit mode (existing word) ---
 
   async function handleAddExisting(values: ExampleFormValues) {
-    if (!wordId) return
+    if (!wordId) return;
     await addExampleMutation.mutateAsync({
       wordId,
       data: {
@@ -166,34 +188,41 @@ export function ExampleManager({
         perTranslation: values.perTranslation,
         order: existingExamples.length,
       },
-    })
-    setShowAddForm(false)
-    onExamplesChange?.()
+    });
+    setShowAddForm(false);
+    onExamplesChange?.();
   }
 
   async function handleDeleteExisting(exampleId: string) {
-    if (!wordId) return
-    await deleteExampleMutation.mutateAsync({ wordId, exampleId })
-    onExamplesChange?.()
+    if (!wordId) return;
+    await deleteExampleMutation.mutateAsync({ wordId, exampleId });
+    onExamplesChange?.();
   }
 
-  async function handleEditExisting(exampleId: string, values: ExampleFormValues) {
-    if (!wordId) return
-    await updateExampleMutation.mutateAsync({ wordId, exampleId, data: values })
-    setEditingExampleId(null)
-    onExamplesChange?.()
+  async function handleEditExisting(
+    exampleId: string,
+    values: ExampleFormValues,
+  ) {
+    if (!wordId) return;
+    await updateExampleMutation.mutateAsync({
+      wordId,
+      exampleId,
+      data: values,
+    });
+    setEditingExampleId(null);
+    onExamplesChange?.();
   }
 
-  async function moveExisting(exampleId: string, direction: 'up' | 'down') {
-    if (!wordId) return
-    const sorted = [...existingExamples].sort((a, b) => a.order - b.order)
-    const idx = sorted.findIndex((e) => e.id === exampleId)
-    if (idx === -1) return
-    const swapWith = direction === 'up' ? idx - 1 : idx + 1
-    if (swapWith < 0 || swapWith >= sorted.length) return
+  async function moveExisting(exampleId: string, direction: "up" | "down") {
+    if (!wordId) return;
+    const sorted = [...existingExamples].sort((a, b) => a.order - b.order);
+    const idx = sorted.findIndex((e) => e.id === exampleId);
+    if (idx === -1) return;
+    const swapWith = direction === "up" ? idx - 1 : idx + 1;
+    if (swapWith < 0 || swapWith >= sorted.length) return;
 
-    const targetExample = sorted[idx]
-    const swapExample = sorted[swapWith]
+    const targetExample = sorted[idx];
+    const swapExample = sorted[swapWith];
 
     await Promise.all([
       updateExampleMutation.mutateAsync({
@@ -206,17 +235,17 @@ export function ExampleManager({
         exampleId: swapExample.id,
         data: { order: targetExample.order },
       }),
-    ])
-    onExamplesChange?.()
+    ]);
+    onExamplesChange?.();
   }
 
   const isMutating =
     addExampleMutation.isPending ||
     deleteExampleMutation.isPending ||
-    updateExampleMutation.isPending
+    updateExampleMutation.isPending;
 
   if (isEditMode) {
-    const sorted = [...existingExamples].sort((a, b) => a.order - b.order)
+    const sorted = [...existingExamples].sort((a, b) => a.order - b.order);
 
     return (
       <div className="space-y-3">
@@ -239,7 +268,9 @@ export function ExampleManager({
         </div>
 
         {sorted.length === 0 && !showAddForm && (
-          <p className="text-sm text-muted-foreground italic">No examples yet.</p>
+          <p className="text-sm text-muted-foreground italic">
+            No examples yet.
+          </p>
         )}
 
         <div className="space-y-2">
@@ -267,7 +298,7 @@ export function ExampleManager({
                     size="icon"
                     className="h-6 w-6"
                     disabled={idx === 0 || isMutating}
-                    onClick={() => moveExisting(example.id, 'up')}
+                    onClick={() => moveExisting(example.id, "up")}
                   >
                     <ChevronUp className="h-3 w-3" />
                   </Button>
@@ -277,7 +308,7 @@ export function ExampleManager({
                     size="icon"
                     className="h-6 w-6"
                     disabled={idx === sorted.length - 1 || isMutating}
-                    onClick={() => moveExisting(example.id, 'down')}
+                    onClick={() => moveExisting(example.id, "down")}
                   >
                     <ChevronDown className="h-3 w-3" />
                   </Button>
@@ -323,7 +354,7 @@ export function ExampleManager({
           )}
         </div>
       </div>
-    )
+    );
   }
 
   // Draft mode (new word)
@@ -374,7 +405,7 @@ export function ExampleManager({
                   size="icon"
                   className="h-6 w-6"
                   disabled={idx === 0}
-                  onClick={() => moveDraft(example.tempId, 'up')}
+                  onClick={() => moveDraft(example.tempId, "up")}
                 >
                   <ChevronUp className="h-3 w-3" />
                 </Button>
@@ -384,7 +415,7 @@ export function ExampleManager({
                   size="icon"
                   className="h-6 w-6"
                   disabled={idx === draftExamples.length - 1}
-                  onClick={() => moveDraft(example.tempId, 'down')}
+                  onClick={() => moveDraft(example.tempId, "down")}
                 >
                   <ChevronDown className="h-3 w-3" />
                 </Button>
@@ -427,5 +458,5 @@ export function ExampleManager({
         )}
       </div>
     </div>
-  )
+  );
 }

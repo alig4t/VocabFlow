@@ -2,13 +2,13 @@ import {
   CapacitorSQLite,
   SQLiteConnection,
   type SQLiteDBConnection,
-} from '@capacitor-community/sqlite'
+} from "@capacitor-community/sqlite";
 
-const DB_NAME = 'vocabflow'
-const DB_VERSION = 1
+const DB_NAME = "vocabflow";
+const DB_VERSION = 1;
 
-const sqlite = new SQLiteConnection(CapacitorSQLite)
-let dbPromise: Promise<SQLiteDBConnection> | null = null
+const sqlite = new SQLiteConnection(CapacitorSQLite);
+let dbPromise: Promise<SQLiteDBConnection> | null = null;
 
 // Schema mirrors the Prisma models, minus multi-user (single local user).
 const SCHEMA = `
@@ -167,73 +167,89 @@ CREATE TABLE IF NOT EXISTS meta (
   key TEXT PRIMARY KEY NOT NULL,
   value TEXT
 );
-`
+`;
 
 // Columns added to the `progress` table after its first release. Existing
 // installs created the table without them, so ADD COLUMN any that are missing
 // (CREATE TABLE IF NOT EXISTS never alters an existing table).
 const PROGRESS_ADDED_COLUMNS: { name: string; ddl: string }[] = [
-  { name: 'manual_status', ddl: "manual_status TEXT NOT NULL DEFAULT 'NOT_READ'" },
-  { name: 'repetitions', ddl: 'repetitions INTEGER NOT NULL DEFAULT 0' },
-  { name: 'interval_days', ddl: 'interval_days INTEGER NOT NULL DEFAULT 0' },
-  { name: 'ease_factor', ddl: 'ease_factor REAL NOT NULL DEFAULT 2.5' },
-  { name: 'review_count', ddl: 'review_count INTEGER NOT NULL DEFAULT 0' },
-  { name: 'correct_count', ddl: 'correct_count INTEGER NOT NULL DEFAULT 0' },
-  { name: 'wrong_count', ddl: 'wrong_count INTEGER NOT NULL DEFAULT 0' },
-  { name: 'hard_count', ddl: 'hard_count INTEGER NOT NULL DEFAULT 0' },
-  { name: 'last_reviewed_at', ddl: 'last_reviewed_at TEXT' },
-  { name: 'next_review_at', ddl: 'next_review_at TEXT' },
-  { name: 'introduced_at', ddl: 'introduced_at TEXT' },
-]
+  {
+    name: "manual_status",
+    ddl: "manual_status TEXT NOT NULL DEFAULT 'NOT_READ'",
+  },
+  { name: "repetitions", ddl: "repetitions INTEGER NOT NULL DEFAULT 0" },
+  { name: "interval_days", ddl: "interval_days INTEGER NOT NULL DEFAULT 0" },
+  { name: "ease_factor", ddl: "ease_factor REAL NOT NULL DEFAULT 2.5" },
+  { name: "review_count", ddl: "review_count INTEGER NOT NULL DEFAULT 0" },
+  { name: "correct_count", ddl: "correct_count INTEGER NOT NULL DEFAULT 0" },
+  { name: "wrong_count", ddl: "wrong_count INTEGER NOT NULL DEFAULT 0" },
+  { name: "hard_count", ddl: "hard_count INTEGER NOT NULL DEFAULT 0" },
+  { name: "last_reviewed_at", ddl: "last_reviewed_at TEXT" },
+  { name: "next_review_at", ddl: "next_review_at TEXT" },
+  { name: "introduced_at", ddl: "introduced_at TEXT" },
+];
 
 // Columns added to `words` after its first release (definition gloss).
 const WORDS_ADDED_COLUMNS: { name: string; ddl: string }[] = [
-  { name: 'description_per', ddl: 'description_per TEXT' },
-]
+  { name: "description_per", ddl: "description_per TEXT" },
+];
 
 // Columns added to `user_settings` after its first release (notification prefs).
 // Same rationale as PROGRESS_ADDED_COLUMNS: ADD COLUMN onto old installs.
 const USER_SETTINGS_ADDED_COLUMNS: { name: string; ddl: string }[] = [
-  { name: 'daily_reminder_enabled', ddl: 'daily_reminder_enabled INTEGER NOT NULL DEFAULT 1' },
-  { name: 'daily_reminder_time', ddl: "daily_reminder_time TEXT NOT NULL DEFAULT '20:00'" },
-  { name: 'notify_daily_study', ddl: 'notify_daily_study INTEGER NOT NULL DEFAULT 1' },
-  { name: 'notify_overdue', ddl: 'notify_overdue INTEGER NOT NULL DEFAULT 1' },
-  { name: 'notify_streak', ddl: 'notify_streak INTEGER NOT NULL DEFAULT 1' },
-]
+  {
+    name: "daily_reminder_enabled",
+    ddl: "daily_reminder_enabled INTEGER NOT NULL DEFAULT 1",
+  },
+  {
+    name: "daily_reminder_time",
+    ddl: "daily_reminder_time TEXT NOT NULL DEFAULT '20:00'",
+  },
+  {
+    name: "notify_daily_study",
+    ddl: "notify_daily_study INTEGER NOT NULL DEFAULT 1",
+  },
+  { name: "notify_overdue", ddl: "notify_overdue INTEGER NOT NULL DEFAULT 1" },
+  { name: "notify_streak", ddl: "notify_streak INTEGER NOT NULL DEFAULT 1" },
+];
 
 async function addMissingColumns(
   db: SQLiteDBConnection,
   table: string,
   columns: { name: string; ddl: string }[],
 ): Promise<Set<string>> {
-  const cols = (await db.query(`PRAGMA table_info(${table})`)).values ?? []
-  const existing = new Set((cols as { name: string }[]).map((c) => c.name))
-  const added = new Set<string>()
+  const cols = (await db.query(`PRAGMA table_info(${table})`)).values ?? [];
+  const existing = new Set((cols as { name: string }[]).map((c) => c.name));
+  const added = new Set<string>();
   for (const col of columns) {
     if (!existing.has(col.name)) {
-      await db.execute(`ALTER TABLE ${table} ADD COLUMN ${col.ddl};`)
-      added.add(col.name)
+      await db.execute(`ALTER TABLE ${table} ADD COLUMN ${col.ddl};`);
+      added.add(col.name);
     }
   }
-  return added
+  return added;
 }
 
 async function migrateSchema(db: SQLiteDBConnection): Promise<void> {
-  const addedProgress = await addMissingColumns(db, 'progress', PROGRESS_ADDED_COLUMNS)
+  const addedProgress = await addMissingColumns(
+    db,
+    "progress",
+    PROGRESS_ADDED_COLUMNS,
+  );
   // Manual marks were previously stored in `status` (pre-SM-2); carry them over.
-  if (addedProgress.has('manual_status')) {
-    await db.execute('UPDATE progress SET manual_status = status;')
+  if (addedProgress.has("manual_status")) {
+    await db.execute("UPDATE progress SET manual_status = status;");
   }
   // Now that next_review_at is guaranteed to exist, create the due-review index.
   await db.execute(
-    'CREATE INDEX IF NOT EXISTS idx_progress_due ON progress(review_mode, next_review_at);',
-  )
+    "CREATE INDEX IF NOT EXISTS idx_progress_due ON progress(review_mode, next_review_at);",
+  );
 
   // Persian definition gloss for pre-description_per installs.
-  await addMissingColumns(db, 'words', WORDS_ADDED_COLUMNS)
+  await addMissingColumns(db, "words", WORDS_ADDED_COLUMNS);
 
   // Notification-preference columns for pre-notifications installs.
-  await addMissingColumns(db, 'user_settings', USER_SETTINGS_ADDED_COLUMNS)
+  await addMissingColumns(db, "user_settings", USER_SETTINGS_ADDED_COLUMNS);
 }
 
 /**
@@ -242,19 +258,19 @@ async function migrateSchema(db: SQLiteDBConnection): Promise<void> {
  * never lives in the JS bundle or on plaintext disk.
  */
 function makePassphrase(): string {
-  const bytes = new Uint8Array(32)
-  crypto.getRandomValues(bytes)
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 /** Open (or reuse) the single app database connection and ensure the schema. */
 export async function getDb(): Promise<SQLiteDBConnection> {
-  if (dbPromise) return dbPromise
+  if (dbPromise) return dbPromise;
   dbPromise = (async () => {
-    const isConn = (await sqlite.isConnection(DB_NAME, false)).result
-    let db: SQLiteDBConnection
+    const isConn = (await sqlite.isConnection(DB_NAME, false)).result;
+    let db: SQLiteDBConnection;
     if (isConn) {
-      db = await sqlite.retrieveConnection(DB_NAME, false)
+      db = await sqlite.retrieveConnection(DB_NAME, false);
     } else {
       // Security layer 1b — encrypted (SQLCipher) runtime DB. Requires
       // androidIsEncryption:true in capacitor.config. The DB passphrase is a
@@ -266,57 +282,66 @@ export async function getDb(): Promise<SQLiteDBConnection> {
       //  • no secret yet + NO DB file (fresh install) → create a new encrypted
       //    DB → 'secret'. (Mode 'encryption' throws "not found" here, since it
       //    only encrypts an EXISTING plaintext file — that was the first bug.)
-      const secretStored = (await sqlite.isSecretStored()).result
+      const secretStored = (await sqlite.isSecretStored()).result;
       if (!secretStored) {
-        await sqlite.setEncryptionSecret(makePassphrase())
+        await sqlite.setEncryptionSecret(makePassphrase());
       }
-      let mode: string
+      let mode: string;
       if (secretStored) {
-        mode = 'secret'
+        mode = "secret";
       } else {
-        const dbExists = (await sqlite.isDatabase(DB_NAME)).result
-        mode = dbExists ? 'encryption' : 'secret'
+        const dbExists = (await sqlite.isDatabase(DB_NAME)).result;
+        mode = dbExists ? "encryption" : "secret";
       }
-      db = await sqlite.createConnection(DB_NAME, true, mode, DB_VERSION, false)
+      db = await sqlite.createConnection(
+        DB_NAME,
+        true,
+        mode,
+        DB_VERSION,
+        false,
+      );
     }
     if (!(await db.isDBOpen()).result) {
-      await db.open()
+      await db.open();
     }
-    await db.execute(SCHEMA)
-    await migrateSchema(db)
-    return db
-  })()
-  return dbPromise
+    await db.execute(SCHEMA);
+    await migrateSchema(db);
+    return db;
+  })();
+  return dbPromise;
 }
 
 export async function query<T = Record<string, unknown>>(
   sql: string,
   values: unknown[] = [],
 ): Promise<T[]> {
-  const db = await getDb()
-  const res = await db.query(sql, values as never[])
-  return (res.values ?? []) as T[]
+  const db = await getDb();
+  const res = await db.query(sql, values as never[]);
+  return (res.values ?? []) as T[];
 }
 
 export async function run(sql: string, values: unknown[] = []): Promise<void> {
-  const db = await getDb()
-  await db.run(sql, values as never[])
+  const db = await getDb();
+  await db.run(sql, values as never[]);
 }
 
 export async function getMeta(key: string): Promise<string | null> {
-  const rows = await query<{ value: string }>('SELECT value FROM meta WHERE key = ?', [key])
-  return rows[0]?.value ?? null
+  const rows = await query<{ value: string }>(
+    "SELECT value FROM meta WHERE key = ?",
+    [key],
+  );
+  return rows[0]?.value ?? null;
 }
 
 export async function setMeta(key: string, value: string): Promise<void> {
   await run(
-    'INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+    "INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
     [key, value],
-  )
+  );
 }
 
 export function uid(): string {
-  return crypto.randomUUID()
+  return crypto.randomUUID();
 }
 
-export { sqlite, DB_NAME }
+export { sqlite, DB_NAME };

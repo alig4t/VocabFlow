@@ -1,5 +1,5 @@
-import { isNative } from '@/lib/platform'
-import { seedIfNeeded } from './seed'
+import { isNative } from "@/lib/platform";
+import { seedIfNeeded } from "./seed";
 
 /**
  * Prepare the native offline app: open the SQLite DB and seed the bundled
@@ -8,6 +8,6 @@ import { seedIfNeeded } from './seed'
 export async function prepareNative(
   onProgress?: (p: number, label: string) => void,
 ): Promise<void> {
-  if (!isNative()) return
-  await seedIfNeeded(onProgress)
+  if (!isNative()) return;
+  await seedIfNeeded(onProgress);
 }

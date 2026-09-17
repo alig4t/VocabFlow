@@ -1,4 +1,4 @@
-import { Capacitor } from '@capacitor/core'
+import { Capacitor } from "@capacitor/core";
 
 /**
  * True when running inside the native (Android) Capacitor shell — the fully
@@ -6,5 +6,5 @@ import { Capacitor } from '@capacitor/core'
  * so the app keeps using the HTTP services + server.
  */
 export function isNative(): boolean {
-  return Capacitor.isNativePlatform()
+  return Capacitor.isNativePlatform();
 }

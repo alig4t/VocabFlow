@@ -1,9 +1,21 @@
-import { useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Plus, Pencil, Trash2, Search, BookOpen, Users, Layers, ChevronLeft, ChevronRight, Loader2, Library } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Search,
+  BookOpen,
+  Users,
+  Layers,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Library,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -11,21 +23,21 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { useWords, useDeleteWord, useModules } from '@/hooks/useVocabulary'
-import { useBooks } from '@/hooks/useBooks'
-import type { Word } from '@/types'
+} from "@/components/ui/dialog";
+import { useWords, useDeleteWord, useModules } from "@/hooks/useVocabulary";
+import { useBooks } from "@/hooks/useBooks";
+import type { Word } from "@/types";
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = 20;
 
 function StatCard({
   icon: Icon,
   label,
   value,
 }: {
-  icon: React.ElementType
-  label: string
-  value: string | number
+  icon: React.ElementType;
+  label: string;
+  value: string | number;
 }) {
   return (
     <Card>
@@ -39,7 +51,7 @@ function StatCard({
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
 
 function DeleteConfirmDialog({
@@ -49,11 +61,11 @@ function DeleteConfirmDialog({
   onConfirm,
   isDeleting,
 }: {
-  word: Word | null
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onConfirm: () => void
-  isDeleting: boolean
+  word: Word | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+  isDeleting: boolean;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -61,8 +73,10 @@ function DeleteConfirmDialog({
         <DialogHeader>
           <DialogTitle>حذف واژه</DialogTitle>
           <DialogDescription>
-            آیا مطمئنید که می‌خواهید{' '}
-            <span className="font-semibold text-foreground">«{word?.eng}»</span> را حذف کنید؟ این عمل قابل بازگشت نیست و تمام مثال‌ها و پیشرفت‌های مرتبط نیز حذف خواهند شد.
+            آیا مطمئنید که می‌خواهید{" "}
+            <span className="font-semibold text-foreground">«{word?.eng}»</span>{" "}
+            را حذف کنید؟ این عمل قابل بازگشت نیست و تمام مثال‌ها و پیشرفت‌های
+            مرتبط نیز حذف خواهند شد.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="flex-row-reverse sm:flex-row-reverse gap-2">
@@ -77,7 +91,7 @@ function DeleteConfirmDialog({
                 در حال حذف...
               </>
             ) : (
-              'حذف'
+              "حذف"
             )}
           </Button>
           <Button
@@ -90,69 +104,69 @@ function DeleteConfirmDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
 
 export function AdminPage() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
-  const [page, setPage] = useState(1)
-  const [search, setSearch] = useState('')
-  const [searchInput, setSearchInput] = useState('')
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
 
-  const [wordToDelete, setWordToDelete] = useState<Word | null>(null)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [wordToDelete, setWordToDelete] = useState<Word | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const { data, isLoading, isFetching } = useWords({
     page,
     limit: PAGE_SIZE,
     search: search || undefined,
-  })
+  });
 
-  const { data: modules } = useModules()
-  const { data: books } = useBooks()
-  const deleteWordMutation = useDeleteWord()
+  const { data: modules } = useModules();
+  const { data: books } = useBooks();
+  const deleteWordMutation = useDeleteWord();
 
-  const words = data?.data ?? []
-  const meta = data?.meta
-  const totalWords = meta?.total ?? 0
-  const totalPages = meta?.totalPages ?? 1
-  const totalModules = modules?.length ?? 0
-  const totalBooks = books?.length ?? 0
+  const words = data?.data ?? [];
+  const meta = data?.meta;
+  const totalWords = meta?.total ?? 0;
+  const totalPages = meta?.totalPages ?? 1;
+  const totalModules = modules?.length ?? 0;
+  const totalBooks = books?.length ?? 0;
 
   const handleSearchSubmit = useCallback(
     (e: React.FormEvent) => {
-      e.preventDefault()
-      setPage(1)
-      setSearch(searchInput)
+      e.preventDefault();
+      setPage(1);
+      setSearch(searchInput);
     },
     [searchInput],
-  )
+  );
 
   function handleSearchClear() {
-    setSearchInput('')
-    setSearch('')
-    setPage(1)
+    setSearchInput("");
+    setSearch("");
+    setPage(1);
   }
 
   function openDeleteDialog(word: Word) {
-    setWordToDelete(word)
-    setDeleteDialogOpen(true)
+    setWordToDelete(word);
+    setDeleteDialogOpen(true);
   }
 
   async function handleDeleteConfirm() {
-    if (!wordToDelete) return
-    await deleteWordMutation.mutateAsync(wordToDelete.id)
-    setDeleteDialogOpen(false)
-    setWordToDelete(null)
+    if (!wordToDelete) return;
+    await deleteWordMutation.mutateAsync(wordToDelete.id);
+    setDeleteDialogOpen(false);
+    setWordToDelete(null);
     // اگر آخرین آیتم صفحه‌ای غیر از اول حذف شد، به صفحه قبل برو
     if (words.length === 1 && page > 1) {
-      setPage((p) => p - 1)
+      setPage((p) => p - 1);
     }
   }
 
   function getModuleName(moduleId: string) {
-    return modules?.find((m) => m.id === moduleId)?.name ?? moduleId
+    return modules?.find((m) => m.id === moduleId)?.name ?? moduleId;
   }
 
   return (
@@ -177,7 +191,7 @@ export function AdminPage() {
             <Library className="h-5 w-5 text-primary" />
             مدیریت کتاب‌ها
           </CardTitle>
-          <Button onClick={() => navigate('/admin/books')}>
+          <Button onClick={() => navigate("/admin/books")}>
             <BookOpen className="h-4 w-4 ml-2" />
             مشاهده و مدیریت کتاب‌ها
           </Button>
@@ -185,9 +199,9 @@ export function AdminPage() {
         <CardContent>
           {totalBooks === 0 ? (
             <p className="text-sm text-muted-foreground">
-              هنوز کتابی اضافه نشده است.{' '}
+              هنوز کتابی اضافه نشده است.{" "}
               <button
-                onClick={() => navigate('/admin/books/new')}
+                onClick={() => navigate("/admin/books/new")}
                 className="text-primary hover:underline"
               >
                 اولین کتاب را اضافه کنید
@@ -203,7 +217,9 @@ export function AdminPage() {
                 >
                   <BookOpen className="h-3.5 w-3.5" />
                   {book.title}
-                  <span className="text-muted-foreground text-xs">({book._count?.volumes ?? 0} جلد)</span>
+                  <span className="text-muted-foreground text-xs">
+                    ({book._count?.volumes ?? 0} جلد)
+                  </span>
                 </button>
               ))}
             </div>
@@ -215,7 +231,7 @@ export function AdminPage() {
       <Card>
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <CardTitle>مدیریت واژگان</CardTitle>
-          <Button onClick={() => navigate('/admin/words/new')}>
+          <Button onClick={() => navigate("/admin/words/new")}>
             <Plus className="h-4 w-4 ml-2" />
             افزودن واژه جدید
           </Button>
@@ -236,7 +252,11 @@ export function AdminPage() {
               جستجو
             </Button>
             {search && (
-              <Button type="button" variant="outline" onClick={handleSearchClear}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleSearchClear}
+              >
                 پاک کردن
               </Button>
             )}
@@ -288,7 +308,7 @@ export function AdminPage() {
                     >
                       {search
                         ? `هیچ واژه‌ای برای «${search}» یافت نشد.`
-                        : 'هنوز واژه‌ای اضافه نشده است. برای شروع یک واژه اضافه کنید.'}
+                        : "هنوز واژه‌ای اضافه نشده است. برای شروع یک واژه اضافه کنید."}
                     </td>
                   </tr>
                 ) : (
@@ -297,15 +317,17 @@ export function AdminPage() {
                       key={word.id}
                       className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors"
                     >
-                      <td className="px-4 py-3 font-medium" dir="ltr">{word.eng}</td>
+                      <td className="px-4 py-3 font-medium" dir="ltr">
+                        {word.eng}
+                      </td>
                       <td className="px-4 py-3 text-muted-foreground">
                         {word.per}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
-                        {word.chapter ?? '—'}
+                        {word.chapter ?? "—"}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
-                        {word.unit ?? '—'}
+                        {word.unit ?? "—"}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">
                         {word.examples?.length ?? 0}
@@ -321,7 +343,9 @@ export function AdminPage() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() => navigate(`/admin/words/${word.id}/edit`)}
+                            onClick={() =>
+                              navigate(`/admin/words/${word.id}/edit`)
+                            }
                             aria-label="ویرایش"
                           >
                             <Pencil className="h-4 w-4" />
@@ -394,5 +418,5 @@ export function AdminPage() {
         isDeleting={deleteWordMutation.isPending}
       />
     </div>
-  )
+  );
 }

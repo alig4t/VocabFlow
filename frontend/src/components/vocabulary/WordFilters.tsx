@@ -1,123 +1,142 @@
-import { useRef, useEffect, useState } from 'react'
-import { X, RotateCcw } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { cn } from '@/lib/utils'
-import { useBooksSimple, useVolumesSimple, useLessonsSimple } from '@/hooks/useBooks'
-import { DEFAULT_VOCAB_FILTERS, type WordFiltersState } from '@/lib/vocabFilters'
-import type { WordStatus } from '@/types'
+import { useRef, useEffect, useState } from "react";
+import { X, RotateCcw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import {
+  useBooksSimple,
+  useVolumesSimple,
+  useLessonsSimple,
+} from "@/hooks/useBooks";
+import {
+  DEFAULT_VOCAB_FILTERS,
+  type WordFiltersState,
+} from "@/lib/vocabFilters";
+import type { WordStatus } from "@/types";
 
-export type { WordFiltersState }
+export type { WordFiltersState };
 
 interface WordFiltersProps {
-  filters: WordFiltersState
-  onChange: (filters: WordFiltersState) => void
-  className?: string
+  filters: WordFiltersState;
+  onChange: (filters: WordFiltersState) => void;
+  className?: string;
 }
 
-const STATUS_OPTIONS: { label: string; value: WordStatus | 'ALL' }[] = [
-  { label: 'همه', value: 'ALL' },
-  { label: 'یاد گرفتم', value: 'KNOWN' },
-  { label: 'یاد نگرفتم', value: 'NOT_KNOWN' },
-  { label: 'نخوانده', value: 'NOT_READ' },
-]
+const STATUS_OPTIONS: { label: string; value: WordStatus | "ALL" }[] = [
+  { label: "همه", value: "ALL" },
+  { label: "یاد گرفتم", value: "KNOWN" },
+  { label: "یاد نگرفتم", value: "NOT_KNOWN" },
+  { label: "نخوانده", value: "NOT_READ" },
+];
 
-const SORT_OPTIONS: { label: string; value: 'chapter' | 'eng' | 'per' }[] = [
-  { label: 'بر اساس فصل', value: 'chapter' },
-  { label: 'انگلیسی الفبایی', value: 'eng' },
-  { label: 'فارسی الفبایی', value: 'per' },
-]
+const SORT_OPTIONS: { label: string; value: "chapter" | "eng" | "per" }[] = [
+  { label: "بر اساس فصل", value: "chapter" },
+  { label: "انگلیسی الفبایی", value: "eng" },
+  { label: "فارسی الفبایی", value: "per" },
+];
 
-const CHAPTERS = Array.from({ length: 30 }, (_, i) => i + 1)
+const CHAPTERS = Array.from({ length: 30 }, (_, i) => i + 1);
 
 // Cap the width so long book titles truncate instead of overflowing the card.
-const SELECT_CLASS = 'select-field w-auto min-w-[9rem] max-w-[13rem] cursor-pointer'
+const SELECT_CLASS =
+  "select-field w-auto min-w-[9rem] max-w-[13rem] cursor-pointer";
 
-export function WordFilters({ filters, onChange, className }: WordFiltersProps) {
-  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+export function WordFilters({
+  filters,
+  onChange,
+  className,
+}: WordFiltersProps) {
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Local mirror of the search text so typing stays responsive while the URL
   // update is debounced; re-syncs when filters.search changes (URL restore/reset).
-  const [searchValue, setSearchValue] = useState(filters.search)
+  const [searchValue, setSearchValue] = useState(filters.search);
   useEffect(() => {
-    setSearchValue(filters.search)
-  }, [filters.search])
+    setSearchValue(filters.search);
+  }, [filters.search]);
 
-  const { data: books } = useBooksSimple()
-  const { data: volumes } = useVolumesSimple(filters.bookId ?? '')
-  const { data: lessons } = useLessonsSimple(filters.bookId ?? '', filters.volumeId ?? '')
+  const { data: books } = useBooksSimple();
+  const { data: volumes } = useVolumesSimple(filters.bookId ?? "");
+  const { data: lessons } = useLessonsSimple(
+    filters.bookId ?? "",
+    filters.volumeId ?? "",
+  );
 
   useEffect(() => {
     return () => {
-      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
-    }
-  }, [])
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, []);
 
   function update(partial: Partial<WordFiltersState>) {
-    onChange({ ...filters, ...partial })
+    onChange({ ...filters, ...partial });
   }
 
   function handleBookChange(bookId: string) {
-    update({ bookId: bookId || undefined, volumeId: undefined, lessonId: undefined })
+    update({
+      bookId: bookId || undefined,
+      volumeId: undefined,
+      lessonId: undefined,
+    });
   }
 
   function handleVolumeChange(volumeId: string) {
-    update({ volumeId: volumeId || undefined, lessonId: undefined })
+    update({ volumeId: volumeId || undefined, lessonId: undefined });
   }
 
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const val = e.target.value
-    setSearchValue(val)
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
+    const val = e.target.value;
+    setSearchValue(val);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     searchTimeoutRef.current = setTimeout(() => {
-      update({ search: val })
-    }, 350)
+      update({ search: val });
+    }, 350);
   }
 
   function clearSearch() {
-    setSearchValue('')
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
-    update({ search: '' })
+    setSearchValue("");
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    update({ search: "" });
   }
 
   function resetAll() {
-    setSearchValue('')
-    onChange({ ...DEFAULT_VOCAB_FILTERS })
+    setSearchValue("");
+    onChange({ ...DEFAULT_VOCAB_FILTERS });
   }
 
   const isDefaultState =
-    filters.mode === 'EN_TO_FA' &&
-    filters.status === 'ALL' &&
-    filters.sort === 'chapter' &&
+    filters.mode === "EN_TO_FA" &&
+    filters.status === "ALL" &&
+    filters.sort === "chapter" &&
     filters.chapter === undefined &&
-    filters.search === '' &&
+    filters.search === "" &&
     filters.bookId === undefined &&
     filters.volumeId === undefined &&
-    filters.lessonId === undefined
+    filters.lessonId === undefined;
 
   return (
-    <div className={cn('space-y-4', className)}>
+    <div className={cn("space-y-4", className)}>
       {/* Row 1: Review Mode + Status filter */}
       <div className="flex flex-wrap gap-4 items-center">
         {/* Review Mode toggle */}
         <div className="flex items-center gap-1 bg-muted rounded-full p-1">
           <button
-            onClick={() => update({ mode: 'EN_TO_FA' })}
+            onClick={() => update({ mode: "EN_TO_FA" })}
             className={cn(
-              'px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200',
-              filters.mode === 'EN_TO_FA'
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground',
+              "px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200",
+              filters.mode === "EN_TO_FA"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             EN → FA
           </button>
           <button
-            onClick={() => update({ mode: 'FA_TO_EN' })}
+            onClick={() => update({ mode: "FA_TO_EN" })}
             className={cn(
-              'px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200',
-              filters.mode === 'FA_TO_EN'
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground',
+              "px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200",
+              filters.mode === "FA_TO_EN"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             FA → EN
@@ -131,16 +150,16 @@ export function WordFilters({ filters, onChange, className }: WordFiltersProps) 
               key={opt.value}
               onClick={() => update({ status: opt.value })}
               className={cn(
-                'px-3 py-1.5 rounded-md text-sm font-medium border transition-all duration-200',
+                "px-3 py-1.5 rounded-md text-sm font-medium border transition-all duration-200",
                 filters.status === opt.value
-                  ? opt.value === 'KNOWN'
-                    ? 'bg-green-500 text-white border-green-500 shadow-sm'
-                    : opt.value === 'NOT_KNOWN'
-                      ? 'bg-red-500 text-white border-red-500 shadow-sm'
-                      : opt.value === 'NOT_READ'
-                        ? 'bg-secondary text-secondary-foreground border-border shadow-sm'
-                        : 'bg-primary text-primary-foreground border-primary shadow-sm'
-                  : 'bg-background text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground',
+                  ? opt.value === "KNOWN"
+                    ? "bg-green-500 text-white border-green-500 shadow-sm"
+                    : opt.value === "NOT_KNOWN"
+                      ? "bg-red-500 text-white border-red-500 shadow-sm"
+                      : opt.value === "NOT_READ"
+                        ? "bg-secondary text-secondary-foreground border-border shadow-sm"
+                        : "bg-primary text-primary-foreground border-primary shadow-sm"
+                  : "bg-background text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground",
               )}
             >
               {opt.label}
@@ -154,9 +173,11 @@ export function WordFilters({ filters, onChange, className }: WordFiltersProps) 
         <div className="flex flex-wrap gap-3 items-center">
           {/* Book filter */}
           <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground whitespace-nowrap">کتاب:</label>
+            <label className="text-sm text-muted-foreground whitespace-nowrap">
+              کتاب:
+            </label>
             <select
-              value={filters.bookId ?? ''}
+              value={filters.bookId ?? ""}
               onChange={(e) => handleBookChange(e.target.value)}
               className={SELECT_CLASS}
             >
@@ -172,9 +193,11 @@ export function WordFilters({ filters, onChange, className }: WordFiltersProps) 
           {/* Volume filter — only when book is selected */}
           {filters.bookId && volumes && volumes.length > 0 && (
             <div className="flex items-center gap-2">
-              <label className="text-sm text-muted-foreground whitespace-nowrap">جلد:</label>
+              <label className="text-sm text-muted-foreground whitespace-nowrap">
+                جلد:
+              </label>
               <select
-                value={filters.volumeId ?? ''}
+                value={filters.volumeId ?? ""}
                 onChange={(e) => handleVolumeChange(e.target.value)}
                 className={SELECT_CLASS}
               >
@@ -191,10 +214,14 @@ export function WordFilters({ filters, onChange, className }: WordFiltersProps) 
           {/* Lesson filter — only when volume is selected */}
           {filters.volumeId && lessons && lessons.length > 0 && (
             <div className="flex items-center gap-2">
-              <label className="text-sm text-muted-foreground whitespace-nowrap">درس:</label>
+              <label className="text-sm text-muted-foreground whitespace-nowrap">
+                درس:
+              </label>
               <select
-                value={filters.lessonId ?? ''}
-                onChange={(e) => update({ lessonId: e.target.value || undefined })}
+                value={filters.lessonId ?? ""}
+                onChange={(e) =>
+                  update({ lessonId: e.target.value || undefined })
+                }
                 className={SELECT_CLASS}
               >
                 <option value="">همه درس‌ها</option>
@@ -213,10 +240,14 @@ export function WordFilters({ filters, onChange, className }: WordFiltersProps) 
       <div className="flex flex-wrap gap-3 items-center">
         {/* Sort dropdown */}
         <div className="flex items-center gap-2">
-          <label className="text-sm text-muted-foreground whitespace-nowrap">مرتب‌سازی:</label>
+          <label className="text-sm text-muted-foreground whitespace-nowrap">
+            مرتب‌سازی:
+          </label>
           <select
             value={filters.sort}
-            onChange={(e) => update({ sort: e.target.value as 'chapter' | 'eng' | 'per' })}
+            onChange={(e) =>
+              update({ sort: e.target.value as "chapter" | "eng" | "per" })
+            }
             className={SELECT_CLASS}
           >
             {SORT_OPTIONS.map((opt) => (
@@ -230,11 +261,15 @@ export function WordFilters({ filters, onChange, className }: WordFiltersProps) 
         {/* Chapter filter (legacy for old words not in book system) */}
         {!filters.bookId && (
           <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground whitespace-nowrap">فصل:</label>
+            <label className="text-sm text-muted-foreground whitespace-nowrap">
+              فصل:
+            </label>
             <select
-              value={filters.chapter ?? ''}
+              value={filters.chapter ?? ""}
               onChange={(e) =>
-                update({ chapter: e.target.value ? Number(e.target.value) : undefined })
+                update({
+                  chapter: e.target.value ? Number(e.target.value) : undefined,
+                })
               }
               className={SELECT_CLASS}
             >
@@ -281,5 +316,5 @@ export function WordFilters({ filters, onChange, className }: WordFiltersProps) 
         )}
       </div>
     </div>
-  )
+  );
 }

@@ -1,49 +1,49 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { dashboardService } from '@/services/dashboard.service'
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { dashboardService } from "@/services/dashboard.service";
 import type {
   BookSimple,
   DashboardData,
   DiscoveryBook,
   HardWordItem,
   LearningStats,
-} from '@/types'
+} from "@/types";
 
 export function useDashboard() {
   return useQuery<DashboardData, Error>({
-    queryKey: ['dashboard'],
+    queryKey: ["dashboard"],
     queryFn: () => dashboardService.getDashboard(),
-  })
+  });
 }
 
 /** The statistics page aggregate (replayed from the review log). */
 export function useStats() {
   return useQuery<LearningStats, Error>({
-    queryKey: ['stats'],
+    queryKey: ["stats"],
     queryFn: () => dashboardService.getStats(),
-  })
+  });
 }
 
 /** Full "needs more attention" list for the dedicated hard-words page. */
 export function useHardWords() {
   return useQuery<HardWordItem[], Error>({
-    queryKey: ['dashboard', 'hard-words'],
+    queryKey: ["dashboard", "hard-words"],
     queryFn: () => dashboardService.getHardWords(),
-  })
+  });
 }
 
 export function useDiscoveryBooks() {
   return useQuery<DiscoveryBook[], Error>({
-    queryKey: ['discovery-books'],
+    queryKey: ["discovery-books"],
     queryFn: () => dashboardService.getDiscoveryBooks(),
-  })
+  });
 }
 
 /** Books in the current user's watchlist (used by the review-page selector). */
 export function useWatchlistBooks() {
   return useQuery<BookSimple[], Error>({
-    queryKey: ['watchlist', 'books'],
+    queryKey: ["watchlist", "books"],
     queryFn: () => dashboardService.getWatchlistBooks(),
-  })
+  });
 }
 
 /**
@@ -51,7 +51,7 @@ export function useWatchlistBooks() {
  * library UI feels instant. Rolls back on error and refreshes the dashboard.
  */
 export function useToggleWatchlist() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   return useMutation<
     { bookId: string },
@@ -64,23 +64,27 @@ export function useToggleWatchlist() {
         ? dashboardService.removeFromWatchlist(bookId)
         : dashboardService.addToWatchlist(bookId),
     onMutate: async ({ bookId, inWatchlist }) => {
-      await queryClient.cancelQueries({ queryKey: ['discovery-books'] })
-      const previous = queryClient.getQueryData<DiscoveryBook[]>(['discovery-books'])
-      queryClient.setQueryData<DiscoveryBook[]>(['discovery-books'], (old) =>
-        old?.map((b) => (b.id === bookId ? { ...b, inWatchlist: !inWatchlist } : b)),
-      )
-      return { previous }
+      await queryClient.cancelQueries({ queryKey: ["discovery-books"] });
+      const previous = queryClient.getQueryData<DiscoveryBook[]>([
+        "discovery-books",
+      ]);
+      queryClient.setQueryData<DiscoveryBook[]>(["discovery-books"], (old) =>
+        old?.map((b) =>
+          b.id === bookId ? { ...b, inWatchlist: !inWatchlist } : b,
+        ),
+      );
+      return { previous };
     },
     onError: (_err, _vars, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(['discovery-books'], context.previous)
+        queryClient.setQueryData(["discovery-books"], context.previous);
       }
     },
     onSettled: () => {
       // Reconcile with the server: discovery flags, the watchlist selector, and dashboard.
-      queryClient.invalidateQueries({ queryKey: ['discovery-books'] })
-      queryClient.invalidateQueries({ queryKey: ['watchlist', 'books'] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ["discovery-books"] });
+      queryClient.invalidateQueries({ queryKey: ["watchlist", "books"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
-  })
+  });
 }

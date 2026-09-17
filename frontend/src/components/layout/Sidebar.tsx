@@ -1,71 +1,122 @@
-import { X, Book, Play, Settings, Library, LayoutDashboard, Compass, ShieldCheck, Users, FilePlus2, GraduationCap, SlidersHorizontal, Rocket, Info, BarChart3 } from 'lucide-react'
-import { Link, NavLink } from 'react-router-dom'
-import { useAuthStore } from '../../store/authStore'
-import { isNative } from '../../lib/platform'
-import { cn } from '../../lib/utils'
-import { Badge } from '../ui/badge'
-import { Button } from '../ui/button'
+import {
+  X,
+  Book,
+  Play,
+  Settings,
+  Library,
+  LayoutDashboard,
+  Compass,
+  ShieldCheck,
+  Users,
+  FilePlus2,
+  GraduationCap,
+  SlidersHorizontal,
+  Rocket,
+  Info,
+  BarChart3,
+} from "lucide-react";
+import { Link, NavLink } from "react-router-dom";
+import { useAuthStore } from "../../store/authStore";
+import { isNative } from "../../lib/platform";
+import { cn } from "../../lib/utils";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
 
 interface SidebarProps {
-  open: boolean
-  onClose: () => void
+  open: boolean;
+  onClose: () => void;
 }
 
 interface NavItem {
-  to: string
-  icon: React.ReactNode
-  label: string
+  to: string;
+  icon: React.ReactNode;
+  label: string;
 }
 
 const mainItems: NavItem[] = [
-  { to: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, label: 'داشبورد' },
-  { to: '/statistics', icon: <BarChart3 className="h-5 w-5" />, label: 'آمار یادگیری' },
-  { to: '/study', icon: <GraduationCap className="h-5 w-5" />, label: 'مطالعه امروز' },
-  { to: '/library', icon: <Compass className="h-5 w-5" />, label: 'کتابخانه' },
-  { to: '/vocabulary', icon: <Book className="h-5 w-5" />, label: 'واژگان' },
-  { to: '/vocabulary/review', icon: <Play className="h-5 w-5" />, label: 'مرور آزاد' },
-]
+  {
+    to: "/dashboard",
+    icon: <LayoutDashboard className="h-5 w-5" />,
+    label: "داشبورد",
+  },
+  {
+    to: "/statistics",
+    icon: <BarChart3 className="h-5 w-5" />,
+    label: "آمار یادگیری",
+  },
+  {
+    to: "/study",
+    icon: <GraduationCap className="h-5 w-5" />,
+    label: "مطالعه امروز",
+  },
+  { to: "/library", icon: <Compass className="h-5 w-5" />, label: "کتابخانه" },
+  { to: "/vocabulary", icon: <Book className="h-5 w-5" />, label: "واژگان" },
+  {
+    to: "/vocabulary/review",
+    icon: <Play className="h-5 w-5" />,
+    label: "مرور آزاد",
+  },
+];
 
 // Secondary group — guide / settings / about, split off from the main nav by a divider.
 const secondaryItems: NavItem[] = [
-  { to: '/settings', icon: <SlidersHorizontal className="h-5 w-5" />, label: 'تنظیمات' },
-  { to: '/guide', icon: <Rocket className="h-5 w-5" />, label: 'راهنمای شروع' },
-  { to: '/about', icon: <Info className="h-5 w-5" />, label: 'درباره سازنده' },
-]
+  {
+    to: "/settings",
+    icon: <SlidersHorizontal className="h-5 w-5" />,
+    label: "تنظیمات",
+  },
+  { to: "/guide", icon: <Rocket className="h-5 w-5" />, label: "راهنمای شروع" },
+  { to: "/about", icon: <Info className="h-5 w-5" />, label: "درباره سازنده" },
+];
 
 const adminItems: NavItem[] = [
-  { to: '/admin', icon: <Settings className="h-5 w-5" />, label: 'پنل مدیریت' },
-  { to: '/admin/users', icon: <Users className="h-5 w-5" />, label: 'کاربران' },
-  { to: '/admin/books', icon: <Library className="h-5 w-5" />, label: 'کتاب‌ها' },
-  { to: '/admin/words/new', icon: <FilePlus2 className="h-5 w-5" />, label: 'افزودن واژه' },
-]
+  { to: "/admin", icon: <Settings className="h-5 w-5" />, label: "پنل مدیریت" },
+  { to: "/admin/users", icon: <Users className="h-5 w-5" />, label: "کاربران" },
+  {
+    to: "/admin/books",
+    icon: <Library className="h-5 w-5" />,
+    label: "کتاب‌ها",
+  },
+  {
+    to: "/admin/words/new",
+    icon: <FilePlus2 className="h-5 w-5" />,
+    label: "افزودن واژه",
+  },
+];
 
 export function Sidebar({ open, onClose }: SidebarProps) {
-  const { user } = useAuthStore()
-  const isAdmin = user?.role === 'ADMIN'
-  const native = isNative()
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === "ADMIN";
+  const native = isNative();
 
   // On the offline app there is no server/admin: only word editing is offered,
   // and the server-only management pages (users/books/admin panel) are hidden.
   const primaryItems: NavItem[] = native
-    ? [...mainItems, { to: '/admin/words/new', icon: <FilePlus2 className="h-5 w-5" />, label: 'افزودن واژه' }]
-    : mainItems
+    ? [
+        ...mainItems,
+        {
+          to: "/admin/words/new",
+          icon: <FilePlus2 className="h-5 w-5" />,
+          label: "افزودن واژه",
+        },
+      ]
+    : mainItems;
 
-  function renderLink(item: NavItem, accent: 'primary' | 'admin') {
+  function renderLink(item: NavItem, accent: "primary" | "admin") {
     return (
       <li key={item.to}>
         <NavLink
           to={item.to}
-          end={item.to === '/vocabulary' || item.to === '/admin'}
+          end={item.to === "/vocabulary" || item.to === "/admin"}
           onClick={onClose}
           className={({ isActive }) =>
             cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
               isActive
-                ? accent === 'admin'
-                  ? 'bg-slate-700 text-white shadow-sm dark:bg-slate-600'
-                  : 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                ? accent === "admin"
+                  ? "bg-slate-700 text-white shadow-sm dark:bg-slate-600"
+                  : "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
             )
           }
         >
@@ -73,31 +124,36 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           {item.label}
         </NavLink>
       </li>
-    )
+    );
   }
 
   return (
     <aside
       dir="rtl"
       className={cn(
-        'font-persian fixed inset-y-0 right-0 z-30 flex w-64 flex-col border-l border-border bg-card transition-transform duration-300 ease-in-out',
-        'lg:relative lg:translate-x-0',
-        open ? 'translate-x-0' : 'translate-x-full'
+        "font-persian fixed inset-y-0 right-0 z-30 flex w-64 flex-col border-l border-border bg-card transition-transform duration-300 ease-in-out",
+        "lg:relative lg:translate-x-0",
+        open ? "translate-x-0" : "translate-x-full",
       )}
     >
       {/* Header */}
       <div className="flex h-16 shrink-0 items-center justify-between px-4">
-          <Link to={'/'}>
-        <div className="flex items-center gap-2">
+        <Link to={"/"}>
+          <div className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-white ring-1 ring-border">
-              <img src="/logo/logo-flow-192.png" alt="وکب فلو" className="h-full w-full object-contain p-0.5" draggable={false} />
+              <img
+                src="/logo/logo-flow-192.png"
+                alt="وکب فلو"
+                className="h-full w-full object-contain p-0.5"
+                draggable={false}
+              />
             </div>
             <div className="leading-tight">
               <p className="text-sm font-bold text-foreground">وکب فلو</p>
               <p className="text-xs text-muted-foreground">یادگیری زبان</p>
             </div>
-        </div>
-          </Link>
+          </div>
+        </Link>
 
         {/* Close button (mobile only) */}
         <Button
@@ -117,13 +173,13 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           عمومی
         </p>
         <ul className="space-y-1">
-          {primaryItems.map((item) => renderLink(item, 'primary'))}
+          {primaryItems.map((item) => renderLink(item, "primary"))}
         </ul>
 
         {/* Guide / settings / about — divided off from the main nav */}
         <hr className="my-3 border-border" />
         <ul className="space-y-1">
-          {secondaryItems.map((item) => renderLink(item, 'primary'))}
+          {secondaryItems.map((item) => renderLink(item, "primary"))}
         </ul>
 
         {/* Admin-only management area — web only; the offline app has no server */}
@@ -144,7 +200,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 </Badge>
               </div>
               <ul className="space-y-1">
-                {adminItems.map((item) => renderLink(item, 'admin'))}
+                {adminItems.map((item) => renderLink(item, "admin"))}
               </ul>
             </div>
           </div>
@@ -156,10 +212,15 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         <div className="shrink-0 border-t border-border px-4 py-3">
           <div className="flex items-center gap-2">
             <div className="flex-1 overflow-hidden">
-              <p className="truncate text-sm font-medium text-foreground">{user.name}</p>
+              <p className="truncate text-sm font-medium text-foreground">
+                {user.name}
+              </p>
             </div>
             {!native && (
-              <Badge variant={isAdmin ? 'default' : 'secondary'} className="shrink-0 text-xs">
+              <Badge
+                variant={isAdmin ? "default" : "secondary"}
+                className="shrink-0 text-xs"
+              >
                 {user.role}
               </Badge>
             )}
@@ -167,5 +228,5 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </div>
       )}
     </aside>
-  )
+  );
 }

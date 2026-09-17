@@ -1,71 +1,74 @@
-export const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
+export const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
 export const API_ENDPOINTS = {
   auth: {
-    register: '/auth/register',
-    login: '/auth/login',
-    refresh: '/auth/refresh',
-    logout: '/auth/logout',
-    me: '/auth/me',
+    register: "/auth/register",
+    login: "/auth/login",
+    refresh: "/auth/refresh",
+    logout: "/auth/logout",
+    me: "/auth/me",
   },
   users: {
-    list: '/users',
-    me: '/users/me',
+    list: "/users",
+    me: "/users/me",
   },
   words: {
-    list: '/words',
-    modules: '/words/modules',
+    list: "/words",
+    modules: "/words/modules",
     detail: (id: string) => `/words/${id}`,
     examples: (id: string) => `/words/${id}/examples`,
     example: (id: string, exId: string) => `/words/${id}/examples/${exId}`,
   },
   books: {
-    list: '/books',
-    simple: '/books/simple',
+    list: "/books",
+    simple: "/books/simple",
     detail: (id: string) => `/books/${id}`,
     volumes: (bookId: string) => `/books/${bookId}/volumes`,
     volumesSimple: (bookId: string) => `/books/${bookId}/volumes/simple`,
-    volume: (bookId: string, volumeId: string) => `/books/${bookId}/volumes/${volumeId}`,
-    lessons: (bookId: string, volumeId: string) => `/books/${bookId}/volumes/${volumeId}/lessons`,
-    lessonsSimple: (bookId: string, volumeId: string) => `/books/${bookId}/volumes/${volumeId}/lessons/simple`,
+    volume: (bookId: string, volumeId: string) =>
+      `/books/${bookId}/volumes/${volumeId}`,
+    lessons: (bookId: string, volumeId: string) =>
+      `/books/${bookId}/volumes/${volumeId}/lessons`,
+    lessonsSimple: (bookId: string, volumeId: string) =>
+      `/books/${bookId}/volumes/${volumeId}/lessons/simple`,
     lesson: (bookId: string, volumeId: string, lessonId: string) =>
       `/books/${bookId}/volumes/${volumeId}/lessons/${lessonId}`,
   },
   progress: {
     update: (wordId: string) => `/progress/words/${wordId}`,
-    stats: '/progress/stats',
-    reset: '/progress/reset',
+    stats: "/progress/stats",
+    reset: "/progress/reset",
   },
   synonyms: {
     get: (wordId: string) => `/synonyms/words/${wordId}`,
   },
   watchlist: {
-    list: '/watchlist',
-    discovery: '/watchlist/discovery',
-    add: '/watchlist',
+    list: "/watchlist",
+    discovery: "/watchlist/discovery",
+    add: "/watchlist",
     remove: (bookId: string) => `/watchlist/${bookId}`,
   },
   study: {
-    today: '/study/today',
-    todayNew: '/study/today-new',
-    answer: '/study/answer',
-    session: '/study/session',
+    today: "/study/today",
+    todayNew: "/study/today-new",
+    answer: "/study/answer",
+    session: "/study/session",
   },
   plans: {
-    list: '/plans',
-    create: '/plans',
+    list: "/plans",
+    create: "/plans",
     update: (id: string) => `/plans/${id}`,
     remove: (id: string) => `/plans/${id}`,
   },
   settings: {
-    get: '/settings',
-    update: '/settings',
+    get: "/settings",
+    update: "/settings",
   },
   dashboard: {
-    get: '/dashboard',
-    hardWords: '/dashboard/hard-words',
+    get: "/dashboard",
+    hardWords: "/dashboard/hard-words",
   },
   stats: {
-    get: '/stats',
+    get: "/stats",
   },
-} as const
+} as const;

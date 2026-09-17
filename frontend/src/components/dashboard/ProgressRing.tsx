@@ -1,65 +1,65 @@
-import { useId, type ReactNode } from 'react'
-import { cn } from '../../lib/utils'
+import { useId, type ReactNode } from "react";
+import { cn } from "../../lib/utils";
 
 export interface RingSegment {
   /** Absolute value; segments are normalised against their sum. */
-  value: number
+  value: number;
   /** Tailwind stroke class, e.g. `stroke-success`. */
-  className: string
+  className: string;
 }
 
 /** Named gradients for the single-arc mode. */
 const GRADIENTS = {
-  gold: ['hsl(var(--gradient-from))', 'hsl(var(--gradient-to))'],
+  gold: ["hsl(var(--gradient-from))", "hsl(var(--gradient-to))"],
   /** Travels violet → gold, so the arc reads as motion. */
-  violet: ['hsl(var(--brand-violet))', 'hsl(var(--primary))'],
-  mint: ['hsl(var(--brand-mint))', 'hsl(var(--primary))'],
+  violet: ["hsl(var(--brand-violet))", "hsl(var(--primary))"],
+  mint: ["hsl(var(--brand-mint))", "hsl(var(--primary))"],
   /*
     The hero dial: the landing page's amber→yellow. Driven by per-theme tokens
     rather than raw gold, which sits near 1.7:1 on the cream panel — under the
     3:1 a data mark needs. Deep amber on light surfaces, bright gold on dark.
   */
-  dial: ['hsl(var(--dial-from))', 'hsl(var(--dial-to))'],
+  dial: ["hsl(var(--dial-from))", "hsl(var(--dial-to))"],
   /*
     The hero BAND dial. The band's gold field is the same in every theme, so
     the arc can be too — warm ink fading into deep amber, legible on gold in
     any mode. No theme coupling, no contrast surprises.
   */
-  hero: ['hsl(45_60%_10%)', 'hsl(32_70%_26%)'],
-} as const
+  hero: ["hsl(45_60%_10%)", "hsl(32_70%_26%)"],
+} as const;
 
-export type RingGradient = keyof typeof GRADIENTS
+export type RingGradient = keyof typeof GRADIENTS;
 
 interface ProgressRingProps {
   /** 0–100. Ignored when `segments` is provided. */
-  value?: number
+  value?: number;
   /** Draws a segmented ring (memory distribution) instead of a single arc. */
-  segments?: RingSegment[]
+  segments?: RingSegment[];
   /** Stroke width in viewBox units (the box is 100×100). */
-  thickness?: number
+  thickness?: number;
   /** Paint the single arc with a named gradient. */
-  gradient?: RingGradient
+  gradient?: RingGradient;
   /** Stroke class for the single arc when `gradient` is unset. */
-  arcClassName?: string
-  trackClassName?: string
-  className?: string
+  arcClassName?: string;
+  trackClassName?: string;
+  className?: string;
   /** Marks the head of the arc with a dot — reads as "you are here". */
-  tip?: boolean
+  tip?: boolean;
   /** Soft colored halo behind the ring. */
-  glow?: 'violet' | 'gold' | 'mint'
+  glow?: "violet" | "gold" | "mint";
   /** Describes the ring for screen readers; the ring is decorative without it. */
-  label?: string
+  label?: string;
   /** Centre content — a number, a percentage, a short caption. */
-  children?: ReactNode
+  children?: ReactNode;
 }
 
 /* Weak on light surfaces, where a blurred disc reads as a smudge; stronger on
    dark, where it reads as light coming off the arc. */
 const GLOW_CLASS = {
-  violet: 'bg-violet/10 dark:bg-violet/25',
-  gold: 'bg-primary/10 dark:bg-primary/25',
-  mint: 'bg-mint/10 dark:bg-mint/25',
-} as const
+  violet: "bg-violet/10 dark:bg-violet/25",
+  gold: "bg-primary/10 dark:bg-primary/25",
+  mint: "bg-mint/10 dark:bg-mint/25",
+} as const;
 
 /**
  * The dashboard's recurring visual motif: a circular progress dial.
@@ -73,36 +73,36 @@ export function ProgressRing({
   segments,
   thickness = 9,
   gradient,
-  arcClassName = 'stroke-primary',
-  trackClassName = 'stroke-muted',
+  arcClassName = "stroke-primary",
+  trackClassName = "stroke-muted",
   className,
   tip = false,
   glow,
   label,
   children,
 }: ProgressRingProps) {
-  const gradientId = useId()
-  const r = 50 - thickness / 2
-  const circumference = 2 * Math.PI * r
+  const gradientId = useId();
+  const r = 50 - thickness / 2;
+  const circumference = 2 * Math.PI * r;
 
-  const pct = Math.min(100, Math.max(0, value))
+  const pct = Math.min(100, Math.max(0, value));
 
   // The <circle> starts at 3 o'clock and runs clockwise; the whole SVG is then
   // rotated -90°, so the tip lands wherever the arc visually ends.
-  const tipAngle = (pct / 100) * 2 * Math.PI
-  const tipX = 50 + r * Math.cos(tipAngle)
-  const tipY = 50 + r * Math.sin(tipAngle)
+  const tipAngle = (pct / 100) * 2 * Math.PI;
+  const tipX = 50 + r * Math.cos(tipAngle);
+  const tipY = 50 + r * Math.sin(tipAngle);
 
-  const total = segments?.reduce((s, x) => s + x.value, 0) ?? 0
-  let offset = 0
+  const total = segments?.reduce((s, x) => s + x.value, 0) ?? 0;
+  let offset = 0;
 
   return (
-    <div className={cn('relative shrink-0', className)}>
+    <div className={cn("relative shrink-0", className)}>
       {glow && (
         <span
           aria-hidden="true"
           className={cn(
-            'pointer-events-none absolute inset-2 rounded-full blur-2xl',
+            "pointer-events-none absolute inset-2 rounded-full blur-2xl",
             GLOW_CLASS[glow],
           )}
         />
@@ -111,7 +111,7 @@ export function ProgressRing({
       <svg
         viewBox="0 0 100 100"
         className="relative h-full w-full -rotate-90"
-        role={label ? 'img' : 'presentation'}
+        role={label ? "img" : "presentation"}
         aria-label={label}
       >
         {gradient && (
@@ -134,10 +134,10 @@ export function ProgressRing({
 
         {segments && total > 0
           ? segments.map((seg, i) => {
-              if (seg.value <= 0) return null
-              const dash = (seg.value / total) * circumference
-              const dashOffset = -offset
-              offset += dash
+              if (seg.value <= 0) return null;
+              const dash = (seg.value / total) * circumference;
+              const dashOffset = -offset;
+              offset += dash;
               return (
                 <circle
                   key={i}
@@ -151,7 +151,7 @@ export function ProgressRing({
                   strokeDashoffset={dashOffset}
                   className={seg.className}
                 />
-              )
+              );
             })
           : !segments && (
               <>
@@ -166,7 +166,7 @@ export function ProgressRing({
                   strokeDashoffset={circumference * (1 - pct / 100)}
                   stroke={gradient ? `url(#${gradientId})` : undefined}
                   className={cn(
-                    'transition-[stroke-dashoffset] duration-700 ease-out motion-reduce:transition-none',
+                    "transition-[stroke-dashoffset] duration-700 ease-out motion-reduce:transition-none",
                     gradient ? undefined : arcClassName,
                   )}
                 />
@@ -176,11 +176,11 @@ export function ProgressRing({
                     cy={tipY}
                     r={thickness / 2 + 1.5}
                     className={cn(
-                      gradient === 'dial'
-                        ? 'fill-[hsl(var(--dial-to))]'
-                        : gradient === 'hero'
-                          ? 'fill-[hsl(45_60%_10%)]'
-                          : 'fill-primary',
+                      gradient === "dial"
+                        ? "fill-[hsl(var(--dial-to))]"
+                        : gradient === "hero"
+                          ? "fill-[hsl(45_60%_10%)]"
+                          : "fill-primary",
                     )}
                   />
                 )}
@@ -194,5 +194,5 @@ export function ProgressRing({
         </div>
       )}
     </div>
-  )
+  );
 }

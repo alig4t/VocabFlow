@@ -1,10 +1,10 @@
-import type { ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Dumbbell, Lock, ArrowLeft, ShieldCheck } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { useStudyToday } from '@/hooks/useStudy'
-import { cn } from '@/lib/utils'
-import { faNum } from '@/lib/format'
+import type { ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
+import { Dumbbell, Lock, ArrowLeft, ShieldCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useStudyToday } from "@/hooks/useStudy";
+import { cn } from "@/lib/utils";
+import { faNum } from "@/lib/format";
 
 /**
  * Heading for the practice section, deliberately outside the box.
@@ -19,16 +19,16 @@ function PracticeHeading({
   badgeClassName,
   chipClassName,
 }: {
-  icon: typeof Lock
-  badge: string
-  badgeClassName: string
-  chipClassName: string
+  icon: typeof Lock;
+  badge: string;
+  badgeClassName: string;
+  chipClassName: string;
 }) {
   return (
     <header className="flex items-center justify-start gap-2 pb-3 ps-1">
       <span
         className={cn(
-          'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl',
+          "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
           chipClassName,
         )}
       >
@@ -37,11 +37,16 @@ function PracticeHeading({
       <h2 className="text-lg font-bold text-foreground">
         <span className="text-accent-foreground">تمرین</span> امروز
       </h2>
-      <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-bold', badgeClassName)}>
+      <span
+        className={cn(
+          "rounded-full px-2 py-0.5 text-[10px] font-bold",
+          badgeClassName,
+        )}
+      >
         {badge}
       </span>
     </header>
-  )
+  );
 }
 
 /**
@@ -53,7 +58,7 @@ function PracticeHeading({
  * through the box; the surface below is opaque for the same reason.
  */
 function PracticeSection({ children }: { children: ReactNode }) {
-  return <section className="mt-10 sm:mt-14">{children}</section>
+  return <section className="mt-10 sm:mt-14">{children}</section>;
 }
 
 /**
@@ -67,19 +72,19 @@ function PracticeSection({ children }: { children: ReactNode }) {
  *  - unlocked → today's queue is empty and new words were introduced today.
  */
 export function TodayPracticeCard() {
-  const navigate = useNavigate()
-  const { data, isLoading } = useStudyToday()
+  const navigate = useNavigate();
+  const { data, isLoading } = useStudyToday();
 
-  if (isLoading || !data) return null
+  if (isLoading || !data) return null;
 
-  const { dueCount, newCount, introducedToday, hasPlans } = data.meta
-  const remaining = dueCount + newCount
+  const { dueCount, newCount, introducedToday, hasPlans } = data.meta;
+  const remaining = dueCount + newCount;
 
   // Nothing to practise: no plans, or a day with no new words on either side.
-  if (!hasPlans) return null
-  if (newCount === 0 && introducedToday === 0) return null
+  if (!hasPlans) return null;
+  if (newCount === 0 && introducedToday === 0) return null;
 
-  const unlocked = remaining === 0 && introducedToday > 0
+  const unlocked = remaining === 0 && introducedToday > 0;
 
   if (!unlocked) {
     return (
@@ -99,12 +104,14 @@ export function TodayPracticeCard() {
             مرور مجدد واژگان جدید امروز
           </p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground/80">
-            {introducedToday > 0 ? `${faNum(introducedToday)} واژه تا اینجا خوانده‌اید. ` : ''}
+            {introducedToday > 0
+              ? `${faNum(introducedToday)} واژه تا اینجا خوانده‌اید. `
+              : ""}
             با تمام‌کردن مطالعه امروز باز می‌شود.
           </p>
         </div>
       </PracticeSection>
-    )
+    );
   }
 
   return (
@@ -145,7 +152,10 @@ export function TodayPracticeCard() {
                 مرور مجدد واژگان جدید امروز
               </p>
               <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                <ShieldCheck
+                  className="h-3.5 w-3.5 shrink-0"
+                  aria-hidden="true"
+                />
                 بدون اثر روی زمان‌بندی مرور
               </p>
             </div>
@@ -154,7 +164,7 @@ export function TodayPracticeCard() {
           <Button
             size="lg"
             className="w-full shrink-0 gap-2 text-base font-bold shadow-sm sm:w-auto"
-            onClick={() => navigate('/review-today')}
+            onClick={() => navigate("/review-today")}
           >
             شروع تمرین
             <ArrowLeft className="h-5 w-5" aria-hidden="true" />
@@ -162,5 +172,5 @@ export function TodayPracticeCard() {
         </div>
       </div>
     </PracticeSection>
-  )
+  );
 }

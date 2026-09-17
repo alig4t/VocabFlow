@@ -1,244 +1,254 @@
-export type Role = 'USER' | 'ADMIN'
-export type ReviewMode = 'EN_TO_FA' | 'FA_TO_EN'
-export type WordStatus = 'NOT_READ' | 'KNOWN' | 'NOT_KNOWN'
+export type Role = "USER" | "ADMIN";
+export type ReviewMode = "EN_TO_FA" | "FA_TO_EN";
+export type WordStatus = "NOT_READ" | "KNOWN" | "NOT_KNOWN";
 
 export interface User {
-  id: string
-  email: string
-  name: string
-  role: Role
-  createdAt: string
+  id: string;
+  email: string;
+  name: string;
+  role: Role;
+  createdAt: string;
 }
 
 export interface AuthTokens {
-  accessToken: string
-  refreshToken: string
+  accessToken: string;
+  refreshToken: string;
 }
 
 export interface AuthResponse {
-  user: User
-  accessToken: string
-  refreshToken: string
+  user: User;
+  accessToken: string;
+  refreshToken: string;
 }
 
 export interface Book {
-  id: string
-  title: string
-  description?: string
-  coverImage?: string
-  createdAt: string
-  updatedAt: string
-  _count?: { volumes: number }
-  volumes?: Volume[]
+  id: string;
+  title: string;
+  description?: string;
+  coverImage?: string;
+  createdAt: string;
+  updatedAt: string;
+  _count?: { volumes: number };
+  volumes?: Volume[];
 }
 
 export interface BookSimple {
-  id: string
-  title: string
+  id: string;
+  title: string;
 }
 
 export interface Volume {
-  id: string
-  bookId: string
-  volumeNumber: number
-  title?: string
-  coverImage?: string
-  createdAt: string
-  _count?: { lessons: number }
-  lessons?: Lesson[]
+  id: string;
+  bookId: string;
+  volumeNumber: number;
+  title?: string;
+  coverImage?: string;
+  createdAt: string;
+  _count?: { lessons: number };
+  lessons?: Lesson[];
 }
 
 export interface VolumeSimple {
-  id: string
-  volumeNumber: number
-  title?: string
+  id: string;
+  volumeNumber: number;
+  title?: string;
 }
 
 export interface Lesson {
-  id: string
-  volumeId: string
-  lessonNumber: number
-  title?: string
-  createdAt: string
-  _count?: { words: number }
+  id: string;
+  volumeId: string;
+  lessonNumber: number;
+  title?: string;
+  createdAt: string;
+  _count?: { words: number };
 }
 
 export interface LessonSimple {
-  id: string
-  lessonNumber: number
-  title?: string
+  id: string;
+  lessonNumber: number;
+  title?: string;
 }
 
 export interface WordLesson {
-  id: string
-  lessonNumber: number
-  title?: string
+  id: string;
+  lessonNumber: number;
+  title?: string;
   volume: {
-    id: string
-    volumeNumber: number
-    title?: string
-    book: { id: string; title: string }
-  }
+    id: string;
+    volumeNumber: number;
+    title?: string;
+    book: { id: string; title: string };
+  };
 }
 
 export interface Word {
-  id: string
-  eng: string
-  per: string
+  id: string;
+  eng: string;
+  per: string;
   /** English definition gloss (newer collocation/idiom books only). */
-  description?: string
+  description?: string;
   /** Persian rendering of the same definition. */
-  descriptionPer?: string
-  pronunciation?: string
-  partOfSpeech?: string
-  wordForms?: string
-  synonyms: string[]
-  antonyms: string[]
-  primaryExample?: string
-  primaryExampleTrs?: string
-  pronunciationAudio?: string
-  chapter?: number
-  unit?: number
-  lessonId?: string
-  moduleId: string
-  lesson?: WordLesson
-  examples: WordExample[]
-  phrases: WordPhrase[]
-  progress?: UserWordProgress[]
-  createdAt: string
-  updatedAt: string
+  descriptionPer?: string;
+  pronunciation?: string;
+  partOfSpeech?: string;
+  wordForms?: string;
+  synonyms: string[];
+  antonyms: string[];
+  primaryExample?: string;
+  primaryExampleTrs?: string;
+  pronunciationAudio?: string;
+  chapter?: number;
+  unit?: number;
+  lessonId?: string;
+  moduleId: string;
+  lesson?: WordLesson;
+  examples: WordExample[];
+  phrases: WordPhrase[];
+  progress?: UserWordProgress[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface WordExample {
-  id: string
-  wordId: string
-  engSentence: string
-  perTranslation: string
-  order: number
+  id: string;
+  wordId: string;
+  engSentence: string;
+  perTranslation: string;
+  order: number;
 }
 
 export interface WordPhrase {
-  id: string
-  wordId: string
-  patternEng: string
-  patternPer: string
-  order: number
-  examples: WordPhraseExample[]
+  id: string;
+  wordId: string;
+  patternEng: string;
+  patternPer: string;
+  order: number;
+  examples: WordPhraseExample[];
 }
 
 export interface WordPhraseExample {
-  id: string
-  phraseId: string
-  engSentence: string
-  perTranslation: string
-  order: number
+  id: string;
+  phraseId: string;
+  engSentence: string;
+  perTranslation: string;
+  order: number;
 }
 
 export interface UserWordProgress {
-  id: string
-  userId: string
-  wordId: string
-  reviewMode: ReviewMode
+  id: string;
+  userId: string;
+  wordId: string;
+  reviewMode: ReviewMode;
   /** SM-2 daily-program state (set by "Study Today"). */
-  status: WordStatus
+  status: WordStatus;
   /** Manual free-review mark (set on the Review page) — a separate track. */
-  manualStatus?: WordStatus
+  manualStatus?: WordStatus;
 }
 
 export interface LearningModule {
-  id: string
-  name: string
-  slug: string
-  description?: string
-  isActive: boolean
-  order: number
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  isActive: boolean;
+  order: number;
 }
 
 export interface WordFilters {
-  page?: number
-  limit?: number
-  chapter?: number
-  unit?: number
-  lessonId?: string
-  volumeId?: string
-  bookId?: string
+  page?: number;
+  limit?: number;
+  chapter?: number;
+  unit?: number;
+  lessonId?: string;
+  volumeId?: string;
+  bookId?: string;
   /** Restrict to any of several books (sent comma-separated). */
-  bookIds?: string[]
-  status?: WordStatus | 'ALL'
-  mode?: ReviewMode
-  sort?: 'chapter' | 'unit' | 'eng' | 'per'
-  order?: 'asc' | 'desc'
-  search?: string
+  bookIds?: string[];
+  status?: WordStatus | "ALL";
+  mode?: ReviewMode;
+  sort?: "chapter" | "unit" | "eng" | "per";
+  order?: "asc" | "desc";
+  search?: string;
 }
 
 export interface PaginatedWords {
-  data: Word[]
+  data: Word[];
   meta: {
-    page: number
-    limit: number
-    total: number
-    totalPages: number
-  }
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 export interface ProgressStats {
-  EN_TO_FA: { KNOWN: number; NOT_KNOWN: number; NOT_READ: number; total: number }
-  FA_TO_EN: { KNOWN: number; NOT_KNOWN: number; NOT_READ: number; total: number }
+  EN_TO_FA: {
+    KNOWN: number;
+    NOT_KNOWN: number;
+    NOT_READ: number;
+    total: number;
+  };
+  FA_TO_EN: {
+    KNOWN: number;
+    NOT_KNOWN: number;
+    NOT_READ: number;
+    total: number;
+  };
 }
 
 export interface SynonymResult {
-  word: string
-  similarity: number
-  source: string
+  word: string;
+  similarity: number;
+  source: string;
 }
 
 // ─── Watchlist Dashboard (feature: personalized learning) ──────────────────────
 
 /** A book the user has added to their personal learning list, with progress. */
 export interface WatchlistBook {
-  id: string
-  bookId: string
-  title: string
-  coverImage?: string
-  totalWords: number
-  knownWords: number
-  unknownWords: number
+  id: string;
+  bookId: string;
+  title: string;
+  coverImage?: string;
+  totalWords: number;
+  knownWords: number;
+  unknownWords: number;
   /** KNOWN words in this volume answered "سخت" (HARD) at least once — a subset of knownWords. */
-  hardWords: number
-  notReadWords: number
-  reviewedToday: number
+  hardWords: number;
+  notReadWords: number;
+  reviewedToday: number;
   /** ISO date of the last study session, or null if never studied. */
-  lastStudiedAt: string | null
+  lastStudiedAt: string | null;
   /** Words currently due for review (spaced repetition). */
-  dueCount: number
+  dueCount: number;
   /** Estimated days to finish at the user's recent pace. */
-  estimatedDays: number
+  estimatedDays: number;
 }
 
 /** Cross-book user statistics shown in the global header strip. */
 export interface DashboardGlobalStats {
-  watchlistCount: number
-  totalWordsLearned: number
-  reviewsToday: number
+  watchlistCount: number;
+  totalWordsLearned: number;
+  reviewsToday: number;
   /** Consecutive days with at least one study session. */
-  currentStreak: number
-  avgStudyMinutes: number
+  currentStreak: number;
+  avgStudyMinutes: number;
   /** 0–100, share of reviews marked "known". */
-  accuracyRate: number
+  accuracyRate: number;
 }
 
 /** One day of activity for the GitHub-style heatmap. */
 export interface HeatmapDay {
   /** ISO date (YYYY-MM-DD). */
-  date: string
-  count: number
+  date: string;
+  count: number;
 }
 
 /** A book with words due, shown in the Continue Learning queue. */
 export interface ReviewQueueItem {
-  bookId: string
-  title: string
-  dueCount: number
+  bookId: string;
+  title: string;
+  dueCount: number;
 }
 
 /**
@@ -246,161 +256,161 @@ export interface ReviewQueueItem {
  * buckets, so fresh + learning + stable === total). "پایدار" = interval ≥ ۲۱ روز.
  */
 export interface MemoryBreakdown {
-  total: number
-  fresh: number
-  learning: number
-  stable: number
+  total: number;
+  fresh: number;
+  learning: number;
+  stable: number;
 }
 
 /** One day of the review forecast — day 0 is today and includes overdue words. */
 export interface UpcomingDay {
-  date: string
-  count: number
+  date: string;
+  count: number;
 }
 
 /** A word the user keeps marking "سخت" or answering wrong. */
 export interface HardWordItem {
-  wordId: string
-  eng: string
-  per: string
-  hardCount: number
-  wrongCount: number
+  wordId: string;
+  eng: string;
+  per: string;
+  hardCount: number;
+  wrongCount: number;
 }
 
 /** One point of the (approximate) "stable words over time" curve. */
 export interface GrowthPoint {
-  date: string
-  count: number
+  date: string;
+  count: number;
 }
 
 export interface DashboardData {
-  stats: DashboardGlobalStats
-  watchlist: WatchlistBook[]
-  heatmap: HeatmapDay[]
-  queue: ReviewQueueItem[]
-  memory: MemoryBreakdown
-  upcoming: UpcomingDay[]
-  hardWords: HardWordItem[]
-  growth: GrowthPoint[]
+  stats: DashboardGlobalStats;
+  watchlist: WatchlistBook[];
+  heatmap: HeatmapDay[];
+  queue: ReviewQueueItem[];
+  memory: MemoryBreakdown;
+  upcoming: UpcomingDay[];
+  hardWords: HardWordItem[];
+  growth: GrowthPoint[];
 }
 
 // ─── Statistics page (backed by the review_events log) ────────────────────────
 
 export interface StatTotals {
-  reviews: number
-  correct: number
-  wrong: number
-  hard: number
-  easy: number
+  reviews: number;
+  correct: number;
+  wrong: number;
+  hard: number;
+  easy: number;
   /** Words forgotten: an already-recalled word answered «دوباره». */
-  lapses: number
+  lapses: number;
   /** Answers that introduced a brand-new word. */
-  newIntroduced: number
-  sessions: number
-  studyMinutes: number
-  activeDays: number
+  newIntroduced: number;
+  sessions: number;
+  studyMinutes: number;
+  activeDays: number;
 }
 
 export interface ModeAccuracy {
-  mode: ReviewMode
-  reviews: number
-  accuracy: number
+  mode: ReviewMode;
+  reviews: number;
+  accuracy: number;
 }
 
 export interface DailyStat {
-  date: string
-  reviews: number
-  correct: number
-  minutes: number
+  date: string;
+  reviews: number;
+  correct: number;
+  minutes: number;
 }
 
 export interface StatRecords {
-  bestDayReviews: { date: string; count: number } | null
-  bestDayMinutes: { date: string; minutes: number } | null
+  bestDayReviews: { date: string; count: number } | null;
+  bestDayMinutes: { date: string; minutes: number } | null;
   /** Best rolling 7-day window, keyed by its first day. */
-  bestWeekReviews: { weekStart: string; count: number } | null
-  longestStreak: number
+  bestWeekReviews: { weekStart: string; count: number } | null;
+  longestStreak: number;
 }
 
 export interface LearningStats {
   /** False when the review log is empty — the UI explains that stats start now. */
-  hasEvents: boolean
-  direction: ReviewMode
-  totals: StatTotals
-  accuracy: number
-  byMode: ModeAccuracy[]
-  memory: MemoryBreakdown
+  hasEvents: boolean;
+  direction: ReviewMode;
+  totals: StatTotals;
+  accuracy: number;
+  byMode: ModeAccuracy[];
+  memory: MemoryBreakdown;
   /** Distinct words forgotten at least once. */
-  forgottenWords: number
+  forgottenWords: number;
   /** Mean number of reviews a word needed before reaching a ≥۲۱-day interval. */
-  avgReviewsToStable: number
-  hardestWords: HardWordItem[]
-  records: StatRecords
+  avgReviewsToStable: number;
+  hardestWords: HardWordItem[];
+  records: StatRecords;
   /** Exact stable-word count per day, replayed from the log. */
-  growth: GrowthPoint[]
-  daily: DailyStat[]
-  heatmap: HeatmapDay[]
+  growth: GrowthPoint[];
+  daily: DailyStat[];
+  heatmap: HeatmapDay[];
 }
 
 /** A book in the discovery/library view, with watchlist membership flag. */
 export interface DiscoveryBook {
-  id: string
-  title: string
-  description?: string
-  coverImage?: string
-  totalWords: number
-  inWatchlist: boolean
+  id: string;
+  title: string;
+  description?: string;
+  coverImage?: string;
+  totalWords: number;
+  inWatchlist: boolean;
 }
 
 // ─── Daily learning system (SM-2) ──────────────────────────────────────────────
 
-export type CardOrder = 'SEQUENTIAL' | 'RANDOM'
+export type CardOrder = "SEQUENTIAL" | "RANDOM";
 
 /** The four answers offered during a daily study session. */
-export type StudyAnswer = 'EASY' | 'HARD' | 'AGAIN' | 'SKIP'
+export type StudyAnswer = "EASY" | "HARD" | "AGAIN" | "SKIP";
 
 /** A user's per-volume learning plan (the source of truth for "my list"). */
 export interface LearningPlan {
-  id: string
-  volumeId: string
-  bookId: string
-  bookTitle: string
-  volumeTitle: string
-  volumeNumber: number
-  dailyNewWords: number
-  dailyGoal: number
-  isActive: boolean
-  totalWords: number
+  id: string;
+  volumeId: string;
+  bookId: string;
+  bookTitle: string;
+  volumeTitle: string;
+  volumeNumber: number;
+  dailyNewWords: number;
+  dailyGoal: number;
+  isActive: boolean;
+  totalWords: number;
 }
 
 /** One active volume's daily context, shown on Home and during the session. */
 export interface StudyPlanMeta {
-  planId: string
-  volumeId: string
-  bookTitle: string
-  volumeTitle: string
-  dailyNewWords: number
-  dailyGoal: number
-  currentLesson: number | null
-  newToday: number
-  continueLesson: boolean
+  planId: string;
+  volumeId: string;
+  bookTitle: string;
+  volumeTitle: string;
+  dailyNewWords: number;
+  dailyGoal: number;
+  currentLesson: number | null;
+  newToday: number;
+  continueLesson: boolean;
 }
 
 /** Today's study queue: due reviews first, then new words, plus metadata. */
 export interface StudyToday {
-  due: Word[]
-  new: Word[]
+  due: Word[];
+  new: Word[];
   meta: {
-    dueCount: number
-    newCount: number
-    dailyGoal: number
-    reviewedToday: number
+    dueCount: number;
+    newCount: number;
+    dailyGoal: number;
+    reviewedToday: number;
     /** New words already met today — the size of today's practice pool. */
-    introducedToday: number
-    hasPlans: boolean
-    direction: ReviewMode
-    plans: StudyPlanMeta[]
-  }
+    introducedToday: number;
+    hasPlans: boolean;
+    direction: ReviewMode;
+    plans: StudyPlanMeta[];
+  };
 }
 
 /**
@@ -408,31 +418,31 @@ export interface StudyToday {
  * Manual track only — reviewing them never touches the SM-2 schedule.
  */
 export interface TodayNewWords {
-  words: Word[]
-  count: number
-  direction: ReviewMode
+  words: Word[];
+  count: number;
+  direction: ReviewMode;
 }
 
 /** Result of applying an answer to a word. */
 export interface StudyAnswerResult {
-  wordId: string
-  skipped: boolean
-  status?: WordStatus
-  nextReviewAt?: string
-  correct?: boolean
+  wordId: string;
+  skipped: boolean;
+  status?: WordStatus;
+  nextReviewAt?: string;
+  correct?: boolean;
 }
 
 /** Payload recorded at the end of a session (drives summary/streak/heatmap). */
 export interface SessionSummary {
-  startedAt: string
-  endedAt: string
-  durationSec: number
-  reviewedCount: number
-  correctCount: number
-  wrongCount: number
-  hardCount: number
-  skippedCount: number
-  newCount: number
+  startedAt: string;
+  endedAt: string;
+  durationSec: number;
+  reviewedCount: number;
+  correctCount: number;
+  wrongCount: number;
+  hardCount: number;
+  skippedCount: number;
+  newCount: number;
 }
 
 /**
@@ -441,44 +451,44 @@ export interface SessionSummary {
  * session-summary screen shows, not just the visit that just ended.
  */
 export interface DailyStudyTotals {
-  durationSec: number
-  reviewedCount: number
-  correctCount: number
-  wrongCount: number
-  hardCount: number
-  skippedCount: number
-  newCount: number
+  durationSec: number;
+  reviewedCount: number;
+  correctCount: number;
+  wrongCount: number;
+  hardCount: number;
+  skippedCount: number;
+  newCount: number;
 }
 
 export interface UserSettings {
-  studyDirection: ReviewMode
-  autoPlayAudio: boolean
-  showPhonetics: boolean
-  showExamples: boolean
-  cardOrder: CardOrder
+  studyDirection: ReviewMode;
+  autoPlayAudio: boolean;
+  showPhonetics: boolean;
+  showExamples: boolean;
+  cardOrder: CardOrder;
   // ── Notifications (native offline only; web build ignores these) ──────────────
   /** Master switch for the daily study reminder. */
-  dailyReminderEnabled?: boolean
+  dailyReminderEnabled?: boolean;
   /** Local time the daily reminder fires, `"HH:mm"` (24h). Default `"20:00"`. */
-  dailyReminderTime?: string
+  dailyReminderTime?: string;
   /** Per-type toggle: the daily "study is ready" reminder. */
-  notifyDailyStudy?: boolean
+  notifyDailyStudy?: boolean;
   /** Per-type toggle: the "you've been away, reviews are overdue" reminder. */
-  notifyOverdue?: boolean
+  notifyOverdue?: boolean;
   /** Per-type toggle: the "protect your streak" reminder. */
-  notifyStreak?: boolean
+  notifyStreak?: boolean;
 }
 
 /** Live learning status used to decide whether/what to notify (native only). */
 export interface NotificationStatus {
   /** A study session was completed today. */
-  studiedToday: boolean
+  studiedToday: boolean;
   /** Due reviews waiting in the active plans (today). */
-  dueCount: number
+  dueCount: number;
   /** New words available to introduce today. */
-  newCount: number
+  newCount: number;
   /** Current consecutive-day streak. */
-  streak: number
+  streak: number;
   /** The user has at least one active learning plan. */
-  hasPlans: boolean
+  hasPlans: boolean;
 }

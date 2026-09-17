@@ -1,65 +1,71 @@
-import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
-import { API_BASE_URL, API_ENDPOINTS } from '../config/api'
-import { useAuthStore } from '../store/authStore'
+import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
+import { API_BASE_URL, API_ENDPOINTS } from "../config/api";
+import { useAuthStore } from "../store/authStore";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
-})
+});
 
 // Request interceptor: attach access token
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = useAuthStore.getState().accessToken
+    const token = useAuthStore.getState().accessToken;
     if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`
+      config.headers.Authorization = `Bearer ${token}`;
     }
-    return config
+    return config;
   },
-  (error) => Promise.reject(error)
-)
+  (error) => Promise.reject(error),
+);
 
 // Track whether a token refresh is in flight to avoid concurrent refresh calls
-let isRefreshing = false
+let isRefreshing = false;
 let pendingRequests: Array<{
-  resolve: (token: string) => void
-  reject: (err: unknown) => void
-}> = []
+  resolve: (token: string) => void;
+  reject: (err: unknown) => void;
+}> = [];
 
 function processPendingRequests(token: string | null, error: unknown = null) {
   pendingRequests.forEach(({ resolve, reject }) => {
     if (token) {
-      resolve(token)
+      resolve(token);
     } else {
-      reject(error)
+      reject(error);
     }
-  })
-  pendingRequests = []
+  });
+  pendingRequests = [];
 }
 
 // Response interceptor: unwrap { success, data } envelope
 api.interceptors.response.use(
   (response) => {
-    if (response.data && typeof response.data === 'object' && 'data' in response.data) {
-      response.data = response.data.data
+    if (
+      response.data &&
+      typeof response.data === "object" &&
+      "data" in response.data
+    ) {
+      response.data = response.data.data;
     }
-    return response
+    return response;
   },
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
+    const originalRequest = error.config as InternalAxiosRequestConfig & {
+      _retry?: boolean;
+    };
 
     if (error.response?.status !== 401 || originalRequest._retry) {
-      return Promise.reject(error)
+      return Promise.reject(error);
     }
 
-    const refreshToken = useAuthStore.getState().refreshToken
+    const refreshToken = useAuthStore.getState().refreshToken;
 
     if (!refreshToken) {
-      useAuthStore.getState().clearAuth()
-      window.location.href = '/login'
-      return Promise.reject(error)
+      useAuthStore.getState().clearAuth();
+      window.location.href = "/login";
+      return Promise.reject(error);
     }
 
     if (isRefreshing) {
@@ -67,45 +73,47 @@ api.interceptors.response.use(
         pendingRequests.push({
           resolve: (newToken: string) => {
             if (originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${newToken}`
+              originalRequest.headers.Authorization = `Bearer ${newToken}`;
             }
-            resolve(api(originalRequest))
+            resolve(api(originalRequest));
           },
           reject,
-        })
-      })
+        });
+      });
     }
 
-    originalRequest._retry = true
-    isRefreshing = true
+    originalRequest._retry = true;
+    isRefreshing = true;
 
     try {
       const response = await axios.post(
         `${API_BASE_URL}${API_ENDPOINTS.auth.refresh}`,
-        { refreshToken }
-      )
+        { refreshToken },
+      );
 
-      const { accessToken, refreshToken: newRefreshToken } = response.data.data
-      const currentUser = useAuthStore.getState().user!
+      const { accessToken, refreshToken: newRefreshToken } = response.data.data;
+      const currentUser = useAuthStore.getState().user!;
 
-      useAuthStore.getState().setAuth(currentUser, accessToken, newRefreshToken)
+      useAuthStore
+        .getState()
+        .setAuth(currentUser, accessToken, newRefreshToken);
 
       if (originalRequest.headers) {
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
       }
 
-      processPendingRequests(accessToken)
+      processPendingRequests(accessToken);
 
-      return api(originalRequest)
+      return api(originalRequest);
     } catch (refreshError) {
-      processPendingRequests(null, refreshError)
-      useAuthStore.getState().clearAuth()
-      window.location.href = '/login'
-      return Promise.reject(refreshError)
+      processPendingRequests(null, refreshError);
+      useAuthStore.getState().clearAuth();
+      window.location.href = "/login";
+      return Promise.reject(refreshError);
     } finally {
-      isRefreshing = false
+      isRefreshing = false;
     }
-  }
-)
+  },
+);
 
-export default api
+export default api;

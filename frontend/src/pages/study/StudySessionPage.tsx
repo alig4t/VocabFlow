@@ -1,27 +1,38 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Volume2, VolumeX, BookOpen, RotateCcw } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Tooltip } from '@/components/ui/tooltip'
-import { ReviewCard } from '@/components/vocabulary/ReviewCard'
-import { SessionSummaryScreen, type SessionStats } from '@/components/study/SessionSummaryScreen'
-import { useStudyToday } from '@/hooks/useStudy'
-import { usePlans } from '@/hooks/usePlans'
-import { useSettings } from '@/hooks/useSettings'
-import { studyService } from '@/services/study.service'
-import { cn } from '@/lib/utils'
-import { isNative } from '@/lib/platform'
-import { beginStudySession, endStudySession, rescheduleNotifications } from '@/lib/notifications'
-import { playPronunciation, stopPronunciation, warmUpPronunciation } from '@/lib/pronounce'
-import type { ReviewMode, StudyAnswer, Word } from '@/types'
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Volume2, VolumeX, BookOpen, RotateCcw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Tooltip } from "@/components/ui/tooltip";
+import { ReviewCard } from "@/components/vocabulary/ReviewCard";
+import {
+  SessionSummaryScreen,
+  type SessionStats,
+} from "@/components/study/SessionSummaryScreen";
+import { useStudyToday } from "@/hooks/useStudy";
+import { usePlans } from "@/hooks/usePlans";
+import { useSettings } from "@/hooks/useSettings";
+import { studyService } from "@/services/study.service";
+import { cn } from "@/lib/utils";
+import { isNative } from "@/lib/platform";
+import {
+  beginStudySession,
+  endStudySession,
+  rescheduleNotifications,
+} from "@/lib/notifications";
+import {
+  playPronunciation,
+  stopPronunciation,
+  warmUpPronunciation,
+} from "@/lib/pronounce";
+import type { ReviewMode, StudyAnswer, Word } from "@/types";
 
 interface QueueItem {
-  word: Word
-  isNew: boolean
+  word: Word;
+  isNew: boolean;
 }
 
-const MUTE_KEY = 'vocab_review_muted'
+const MUTE_KEY = "vocab_review_muted";
 
 /**
  * Safety net for the case where the app is killed while backgrounded (Android
@@ -29,13 +40,13 @@ const MUTE_KEY = 'vocab_review_muted'
  * credited past the last user interaction + this cap, so dead background time
  * can't leak into `activeMs` even when the process dies mid-session.
  */
-const IDLE_CAP_MS = 5 * 60 * 1000
+const IDLE_CAP_MS = 5 * 60 * 1000;
 
 function loadMuted(): boolean {
   try {
-    return localStorage.getItem(MUTE_KEY) === '1'
+    return localStorage.getItem(MUTE_KEY) === "1";
   } catch {
-    return false
+    return false;
   }
 }
 
@@ -45,7 +56,7 @@ function loadMuted(): boolean {
 // finish/restart.
 // v2: the tally switched from button presses to per-word outcomes, so a session
 // persisted by the old build can't be resumed — bumping the key drops it.
-const SESSION_KEY = 'vocab_study_session_v2'
+const SESSION_KEY = "vocab_study_session_v2";
 
 /**
  * Native: `localStorage`, so the in-progress session survives the app being
@@ -57,7 +68,7 @@ const SESSION_KEY = 'vocab_study_session_v2'
  * Staleness (see the `stale` check below) still bounds how long either can live.
  */
 function sessionStore(): Storage {
-  return isNative() ? localStorage : sessionStorage
+  return isNative() ? localStorage : sessionStorage;
 }
 
 /**
@@ -66,13 +77,13 @@ function sessionStore(): Storage {
  * not midnight, so a session persisted late tonight isn't mistaken for
  * yesterday's and discarded.
  */
-const DAY_START_HOUR = 6
+const DAY_START_HOUR = 6;
 
 function startOfStudyDay(d: Date): Date {
-  const s = new Date(d)
-  s.setHours(DAY_START_HOUR, 0, 0, 0)
-  if (s.getTime() > d.getTime()) s.setDate(s.getDate() - 1)
-  return s
+  const s = new Date(d);
+  s.setHours(DAY_START_HOUR, 0, 0, 0);
+  if (s.getTime() > d.getTime()) s.setDate(s.getDate() - 1);
+  return s;
 }
 
 /**
@@ -85,29 +96,29 @@ function startOfStudyDay(d: Date): Date {
  */
 interface SessionOutcomes {
   /** Answered EASY or HARD at least once. */
-  rated: string[]
+  rated: string[];
   /** Got a real "بلد نیستم" — a first-exposure read does NOT land here. */
-  wrong: string[]
+  wrong: string[];
   /** Answered HARD at least once (overlaps `rated`). */
-  hard: string[]
+  hard: string[];
   /** Skipped at least once. */
-  skipped: string[]
+  skipped: string[];
 }
 
 interface PersistedSession {
-  queue: QueueItem[]
-  index: number
-  outcomes: SessionOutcomes
-  introducedNew: string[]
-  seenNewOnce: string[]
-  startedAt: string
+  queue: QueueItem[];
+  index: number;
+  outcomes: SessionOutcomes;
+  introducedNew: string[];
+  seenNewOnce: string[];
+  startedAt: string;
   /**
    * Accumulated ACTIVE study time in ms (app foregrounded). Backgrounded/
    minimized time is excluded — see the tracking refs in the component.
    * Optional so an older persisted session (pre-dating this field) still
    * resumes/flushes with the legacy wall-clock fallback.
    */
-  activeMs?: number
+  activeMs?: number;
   /**
    * Timestamp of the last answer recorded into this session (updated on every
    * `persist()` call). Used only when this session turns out to be stale and
@@ -117,7 +128,7 @@ interface PersistedSession {
    * later). Optional so an older persisted session (pre-dating this field)
    * still flushes, just falling back to `startedAt`.
    */
-  lastActivityAt?: string
+  lastActivityAt?: string;
   /**
    * Active learning-PLAN ids at the moment this queue was built (sorted).
    * Compared against the CURRENT plan list before resuming. Deliberately
@@ -128,21 +139,21 @@ interface PersistedSession {
    * volumes, so this also catches "book added" (contributes nothing to the
    * queue yet, so nothing in it looks stale on its own).
    */
-  planIds?: string[]
+  planIds?: string[];
 }
 
 function loadPersistedSession(): PersistedSession | null {
   try {
-    const raw = sessionStore().getItem(SESSION_KEY)
-    return raw ? (JSON.parse(raw) as PersistedSession) : null
+    const raw = sessionStore().getItem(SESSION_KEY);
+    return raw ? (JSON.parse(raw) as PersistedSession) : null;
   } catch {
-    return null
+    return null;
   }
 }
 
 function savePersistedSession(s: PersistedSession) {
   try {
-    sessionStore().setItem(SESSION_KEY, JSON.stringify(s))
+    sessionStore().setItem(SESSION_KEY, JSON.stringify(s));
   } catch {
     /* ignore (quota / private mode) */
   }
@@ -152,12 +163,12 @@ function clearPersistedSession() {
   // Clear both unconditionally — cheap, and drops any leftover key in the
   // storage `sessionStore()` isn't currently pointing at.
   try {
-    localStorage.removeItem(SESSION_KEY)
+    localStorage.removeItem(SESSION_KEY);
   } catch {
     /* ignore */
   }
   try {
-    sessionStorage.removeItem(SESSION_KEY)
+    sessionStorage.removeItem(SESSION_KEY);
   } catch {
     /* ignore */
   }
@@ -168,14 +179,21 @@ function clearPersistedSession() {
  * stale-session flush path (persisted arrays) — see `SessionOutcomes`.
  */
 function computeSessionStats(
-  outcomes: { rated: string[]; wrong: string[]; hard: string[]; skipped: string[] },
+  outcomes: {
+    rated: string[];
+    wrong: string[];
+    hard: string[];
+    skipped: string[];
+  },
   newCount: number,
   durationSec: number,
 ): SessionStats {
-  const wrongSet = new Set(outcomes.wrong)
-  const ratedSet = new Set(outcomes.rated)
-  const correctCount = outcomes.rated.filter((id) => !wrongSet.has(id)).length
-  const skippedCount = outcomes.skipped.filter((id) => !ratedSet.has(id) && !wrongSet.has(id)).length
+  const wrongSet = new Set(outcomes.wrong);
+  const ratedSet = new Set(outcomes.rated);
+  const correctCount = outcomes.rated.filter((id) => !wrongSet.has(id)).length;
+  const skippedCount = outcomes.skipped.filter(
+    (id) => !ratedSet.has(id) && !wrongSet.has(id),
+  ).length;
   return {
     correctCount,
     wrongCount: wrongSet.size,
@@ -184,72 +202,71 @@ function computeSessionStats(
     newCount,
     reviewedCount: correctCount + wrongSet.size,
     durationSec: Math.max(0, Math.round(durationSec)),
-  }
+  };
 }
 
 /** Answer buttons — revealed only after the card is flipped (spec: view then rate). */
 function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
   const btn =
-    'w-full whitespace-nowrap rounded-lg border px-2 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2'
+    "w-full whitespace-nowrap rounded-lg border px-2 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2";
   return (
     <div className="flex items-stretch gap-2">
       <Tooltip label="اصلاً یادم نیامد" className="flex-1">
         <button
-          onClick={() => onAnswer('AGAIN')}
+          onClick={() => onAnswer("AGAIN")}
           className={cn(
             btn,
-            'border-red-300 text-red-700 hover:bg-red-50 focus-visible:ring-red-400 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40',
-            `${isNative() ? 'flex flex-col' : ''}`
+            "border-red-300 text-red-700 hover:bg-red-50 focus-visible:ring-red-400 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40",
+            `${isNative() ? "flex flex-col" : ""}`,
           )}
         >
           بلد نیستم
-          {isNative() && <span className='text-[7px]'>(اصلاً یادم نیامد)</span>}
-
+          {isNative() && <span className="text-[7px]">(اصلاً یادم نیامد)</span>}
         </button>
       </Tooltip>
       <Tooltip label="به سختی یادم آمد" className="flex-1">
         <button
-          onClick={() => onAnswer('HARD')}
+          onClick={() => onAnswer("HARD")}
           className={cn(
             btn,
-            'border-amber-300 text-amber-700 hover:bg-amber-50 focus-visible:ring-amber-400 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/40',
-            `${isNative() ? 'flex flex-col' : ''}`
+            "border-amber-300 text-amber-700 hover:bg-amber-50 focus-visible:ring-amber-400 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/40",
+            `${isNative() ? "flex flex-col" : ""}`,
           )}
         >
           سخت
-          {isNative() && <span className='text-[7px]'>(به سختی یادم آمد)</span>}
+          {isNative() && <span className="text-[7px]">(به سختی یادم آمد)</span>}
         </button>
       </Tooltip>
       <Tooltip label="به‌راحتی یادم آمد" className="flex-1">
         <button
-          onClick={() => onAnswer('EASY')}
+          onClick={() => onAnswer("EASY")}
           className={cn(
             btn,
-            'border-green-300 text-green-700 hover:bg-green-50 focus-visible:ring-green-400 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950/40',
-            `${isNative() ? 'flex flex-col' : ''}`
+            "border-green-300 text-green-700 hover:bg-green-50 focus-visible:ring-green-400 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950/40",
+            `${isNative() ? "flex flex-col" : ""}`,
           )}
         >
           بلدم
-          {isNative() && <span className='text-[7px]'>(به‌راحتی یادم آمد)</span>}
-
+          {isNative() && (
+            <span className="text-[7px]">(به‌راحتی یادم آمد)</span>
+          )}
         </button>
       </Tooltip>
       <Tooltip label={!isNative() ? "فعلاً رد کن (بدون تغییر زمان‌بندی)" : ""}>
         <button
-          onClick={() => onAnswer('SKIP')}
+          onClick={() => onAnswer("SKIP")}
           className={cn(
             btn,
-            'max-w-[4.5rem] border-dashed border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring',
-            `${isNative() ? 'flex flex-col' : ''}`
+            "max-w-[4.5rem] border-dashed border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring",
+            `${isNative() ? "flex flex-col" : ""}`,
           )}
         >
           رد
-          {isNative() && <span className='text-[7px]'>(فعلاً رد کن)</span>}
-
+          {isNative() && <span className="text-[7px]">(فعلاً رد کن)</span>}
         </button>
       </Tooltip>
     </div>
-  )
+  );
 }
 
 /**
@@ -260,67 +277,74 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
  */
 function ReadBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
   const btn =
-    'whitespace-nowrap rounded-lg border px-2 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2'
+    "whitespace-nowrap rounded-lg border px-2 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2";
   return (
     <div className="flex items-stretch gap-2">
       <Tooltip label="این واژه جدید را خواندم" className="flex-1">
         <button
-          onClick={() => onAnswer('AGAIN')}
+          onClick={() => onAnswer("AGAIN")}
           className={cn(
             btn,
-            'w-full border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 focus-visible:ring-primary/40',
+            "w-full border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 focus-visible:ring-primary/40",
           )}
         >
           خواندم
         </button>
       </Tooltip>
-      <Tooltip label={!isNative() ? 'فعلاً رد کن (بدون تغییر زمان‌بندی)' : ''}>
+      <Tooltip label={!isNative() ? "فعلاً رد کن (بدون تغییر زمان‌بندی)" : ""}>
         <button
-          onClick={() => onAnswer('SKIP')}
+          onClick={() => onAnswer("SKIP")}
           className={cn(
             btn,
-            'max-w-[4.5rem] border-dashed border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring',
+            "max-w-[4.5rem] border-dashed border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring",
           )}
         >
           رد
         </button>
       </Tooltip>
     </div>
-  )
+  );
 }
 
 export function StudySessionPage() {
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const { data: today, isLoading, isError, isFetching, refetch } = useStudyToday()
-  const { data: settings } = useSettings()
-  const { data: plans, isFetching: isPlansFetching } = usePlans()
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const {
+    data: today,
+    isLoading,
+    isError,
+    isFetching,
+    refetch,
+  } = useStudyToday();
+  const { data: settings } = useSettings();
+  const { data: plans, isFetching: isPlansFetching } = usePlans();
 
-  const mode: ReviewMode = today?.meta.direction ?? settings?.studyDirection ?? 'EN_TO_FA'
-  const autoPlay = settings?.autoPlayAudio ?? true
-  const showPhonetics = settings?.showPhonetics ?? true
-  const showExamples = settings?.showExamples ?? true
+  const mode: ReviewMode =
+    today?.meta.direction ?? settings?.studyDirection ?? "EN_TO_FA";
+  const autoPlay = settings?.autoPlayAudio ?? true;
+  const showPhonetics = settings?.showPhonetics ?? true;
+  const showExamples = settings?.showExamples ?? true;
 
   // Frozen session queue (due reviews first, then new words). Requeued items
   // (Again/Skip) are appended so they resurface later in the same session.
-  const [queue, setQueue] = useState<QueueItem[] | null>(null)
-  const [index, setIndex] = useState(0)
-  const [flipped, setFlipped] = useState(false)
-  const [muted, setMuted] = useState<boolean>(loadMuted)
-  const [summary, setSummary] = useState<SessionStats | null>(null)
-  const [saving, setSaving] = useState(false)
+  const [queue, setQueue] = useState<QueueItem[] | null>(null);
+  const [index, setIndex] = useState(0);
+  const [flipped, setFlipped] = useState(false);
+  const [muted, setMuted] = useState<boolean>(loadMuted);
+  const [summary, setSummary] = useState<SessionStats | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  const startedAtRef = useRef<Date>(new Date())
+  const startedAtRef = useRef<Date>(new Date());
 
   // While a session is live, pending study reminders are cancelled (the user
   // is already studying — a "you haven't reviewed today" ping mid-session is
   // noise). Leaving the page re-plans the schedule from fresh data.
   useEffect(() => {
-    beginStudySession()
+    beginStudySession();
     return () => {
-      endStudySession()
-    }
-  }, [])
+      endStudySession();
+    };
+  }, []);
   // ── Active-time tracking ─────────────────────────────────────────────────
   // Duration must count only time the user is actually studying with the app
   // in the foreground. Wall-clock `endedAt − startedAt` (the old approach)
@@ -329,133 +353,137 @@ export function StudySessionPage() {
   // a segment opens when the app becomes visible and closes on `visibilitychange`
   // → hidden / Capacitor `appStateChange` → inactive (minimize, screen lock,
   // app switch). Each segment is capped at lastActivity + IDLE_CAP_MS.
-  const activeMsRef = useRef(0)
-  const segmentStartRef = useRef<number | null>(null)
-  const lastActiveRef = useRef<number>(Date.now())
+  const activeMsRef = useRef(0);
+  const segmentStartRef = useRef<number | null>(null);
+  const lastActiveRef = useRef<number>(Date.now());
   // True while a live, unfinished session is on screen — visibility resume
   // must not start a segment on the summary screen or before the queue loads.
-  const sessionLiveRef = useRef(false)
+  const sessionLiveRef = useRef(false);
 
   const pauseTracking = useCallback(() => {
-    if (segmentStartRef.current == null) return
-    const end = Math.min(Date.now(), lastActiveRef.current + IDLE_CAP_MS)
-    activeMsRef.current += Math.max(0, end - segmentStartRef.current)
-    segmentStartRef.current = null
-  }, [])
+    if (segmentStartRef.current == null) return;
+    const end = Math.min(Date.now(), lastActiveRef.current + IDLE_CAP_MS);
+    activeMsRef.current += Math.max(0, end - segmentStartRef.current);
+    segmentStartRef.current = null;
+  }, []);
 
   const resumeTracking = useCallback(() => {
-    lastActiveRef.current = Date.now()
+    lastActiveRef.current = Date.now();
     if (segmentStartRef.current == null && sessionLiveRef.current) {
-      segmentStartRef.current = Date.now()
+      segmentStartRef.current = Date.now();
     }
-  }, [])
+  }, []);
 
   /** Total active ms so far, settling the running segment without closing it. */
   const totalActiveMs = useCallback(() => {
-    pauseTracking()
-    resumeTracking()
-    return activeMsRef.current
-  }, [pauseTracking, resumeTracking])
+    pauseTracking();
+    resumeTracking();
+    return activeMsRef.current;
+  }, [pauseTracking, resumeTracking]);
 
   useEffect(() => {
-    const live = queue !== null && !summary
-    if (live) resumeTracking()
-    else pauseTracking() // summary shown / queue gone → settle the open segment
-    sessionLiveRef.current = live
-  }, [queue, summary, pauseTracking, resumeTracking])
+    const live = queue !== null && !summary;
+    if (live) resumeTracking();
+    else pauseTracking(); // summary shown / queue gone → settle the open segment
+    sessionLiveRef.current = live;
+  }, [queue, summary, pauseTracking, resumeTracking]);
 
   // Pause/resume the clock with app visibility (minimize, screen lock, app
   // switch). `visibilitychange` covers the web + most WebView cases; the
   // Capacitor App plugin is the reliable signal on native Android.
   useEffect(() => {
     const onVisibility = () => {
-      if (document.visibilityState === 'hidden') pauseTracking()
-      else resumeTracking()
-    }
-    document.addEventListener('visibilitychange', onVisibility)
-    let cleanupApp: (() => void) | undefined
+      if (document.visibilityState === "hidden") pauseTracking();
+      else resumeTracking();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    let cleanupApp: (() => void) | undefined;
     if (isNative()) {
-      import('@capacitor/app')
+      import("@capacitor/app")
         .then(({ App }) => {
-          const listener = App.addListener('appStateChange', ({ isActive }) => {
-            if (isActive) resumeTracking()
-            else pauseTracking()
-          })
-          listener.then((h) => (cleanupApp = () => void h.remove()))
+          const listener = App.addListener("appStateChange", ({ isActive }) => {
+            if (isActive) resumeTracking();
+            else pauseTracking();
+          });
+          listener.then((h) => (cleanupApp = () => void h.remove()));
         })
-        .catch((e) => console.error('appStateChange listener failed', e))
+        .catch((e) => console.error("appStateChange listener failed", e));
     }
     return () => {
-      document.removeEventListener('visibilitychange', onVisibility)
-      pauseTracking()
-      cleanupApp?.()
-    }
-  }, [pauseTracking, resumeTracking])
+      document.removeEventListener("visibilitychange", onVisibility);
+      pauseTracking();
+      cleanupApp?.();
+    };
+  }, [pauseTracking, resumeTracking]);
   // Per-word outcome sets (see SessionOutcomes) — one classification per word,
   // no matter how many times it comes back around in this session.
-  const ratedWords = useRef<Set<string>>(new Set())
-  const wrongWords = useRef<Set<string>>(new Set())
-  const hardWords = useRef<Set<string>>(new Set())
-  const skippedWords = useRef<Set<string>>(new Set())
-  const introducedNew = useRef<Set<string>>(new Set())
+  const ratedWords = useRef<Set<string>>(new Set());
+  const wrongWords = useRef<Set<string>>(new Set());
+  const hardWords = useRef<Set<string>>(new Set());
+  const skippedWords = useRef<Set<string>>(new Set());
+  const introducedNew = useRef<Set<string>>(new Set());
   // New words the user has already been shown once this session. A new word gets
   // the Read/Skip bar only on its FIRST appearance; once seen (even if requeued
   // by Read/Again), it uses the standard AnswerBar.
-  const seenNewOnce = useRef<Set<string>>(new Set())
+  const seenNewOnce = useRef<Set<string>>(new Set());
 
   // Mirrors `plans` (current active plan ids, sorted) into a ref so `persist`
   // can snapshot it without depending on `plans` directly — `persist`'s
   // identity is used as a dep elsewhere and doesn't need to change every time
   // the plans query refetches.
-  const planIdsRef = useRef<string[]>([])
+  const planIdsRef = useRef<string[]>([]);
   useEffect(() => {
-    if (plans) planIdsRef.current = plans.map((p) => p.id).sort()
-  }, [plans])
+    if (plans) planIdsRef.current = plans.map((p) => p.id).sort();
+  }, [plans]);
 
   /** Snapshot the live session (queue position + every outcome set) to storage. */
-  const persist = useCallback((q: QueueItem[], i: number) => {
-    savePersistedSession({
-      queue: q,
-      index: i,
-      outcomes: {
-        rated: [...ratedWords.current],
-        wrong: [...wrongWords.current],
-        hard: [...hardWords.current],
-        skipped: [...skippedWords.current],
-      },
-      introducedNew: [...introducedNew.current],
-      seenNewOnce: [...seenNewOnce.current],
-      startedAt: startedAtRef.current.toISOString(),
-      activeMs: totalActiveMs(),
-      lastActivityAt: new Date().toISOString(),
-      planIds: planIdsRef.current,
-    })
-  }, [totalActiveMs])
+  const persist = useCallback(
+    (q: QueueItem[], i: number) => {
+      savePersistedSession({
+        queue: q,
+        index: i,
+        outcomes: {
+          rated: [...ratedWords.current],
+          wrong: [...wrongWords.current],
+          hard: [...hardWords.current],
+          skipped: [...skippedWords.current],
+        },
+        introducedNew: [...introducedNew.current],
+        seenNewOnce: [...seenNewOnce.current],
+        startedAt: startedAtRef.current.toISOString(),
+        activeMs: totalActiveMs(),
+        lastActivityAt: new Date().toISOString(),
+        planIds: planIdsRef.current,
+      });
+    },
+    [totalActiveMs],
+  );
 
   // Resume an in-progress session if one was left mid-way (see SESSION_KEY);
   // otherwise freeze a fresh queue once today's data lands — but only when
   // it's FRESH (not a stale/in-flight refetch), so a just-created plan isn't
   // missed and the session doesn't freeze an empty "nothing today" list.
   useEffect(() => {
-    if (queue !== null) return
+    if (queue !== null) return;
     // Wait for the plan list to be loaded AND settled before deciding whether
     // to resume — it can have changed since the queue was persisted (a volume
     // added OR removed), and `data` can be a stale cached list the instant
     // this page mounts while a background refetch (triggered by that change)
     // is still in flight. Once resumed there's no second chance to catch it
     // (the guard above short-circuits on every later run).
-    if (plans === undefined || isPlansFetching) return
+    if (plans === undefined || isPlansFetching) return;
 
-    const currentIds = plans.map((p) => p.id).sort()
-    const persisted = loadPersistedSession()
+    const currentIds = plans.map((p) => p.id).sort();
+    const persisted = loadPersistedSession();
     if (persisted && persisted.queue.length > 0) {
-      const persistedIds = persisted.planIds
-      const persistedStart = new Date(persisted.startedAt)
+      const persistedIds = persisted.planIds;
+      const persistedStart = new Date(persisted.startedAt);
       // The study day rolled over (06:00 boundary) while this session sat
       // unfinished — today's queue is for a new day now, so the old one can't
       // be resumed even though the plan set itself may be unchanged.
       const crossedStudyDay =
-        startOfStudyDay(persistedStart).getTime() !== startOfStudyDay(new Date()).getTime()
+        startOfStudyDay(persistedStart).getTime() !==
+        startOfStudyDay(new Date()).getTime();
       // Compare the FULL plan id set, not just "did a queued word's plan get
       // removed" — a plan ADDED after the queue was built contributes no
       // words to it, so nothing in the queue looks stale even though "امروز"
@@ -465,38 +493,45 @@ export function StudySessionPage() {
         crossedStudyDay ||
         !persistedIds ||
         persistedIds.length !== currentIds.length ||
-        persistedIds.some((id, i) => id !== currentIds[i])
+        persistedIds.some((id, i) => id !== currentIds[i]);
       if (!stale) {
-        setQueue(persisted.queue)
-        setIndex(persisted.index)
-        ratedWords.current = new Set(persisted.outcomes?.rated ?? [])
-        wrongWords.current = new Set(persisted.outcomes?.wrong ?? [])
-        hardWords.current = new Set(persisted.outcomes?.hard ?? [])
-        skippedWords.current = new Set(persisted.outcomes?.skipped ?? [])
-        introducedNew.current = new Set(persisted.introducedNew)
-        seenNewOnce.current = new Set(persisted.seenNewOnce)
-        startedAtRef.current = persistedStart
+        setQueue(persisted.queue);
+        setIndex(persisted.index);
+        ratedWords.current = new Set(persisted.outcomes?.rated ?? []);
+        wrongWords.current = new Set(persisted.outcomes?.wrong ?? []);
+        hardWords.current = new Set(persisted.outcomes?.hard ?? []);
+        skippedWords.current = new Set(persisted.outcomes?.skipped ?? []);
+        introducedNew.current = new Set(persisted.introducedNew);
+        seenNewOnce.current = new Set(persisted.seenNewOnce);
+        startedAtRef.current = persistedStart;
         // Restore accumulated active time. Sessions persisted by an older
         // build (no `activeMs`) fall back to 0 — losing at most that one
         // session's time once, after which every persist carries the field.
-        activeMsRef.current = persisted.activeMs ?? 0
-        lastActiveRef.current = Date.now()
+        activeMsRef.current = persisted.activeMs ?? 0;
+        lastActiveRef.current = Date.now();
         // The session is live the moment this queue is adopted (the
         // `sessionLiveRef` effect runs only after the state commits).
-        segmentStartRef.current = Date.now()
-        return
+        segmentStartRef.current = Date.now();
+        return;
       }
       // Discarding progress that was never recorded (plan set changed
       // mid-session, or the study day rolled over while the app sat closed) —
       // flush it as its own session first so the time/words already spent
       // aren't silently lost. Bounded by `lastActivityAt`, not "now": the app
       // may only be noticing this long after the user actually stopped.
-      const flushEnd = persisted.lastActivityAt ? new Date(persisted.lastActivityAt) : persistedStart
+      const flushEnd = persisted.lastActivityAt
+        ? new Date(persisted.lastActivityAt)
+        : persistedStart;
       const flushDurationSec =
         persisted.activeMs != null
           ? Math.round(persisted.activeMs / 1000)
           : // Legacy persisted session (pre-activeMs): bounded wall clock.
-            Math.max(0, Math.round((flushEnd.getTime() - persistedStart.getTime()) / 1000))
+            Math.max(
+              0,
+              Math.round(
+                (flushEnd.getTime() - persistedStart.getTime()) / 1000,
+              ),
+            );
       const flushStats = computeSessionStats(
         {
           rated: persisted.outcomes?.rated ?? [],
@@ -506,8 +541,13 @@ export function StudySessionPage() {
         },
         persisted.introducedNew?.length ?? 0,
         flushDurationSec,
-      )
-      if (flushStats.reviewedCount + flushStats.skippedCount + flushStats.newCount > 0) {
+      );
+      if (
+        flushStats.reviewedCount +
+          flushStats.skippedCount +
+          flushStats.newCount >
+        0
+      ) {
         void studyService
           .recordSession({
             startedAt: persisted.startedAt,
@@ -520,39 +560,40 @@ export function StudySessionPage() {
             skippedCount: flushStats.skippedCount,
             newCount: flushStats.newCount,
           })
-          .catch((e) => console.error('flush abandoned session failed', e))
+          .catch((e) => console.error("flush abandoned session failed", e));
       }
-      clearPersistedSession()
+      clearPersistedSession();
     }
 
     if (today && !isFetching) {
       const initial = [
         ...today.due.map((w) => ({ word: w, isNew: false })),
         ...today.new.map((w) => ({ word: w, isNew: true })),
-      ]
-      setQueue(initial)
-      startedAtRef.current = new Date()
-      activeMsRef.current = 0
-      lastActiveRef.current = Date.now()
-      segmentStartRef.current = Date.now()
-      if (initial.length > 0) persist(initial, 0)
+      ];
+      setQueue(initial);
+      startedAtRef.current = new Date();
+      activeMsRef.current = 0;
+      lastActiveRef.current = Date.now();
+      segmentStartRef.current = Date.now();
+      if (initial.length > 0) persist(initial, 0);
     }
-  }, [today, queue, isFetching, persist, plans, isPlansFetching])
+  }, [today, queue, isFetching, persist, plans, isPlansFetching]);
 
   // Leaving the session (even mid-way) → refresh the dashboard + today counts so
   // due/new numbers reflect the answers just given.
   useEffect(() => {
     return () => {
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-      queryClient.invalidateQueries({ queryKey: ['study', 'today'] })
-    }
-  }, [queryClient])
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["study", "today"] });
+    };
+  }, [queryClient]);
 
-  const current = queue && index < queue.length ? queue[index] : null
-  const total = queue?.length ?? 0
+  const current = queue && index < queue.length ? queue[index] : null;
+  const total = queue?.length ?? 0;
 
   // First time this new word is shown → offer only Read/Skip.
-  const isFirstExposure = !!current?.isNew && !seenNewOnce.current.has(current.word.id)
+  const isFirstExposure =
+    !!current?.isNew && !seenNewOnce.current.has(current.word.id);
 
   const finish = useCallback(() => {
     // Word counts, not press counts: a word that slipped once and was answered
@@ -564,19 +605,23 @@ export function StudySessionPage() {
       wrong: [...wrongWords.current],
       hard: [...hardWords.current],
       skipped: [...skippedWords.current],
-    }
-    const endedAt = new Date()
-    const stats = computeSessionStats(outcomes, introducedNew.current.size, totalActiveMs() / 1000)
+    };
+    const endedAt = new Date();
+    const stats = computeSessionStats(
+      outcomes,
+      introducedNew.current.size,
+      totalActiveMs() / 1000,
+    );
     // Shown immediately as this visit's own numbers; replaced below with the
     // whole day's total once the server/local DB confirms it (the user may
     // have visited `/study` earlier today too — see `recordSession`).
-    setSummary(stats)
-    clearPersistedSession()
-    stopPronunciation()
+    setSummary(stats);
+    clearPersistedSession();
+    stopPronunciation();
 
     // Only record a session if the user actually did something.
     if (stats.reviewedCount + stats.skippedCount + stats.newCount > 0) {
-      setSaving(true)
+      setSaving(true);
       studyService
         .recordSession({
           startedAt: startedAtRef.current.toISOString(),
@@ -590,112 +635,114 @@ export function StudySessionPage() {
           newCount: stats.newCount,
         })
         .then((res) => setSummary(res.today))
-        .catch((e) => console.error('recordSession failed', e))
+        .catch((e) => console.error("recordSession failed", e))
         .finally(() => {
-          setSaving(false)
-          queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-          queryClient.invalidateQueries({ queryKey: ['study', 'today'] })
+          setSaving(false);
+          queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+          queryClient.invalidateQueries({ queryKey: ["study", "today"] });
           // Studied today → drop tonight's reminder (and refresh the horizon).
-          rescheduleNotifications()
-        })
+          rescheduleNotifications();
+        });
     }
-  }, [queryClient, totalActiveMs])
+  }, [queryClient, totalActiveMs]);
 
   const handleAnswer = useCallback(
     (a: StudyAnswer) => {
-      if (!current || !queue) return
-      const cur = current
-      lastActiveRef.current = Date.now()
+      if (!current || !queue) return;
+      const cur = current;
+      lastActiveRef.current = Date.now();
 
       // Persist (fire-and-forget; SKIP is a no-op server-side).
-      if (a !== 'SKIP') {
-        void studyService.answer(cur.word.id, a).catch((e) => console.error('answer failed', e))
+      if (a !== "SKIP") {
+        void studyService
+          .answer(cur.word.id, a)
+          .catch((e) => console.error("answer failed", e));
       }
 
       // Recomputed here (not read off the render-scoped `isFirstExposure`) so the
       // tally can never disagree with the button the user actually saw.
-      const firstExposure = cur.isNew && !seenNewOnce.current.has(cur.word.id)
+      const firstExposure = cur.isNew && !seenNewOnce.current.has(cur.word.id);
 
       // Record this word's outcome. Sets, so repeats within the session collapse:
       // the first "خواندم" on a new word is a read, not a mistake, and only a
       // later real "بلد نیستم" marks the word wrong.
-      const id = cur.word.id
-      if (a === 'EASY') ratedWords.current.add(id)
-      else if (a === 'HARD') {
-        ratedWords.current.add(id)
-        hardWords.current.add(id)
-      } else if (a === 'AGAIN') {
-        if (!firstExposure) wrongWords.current.add(id)
-      } else skippedWords.current.add(id)
-      if (a !== 'SKIP' && cur.isNew) introducedNew.current.add(cur.word.id)
+      const id = cur.word.id;
+      if (a === "EASY") ratedWords.current.add(id);
+      else if (a === "HARD") {
+        ratedWords.current.add(id);
+        hardWords.current.add(id);
+      } else if (a === "AGAIN") {
+        if (!firstExposure) wrongWords.current.add(id);
+      } else skippedWords.current.add(id);
+      if (a !== "SKIP" && cur.isNew) introducedNew.current.add(cur.word.id);
       // After this answer the word is no longer on its first exposure, so any
       // later appearance (e.g. an Again/Read requeue) uses the standard buttons.
-      if (cur.isNew) seenNewOnce.current.add(cur.word.id)
+      if (cur.isNew) seenNewOnce.current.add(cur.word.id);
 
       // "بلد نیستم" (Again) → requeue so the card returns later this session.
       // "رد" (Skip) → just move on; no reschedule, no requeue (distinct behavior).
-      const willRequeue = a === 'AGAIN'
-      const nextQueue = willRequeue ? [...queue, cur] : queue
-      if (willRequeue) setQueue(nextQueue)
+      const willRequeue = a === "AGAIN";
+      const nextQueue = willRequeue ? [...queue, cur] : queue;
+      if (willRequeue) setQueue(nextQueue);
 
-      const nextIndex = index + 1
+      const nextIndex = index + 1;
       if (nextIndex >= nextQueue.length) {
-        finish()
+        finish();
       } else {
-        setIndex(nextIndex)
-        setFlipped(false)
-        persist(nextQueue, nextIndex)
+        setIndex(nextIndex);
+        setFlipped(false);
+        persist(nextQueue, nextIndex);
       }
     },
     [current, queue, index, finish, persist],
-  )
+  );
 
   const toggleFlip = useCallback(() => {
-    lastActiveRef.current = Date.now()
-    setFlipped((f) => !f)
-  }, [])
+    lastActiveRef.current = Date.now();
+    setFlipped((f) => !f);
+  }, []);
 
   const toggleMuted = useCallback(() => {
     setMuted((m) => {
-      const next = !m
+      const next = !m;
       try {
-        localStorage.setItem(MUTE_KEY, next ? '1' : '0')
+        localStorage.setItem(MUTE_KEY, next ? "1" : "0");
       } catch {
         /* ignore */
       }
-      if (next) stopPronunciation()
-      return next
-    })
-  }, [])
+      if (next) stopPronunciation();
+      return next;
+    });
+  }, []);
 
   const restart = useCallback(() => {
-    clearPersistedSession()
-    ratedWords.current = new Set()
-    wrongWords.current = new Set()
-    hardWords.current = new Set()
-    skippedWords.current = new Set()
-    introducedNew.current = new Set()
-    seenNewOnce.current = new Set()
-    activeMsRef.current = 0
-    setSummary(null)
-    setQueue(null)
-    setIndex(0)
-    setFlipped(false)
-    refetch()
-  }, [refetch])
+    clearPersistedSession();
+    ratedWords.current = new Set();
+    wrongWords.current = new Set();
+    hardWords.current = new Set();
+    skippedWords.current = new Set();
+    introducedNew.current = new Set();
+    seenNewOnce.current = new Set();
+    activeMsRef.current = 0;
+    setSummary(null);
+    setQueue(null);
+    setIndex(0);
+    setFlipped(false);
+    refetch();
+  }, [refetch]);
 
   // Auto-play the English word when entering a new card (EN→FA, unmuted, enabled).
   useEffect(() => {
-    if (!muted && autoPlay && mode === 'EN_TO_FA' && current && !summary) {
-      playPronunciation(current.word)
+    if (!muted && autoPlay && mode === "EN_TO_FA" && current && !summary) {
+      playPronunciation(current.word);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current?.word.id, summary])
+  }, [current?.word.id, summary]);
 
   useEffect(() => {
-    warmUpPronunciation()
-    return () => stopPronunciation()
-  }, [])
+    warmUpPronunciation();
+    return () => stopPronunciation();
+  }, []);
 
   // Keyboard: Space flips; once flipped, 1=Again 2=Hard 3=Easy S=Skip; P pronounce.
   useEffect(() => {
@@ -705,39 +752,48 @@ export function StudySessionPage() {
         e.target instanceof HTMLTextAreaElement ||
         e.target instanceof HTMLSelectElement
       )
-        return
-      if (summary || !current) return
-      if (e.key === ' ' || e.code === 'Space') {
-        e.preventDefault()
-        toggleFlip()
-      } else if (e.key === 'p' || e.key === 'P') {
-        e.preventDefault()
-        if (!muted) playPronunciation(current.word)
+        return;
+      if (summary || !current) return;
+      if (e.key === " " || e.code === "Space") {
+        e.preventDefault();
+        toggleFlip();
+      } else if (e.key === "p" || e.key === "P") {
+        e.preventDefault();
+        if (!muted) playPronunciation(current.word);
       } else if (flipped) {
         if (isFirstExposure) {
           // First exposure of a new word: only Read (1/Enter) and Skip (s).
-          if (e.key === '1' || e.key === 'Enter') handleAnswer('AGAIN')
-          else if (e.key === 's' || e.key === 'S') handleAnswer('SKIP')
-        } else if (e.key === '1') handleAnswer('AGAIN')
-        else if (e.key === '2') handleAnswer('HARD')
-        else if (e.key === '3') handleAnswer('EASY')
-        else if (e.key === 's' || e.key === 'S') handleAnswer('SKIP')
+          if (e.key === "1" || e.key === "Enter") handleAnswer("AGAIN");
+          else if (e.key === "s" || e.key === "S") handleAnswer("SKIP");
+        } else if (e.key === "1") handleAnswer("AGAIN");
+        else if (e.key === "2") handleAnswer("HARD");
+        else if (e.key === "3") handleAnswer("EASY");
+        else if (e.key === "s" || e.key === "S") handleAnswer("SKIP");
       }
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [summary, current, flipped, muted, toggleFlip, handleAnswer, isFirstExposure])
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [
+    summary,
+    current,
+    flipped,
+    muted,
+    toggleFlip,
+    handleAnswer,
+    isFirstExposure,
+  ]);
 
-  const progressPercent = total > 0 ? Math.round((Math.min(index, total) / total) * 100) : 0
+  const progressPercent =
+    total > 0 ? Math.round((Math.min(index, total) / total) * 100) : 0;
 
   const planLabel = useMemo(() => {
-    const plans = today?.meta.plans ?? []
-    if (plans.length === 0) return null
-    const p = plans[0]
-    const lesson = p.currentLesson != null ? `درس ${p.currentLesson}` : ''
-    const verb = p.continueLesson ? 'ادامه‌ی' : 'شروع'
-    return `${p.bookTitle} — ${p.volumeTitle}${lesson ? ` · ${verb} ${lesson}` : ''}`
-  }, [today])
+    const plans = today?.meta.plans ?? [];
+    if (plans.length === 0) return null;
+    const p = plans[0];
+    const lesson = p.currentLesson != null ? `درس ${p.currentLesson}` : "";
+    const verb = p.continueLesson ? "ادامه‌ی" : "شروع";
+    return `${p.bookTitle} — ${p.volumeTitle}${lesson ? ` · ${verb} ${lesson}` : ""}`;
+  }, [today]);
 
   // ── Render states ──────────────────────────────────────────────────────────
 
@@ -746,10 +802,10 @@ export function StudySessionPage() {
       <SessionSummaryScreen
         stats={summary}
         saving={saving}
-        onHome={() => navigate('/dashboard')}
+        onHome={() => navigate("/dashboard")}
         onAgain={restart}
       />
-    )
+    );
   }
 
   if (isLoading || (today && queue === null)) {
@@ -757,83 +813,112 @@ export function StudySessionPage() {
       <div className="mx-auto max-w-3xl px-4 py-6">
         <div className="h-[420px] animate-pulse rounded-2xl bg-muted" />
       </div>
-    )
+    );
   }
 
   if (isError) {
     return (
-      <div dir="rtl" className="font-persian mx-auto max-w-3xl px-4 py-16 text-center">
-        <p className="text-sm font-medium text-destructive">خطا در بارگذاری مطالعه امروز.</p>
+      <div
+        dir="rtl"
+        className="font-persian mx-auto max-w-3xl px-4 py-16 text-center"
+      >
+        <p className="text-sm font-medium text-destructive">
+          خطا در بارگذاری مطالعه امروز.
+        </p>
         <Button variant="outline" className="mt-4" onClick={() => refetch()}>
           تلاش دوباره
         </Button>
       </div>
-    )
+    );
   }
 
-  const noPlans = today && !today.meta.hasPlans
-  const nothingToday = today && today.meta.hasPlans && total === 0
+  const noPlans = today && !today.meta.hasPlans;
+  const nothingToday = today && today.meta.hasPlans && total === 0;
 
   if (noPlans) {
     return (
-      <div dir="rtl" className="font-persian mx-auto max-w-2xl px-4 py-16 text-center space-y-3">
+      <div
+        dir="rtl"
+        className="font-persian mx-auto max-w-2xl px-4 py-16 text-center space-y-3"
+      >
         <BookOpen className="mx-auto h-10 w-10 text-muted-foreground" />
-        <p className="text-lg font-semibold text-foreground">هنوز برنامه‌ی یادگیری ندارید</p>
-        <p className="text-sm text-muted-foreground">
-          برای شروع، از کتابخانه یک جلد را انتخاب کنید و به برنامه‌ی یادگیری‌تان اضافه کنید.
+        <p className="text-lg font-semibold text-foreground">
+          هنوز برنامه‌ی یادگیری ندارید
         </p>
-        <Button className="mt-2" onClick={() => navigate('/library')}>
+        <p className="text-sm text-muted-foreground">
+          برای شروع، از کتابخانه یک جلد را انتخاب کنید و به برنامه‌ی یادگیری‌تان
+          اضافه کنید.
+        </p>
+        <Button className="mt-2" onClick={() => navigate("/library")}>
           رفتن به کتابخانه
         </Button>
       </div>
-    )
+    );
   }
 
   if (nothingToday) {
     return (
-      <div dir="rtl" className="font-persian mx-auto max-w-2xl px-4 py-16 text-center space-y-3">
+      <div
+        dir="rtl"
+        className="font-persian mx-auto max-w-2xl px-4 py-16 text-center space-y-3"
+      >
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10">
           <RotateCcw className="h-8 w-8 text-green-500" />
         </div>
-        <p className="text-lg font-semibold text-foreground">برای امروز کاری نمانده! 🎉</p>
+        <p className="text-lg font-semibold text-foreground">
+          برای امروز کاری نمانده! 🎉
+        </p>
         <p className="text-sm text-muted-foreground">
           همه‌ی مرورها و واژگان جدید امروز را تمام کردید. فردا برگردید.
         </p>
-        <Button className="mt-2" onClick={() => navigate('/dashboard')}>
+        <Button className="mt-2" onClick={() => navigate("/dashboard")}>
           بازگشت به خانه
         </Button>
       </div>
-    )
+    );
   }
 
   return (
-    <div dir="rtl" className="font-persian mx-auto max-w-3xl space-y-4 px-2 py-4 sm:px-4 sm:py-6">
+    <div
+      dir="rtl"
+      className="font-persian mx-auto max-w-3xl space-y-4 px-2 py-4 sm:px-4 sm:py-6"
+    >
       {/* Toolbar */}
       <div className="flex items-center gap-2">
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate("/dashboard")}
           className="h-8 w-8 flex-shrink-0"
           title="بازگشت"
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-sm font-bold text-foreground">مطالعه امروز</h1>
-          {planLabel && <p className="truncate text-xs text-muted-foreground">{planLabel}</p>}
+          <h1 className="truncate text-sm font-bold text-foreground">
+            مطالعه امروز
+          </h1>
+          {planLabel && (
+            <p className="truncate text-xs text-muted-foreground">
+              {planLabel}
+            </p>
+          )}
         </div>
         <button
           onClick={toggleMuted}
-          title={muted ? 'صدا خاموش' : 'صدا روشن'}
+          title={muted ? "صدا خاموش" : "صدا روشن"}
           className={cn(
-            'flex h-8 w-8 items-center justify-center rounded-full border transition-colors',
+            "flex h-8 w-8 items-center justify-center rounded-full border transition-colors",
             muted
-              ? 'border-border bg-muted text-muted-foreground'
-              : 'border-primary/30 bg-primary/10 text-primary hover:bg-primary/20',
+              ? "border-border bg-muted text-muted-foreground"
+              : "border-primary/30 bg-primary/10 text-primary hover:bg-primary/20",
           )}
         >
-          {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+          {muted ? (
+            <VolumeX className="h-4 w-4" />
+          ) : (
+            <Volume2 className="h-4 w-4" />
+          )}
         </button>
       </div>
 
@@ -854,8 +939,10 @@ export function StudySessionPage() {
             )}
           </span>
           <span>
-            <span className="font-semibold text-foreground">{Math.min(index + 1, total)}</span>
-            {' / '}
+            <span className="font-semibold text-foreground">
+              {Math.min(index + 1, total)}
+            </span>
+            {" / "}
             {total}
           </span>
         </div>
@@ -871,7 +958,7 @@ export function StudySessionPage() {
       {current && (
         <div className="space-y-4">
           <ReviewCard
-            key={current.word.id + '-' + index + mode}
+            key={current.word.id + "-" + index + mode}
             word={current.word}
             mode={mode}
             flipped={flipped}
@@ -888,11 +975,15 @@ export function StudySessionPage() {
             )
           ) : (
             <div className="flex items-center justify-center gap-2">
-              <Button variant="outline" className="min-w-[10rem]" onClick={toggleFlip}>
+              <Button
+                variant="outline"
+                className="min-w-[10rem]"
+                onClick={toggleFlip}
+              >
                 نمایش پاسخ
               </Button>
               <button
-                onClick={() => handleAnswer('SKIP')}
+                onClick={() => handleAnswer("SKIP")}
                 className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
               >
                 رد
@@ -905,16 +996,16 @@ export function StudySessionPage() {
             <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[11px] text-muted-foreground/80">
               {(isFirstExposure
                 ? [
-                    { key: '1', label: 'خواندم' },
-                    { key: 'S', label: 'رد' },
-                    { key: 'P', label: 'تلفظ' },
+                    { key: "1", label: "خواندم" },
+                    { key: "S", label: "رد" },
+                    { key: "P", label: "تلفظ" },
                   ]
                 : [
-                    { key: '1', label: 'بلد نیستم' },
-                    { key: '2', label: 'سخت' },
-                    { key: '3', label: 'بلدم' },
-                    { key: 'S', label: 'رد' },
-                    { key: 'P', label: 'تلفظ' },
+                    { key: "1", label: "بلد نیستم" },
+                    { key: "2", label: "سخت" },
+                    { key: "3", label: "بلدم" },
+                    { key: "S", label: "رد" },
+                    { key: "P", label: "تلفظ" },
                   ]
               ).map((s) => (
                 <span key={s.label} className="inline-flex items-center gap-1">
@@ -929,5 +1020,5 @@ export function StudySessionPage() {
         </div>
       )}
     </div>
-  )
+  );
 }

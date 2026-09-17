@@ -20,13 +20,13 @@
  *
  * On the web build every export is a no-op.
  */
-import { isNative } from './platform'
-import { faNum } from './format'
-import type { NotificationStatus, UserSettings } from '@/types'
+import { isNative } from "./platform";
+import { faNum } from "./format";
+import type { NotificationStatus, UserSettings } from "@/types";
 
-const off = () => import('@/offline/repo')
+const off = () => import("@/offline/repo");
 
-const CHANNEL_ID = 'vocabflow-reminders'
+const CHANNEL_ID = "vocabflow-reminders";
 
 /**
  * The reminder ladder: days (from the last app open) to schedule a nudge on.
@@ -35,15 +35,15 @@ const CHANNEL_ID = 'vocabflow-reminders'
  * yet today; 1 = you didn't open the app today at all); everything past
  * OVERDUE_AFTER_DAYS is a gentle come-back nudge, spaced ever wider.
  */
-const REMINDER_DAYS = [0, 1, 3, 6, 10, 15, 21, 30]
-const FORECAST_DAYS = 30 // SM-2 lookahead horizon (same as the ladder's reach)
-const OVERDUE_AFTER_DAYS = 3 // idle days before the message turns "overdue"
-const BASE_ID = 4200
+const REMINDER_DAYS = [0, 1, 3, 6, 10, 15, 21, 30];
+const FORECAST_DAYS = 30; // SM-2 lookahead horizon (same as the ladder's reach)
+const OVERDUE_AFTER_DAYS = 3; // idle days before the message turns "overdue"
+const BASE_ID = 4200;
 // ids: BASE_ID .. BASE_ID+MAX_SCHEDULED-1 (ladder rungs + one per forecast day)
-const MAX_SCHEDULED = REMINDER_DAYS.length + FORECAST_DAYS
+const MAX_SCHEDULED = REMINDER_DAYS.length + FORECAST_DAYS;
 
 /** The ladder days that use the "overdue" tone — drives message rotation. */
-const OVERDUE_DAYS = REMINDER_DAYS.filter((d) => d >= OVERDUE_AFTER_DAYS)
+const OVERDUE_DAYS = REMINDER_DAYS.filter((d) => d >= OVERDUE_AFTER_DAYS);
 
 /**
  * Come-back messages, rotated across the overdue rungs so a long absence never
@@ -51,95 +51,125 @@ const OVERDUE_DAYS = REMINDER_DAYS.filter((d) => d >= OVERDUE_AFTER_DAYS)
  * "friendly and motivational, not demanding or stressful".
  */
 const OVERDUE_MESSAGES: { title: string; body: string }[] = [
-  { title: '📚 چند روزه ندیدیمت', body: 'هر وقت فرصت داشتی، واژه‌هات همین‌جا منتظرتن.' },
-  { title: '🌱 یه مرور کوتاه کافیه', body: 'چند دقیقه وقت بذار و پشتکارت رو دوباره بساز.' },
-  { title: '✨ هر وقت آماده بودی، از همون‌جا ادامه بده', body: 'شروع دوباره سخت نیست؛ از همون واژه بعدی.' },
-]
+  {
+    title: "📚 چند روزه ندیدیمت",
+    body: "هر وقت فرصت داشتی، واژه‌هات همین‌جا منتظرتن.",
+  },
+  {
+    title: "🌱 یه مرور کوتاه کافیه",
+    body: "چند دقیقه وقت بذار و پشتکارت رو دوباره بساز.",
+  },
+  {
+    title: "✨ هر وقت آماده بودی، از همون‌جا ادامه بده",
+    body: "شروع دوباره سخت نیست؛ از همون واژه بعدی.",
+  },
+];
 
-type Kind = 'review' | 'daily' | 'overdue' | 'streak'
+type Kind = "review" | "daily" | "overdue" | "streak";
 
 interface Reminder {
-  id: number
-  at: Date
-  title: string
-  body: string
+  id: number;
+  at: Date;
+  title: string;
+  body: string;
 }
 
 /** Parse `"HH:mm"` → `[h, m]`, tolerant of bad input (defaults to 20:00). */
 function parseTime(t: string | undefined): [number, number] {
-  const m = /^(\d{1,2}):(\d{2})$/.exec(t ?? '')
-  if (!m) return [20, 0]
-  const h = Math.min(23, Math.max(0, Number(m[1])))
-  const min = Math.min(59, Math.max(0, Number(m[2])))
-  return [h, min]
+  const m = /^(\d{1,2}):(\d{2})$/.exec(t ?? "");
+  if (!m) return [20, 0];
+  const h = Math.min(23, Math.max(0, Number(m[1])));
+  const min = Math.min(59, Math.max(0, Number(m[2])));
+  return [h, min];
 }
 
 /** A Date at the configured reminder time, `dayOffset` days from today. */
 function fireDate(dayOffset: number, h: number, min: number): Date {
-  const d = new Date()
-  d.setHours(h, min, 0, 0)
-  d.setDate(d.getDate() + dayOffset)
-  return d
+  const d = new Date();
+  d.setHours(h, min, 0, 0);
+  d.setDate(d.getDate() + dayOffset);
+  return d;
 }
 
 /**
  * Build the message for a rung of the ladder. `day` selects the overdue variant
  * and decides whether exact counts are known (only day 0 is "today").
  */
-function messageFor(kind: Kind, s: NotificationStatus, day: number, dueCount = 0): { title: string; body: string } {
-  const exact = day === 0
-  if (kind === 'review') {
-    const count = exact ? s.dueCount : dueCount
-    return { title: '📚 مرور امروزت آماده‌ست', body: `${faNum(count)} واژه منتظر مرورن.` }
+function messageFor(
+  kind: Kind,
+  s: NotificationStatus,
+  day: number,
+  dueCount = 0,
+): { title: string; body: string } {
+  const exact = day === 0;
+  if (kind === "review") {
+    const count = exact ? s.dueCount : dueCount;
+    return {
+      title: "📚 مرور امروزت آماده‌ست",
+      body: `${faNum(count)} واژه منتظر مرورن.`,
+    };
   }
-  if (kind === 'overdue') {
-    const rung = OVERDUE_DAYS.indexOf(day)
-    return OVERDUE_MESSAGES[(rung < 0 ? 0 : rung) % OVERDUE_MESSAGES.length]
+  if (kind === "overdue") {
+    const rung = OVERDUE_DAYS.indexOf(day);
+    return OVERDUE_MESSAGES[(rung < 0 ? 0 : rung) % OVERDUE_MESSAGES.length];
   }
-  if (kind === 'streak') {
+  if (kind === "streak") {
     // "پشتکار" is the term the dashboard already uses for this number
     // (GlobalStats stat tile) — keep the user-facing wording identical.
     return {
       title: `🔥 پشتکار ${faNum(s.streak)} روزه‌ات در خطره`,
-      body: 'امروز هنوز مطالعه نکرده‌ای؛ یه مرور کوتاه کافیه.',
-    }
+      body: "امروز هنوز مطالعه نکرده‌ای؛ یه مرور کوتاه کافیه.",
+    };
   }
   // daily — use exact counts only for today (future-day counts are unknown).
   if (exact && s.dueCount > 0 && s.newCount > 0) {
-    return { title: '🔥 جلسه‌ی امروزت آماده‌ست', body: 'مرورها و واژه‌های جدید منتظرتن.' }
+    return {
+      title: "🔥 جلسه‌ی امروزت آماده‌ست",
+      body: "مرورها و واژه‌های جدید منتظرتن.",
+    };
   }
   if (exact && s.dueCount > 0) {
-    return { title: '📚 مرور امروزت آماده‌ست', body: `${faNum(s.dueCount)} واژه منتظر مرورن.` }
+    return {
+      title: "📚 مرور امروزت آماده‌ست",
+      body: `${faNum(s.dueCount)} واژه منتظر مرورن.`,
+    };
   }
   if (exact && s.newCount > 0) {
     return {
-      title: '✨ واژه‌های جدید امروز',
+      title: "✨ واژه‌های جدید امروز",
       body: `${faNum(s.newCount)} واژه جدید برای یادگیری داری. چند دقیقه وقت بذار.`,
-    }
+    };
   }
-  return { title: '📚 وقت مروره', body: 'چند دقیقه برای مرور امروزت وقت بذار.' }
+  return {
+    title: "📚 وقت مروره",
+    body: "چند دقیقه برای مرور امروزت وقت بذار.",
+  };
 }
 
 /**
  * Decide the notification kind for day `d`, honoring the per-type toggles.
  * Returns null when nothing should fire that day.
  */
-function kindForDay(d: number, s: UserSettings, status: NotificationStatus): Kind | null {
-  const overdue = s.notifyOverdue !== false
-  const streak = s.notifyStreak !== false
-  const daily = s.notifyDailyStudy !== false
+function kindForDay(
+  d: number,
+  s: UserSettings,
+  status: NotificationStatus,
+): Kind | null {
+  const overdue = s.notifyOverdue !== false;
+  const streak = s.notifyStreak !== false;
+  const daily = s.notifyDailyStudy !== false;
 
   // After a few idle days, prefer the "come back" tone.
   if (d >= OVERDUE_AFTER_DAYS) {
-    if (overdue) return 'overdue'
-    return daily ? 'daily' : null
+    if (overdue) return "overdue";
+    return daily ? "daily" : null;
   }
   // Today, if there is a live streak worth protecting.
   if (d === 0 && status.streak > 0) {
-    if (streak) return 'streak'
-    return daily ? 'daily' : null
+    if (streak) return "streak";
+    return daily ? "daily" : null;
   }
-  return daily ? 'daily' : null
+  return daily ? "daily" : null;
 }
 
 /**
@@ -148,45 +178,51 @@ function kindForDay(d: number, s: UserSettings, status: NotificationStatus): Kin
  * due reviews always gets a "review" reminder — outranking the ladder's tone —
  * while days without reviews keep the tapering ladder (if the user has plans).
  */
-function planReminders(settings: UserSettings, status: NotificationStatus, dueCounts: number[]): Reminder[] {
-  const [h, min] = parseTime(settings.dailyReminderTime)
-  const now = new Date()
-  const out: Reminder[] = []
-  const daily = settings.notifyDailyStudy !== false
+function planReminders(
+  settings: UserSettings,
+  status: NotificationStatus,
+  dueCounts: number[],
+): Reminder[] {
+  const [h, min] = parseTime(settings.dailyReminderTime);
+  const now = new Date();
+  const out: Reminder[] = [];
+  const daily = settings.notifyDailyStudy !== false;
 
-  const horizon = Math.min(FORECAST_DAYS, dueCounts.length)
-  const days = new Set<number>([...REMINDER_DAYS])
-  for (let d = 0; d < horizon; d++) if (dueCounts[d] > 0) days.add(d)
+  const horizon = Math.min(FORECAST_DAYS, dueCounts.length);
+  const days = new Set<number>([...REMINDER_DAYS]);
+  for (let d = 0; d < horizon; d++) if (dueCounts[d] > 0) days.add(d);
 
-  ;[...days].sort((a, b) => a - b).forEach((d) => {
-    const at = fireDate(d, h, min)
-    const isDueDay = d < horizon && dueCounts[d] > 0
+  [...days]
+    .sort((a, b) => a - b)
+    .forEach((d) => {
+      const at = fireDate(d, h, min);
+      const isDueDay = d < horizon && dueCounts[d] > 0;
 
-    if (d === 0) {
-      // Today: skip if the time has passed, already studied, or nothing to do.
-      if (at.getTime() <= now.getTime()) return
-      if (status.studiedToday) return
-      if (status.dueCount + status.newCount === 0) return
-    } else if (isDueDay) {
-      // A future day with actual due reviews — always remind (if daily
-      // reminders are on at all); ignore the ladder's tone for these.
-      if (!daily) return
-      const { title, body } = messageFor('review', status, d, dueCounts[d])
-      out.push({ id: BASE_ID + out.length, at, title, body })
-      return
-    } else {
-      // Future days: only meaningful if the user actually has a plan to study.
-      if (!status.hasPlans) return
-    }
+      if (d === 0) {
+        // Today: skip if the time has passed, already studied, or nothing to do.
+        if (at.getTime() <= now.getTime()) return;
+        if (status.studiedToday) return;
+        if (status.dueCount + status.newCount === 0) return;
+      } else if (isDueDay) {
+        // A future day with actual due reviews — always remind (if daily
+        // reminders are on at all); ignore the ladder's tone for these.
+        if (!daily) return;
+        const { title, body } = messageFor("review", status, d, dueCounts[d]);
+        out.push({ id: BASE_ID + out.length, at, title, body });
+        return;
+      } else {
+        // Future days: only meaningful if the user actually has a plan to study.
+        if (!status.hasPlans) return;
+      }
 
-    const kind = kindForDay(d, settings, status)
-    if (!kind) return
+      const kind = kindForDay(d, settings, status);
+      if (!kind) return;
 
-    const { title, body } = messageFor(kind, status, d)
-    out.push({ id: BASE_ID + out.length, at, title, body })
-  })
+      const { title, body } = messageFor(kind, status, d);
+      out.push({ id: BASE_ID + out.length, at, title, body });
+    });
 
-  return out
+  return out;
 }
 
 /**
@@ -194,9 +230,13 @@ function planReminders(settings: UserSettings, status: NotificationStatus, dueCo
  * only ever grows, so ids left over from an older/shorter ladder are cleared
  * too — no orphaned notifications survive an app update.
  */
-async function cancelAll(LocalNotifications: typeof import('@capacitor/local-notifications').LocalNotifications) {
-  const ids = Array.from({ length: MAX_SCHEDULED }, (_, i) => ({ id: BASE_ID + i }))
-  await LocalNotifications.cancel({ notifications: ids })
+async function cancelAll(
+  LocalNotifications: typeof import("@capacitor/local-notifications").LocalNotifications,
+) {
+  const ids = Array.from({ length: MAX_SCHEDULED }, (_, i) => ({
+    id: BASE_ID + i,
+  }));
+  await LocalNotifications.cancel({ notifications: ids });
 }
 
 /**
@@ -204,27 +244,28 @@ async function cancelAll(LocalNotifications: typeof import('@capacitor/local-not
  * repeatedly. Returns true when notifications are permitted.
  */
 export async function ensureNotificationPermission(): Promise<boolean> {
-  if (!isNative()) return false
+  if (!isNative()) return false;
   try {
-    const { LocalNotifications } = await import('@capacitor/local-notifications')
+    const { LocalNotifications } =
+      await import("@capacitor/local-notifications");
     try {
       await LocalNotifications.createChannel({
         id: CHANNEL_ID,
-        name: 'یادآور مطالعه',
-        description: 'یادآوری روزانه‌ی مرور و واژه‌های جدید',
+        name: "یادآور مطالعه",
+        description: "یادآوری روزانه‌ی مرور و واژه‌های جدید",
         importance: 4, // HIGH — heads-up
-      })
+      });
     } catch {
       /* createChannel is Android-only; ignore elsewhere */
     }
-    let perm = await LocalNotifications.checkPermissions()
-    if (perm.display !== 'granted') {
-      perm = await LocalNotifications.requestPermissions()
+    let perm = await LocalNotifications.checkPermissions();
+    if (perm.display !== "granted") {
+      perm = await LocalNotifications.requestPermissions();
     }
-    return perm.display === 'granted'
+    return perm.display === "granted";
   } catch (e) {
-    console.error('notif permission failed', e)
-    return false
+    console.error("notif permission failed", e);
+    return false;
   }
 }
 
@@ -233,21 +274,22 @@ export async function ensureNotificationPermission(): Promise<boolean> {
  * status. Cancels all previously-scheduled reminders first. No-op on web.
  */
 export async function rescheduleNotifications(): Promise<void> {
-  if (!isNative()) return
+  if (!isNative()) return;
   try {
-    const { LocalNotifications } = await import('@capacitor/local-notifications')
-    await cancelAll(LocalNotifications)
+    const { LocalNotifications } =
+      await import("@capacitor/local-notifications");
+    await cancelAll(LocalNotifications);
 
-    const repo = await off()
-    const settings = await repo.getSettings()
+    const repo = await off();
+    const settings = await repo.getSettings();
 
     // Master switch off → stay cancelled.
-    if (settings.dailyReminderEnabled === false) return
+    if (settings.dailyReminderEnabled === false) return;
 
-    const status = await repo.getNotificationStatus()
-    const dueCounts = await repo.getUpcomingDueCounts(FORECAST_DAYS)
-    const reminders = planReminders(settings, status, dueCounts)
-    if (reminders.length === 0) return
+    const status = await repo.getNotificationStatus();
+    const dueCounts = await repo.getUpcomingDueCounts(FORECAST_DAYS);
+    const reminders = planReminders(settings, status, dueCounts);
+    if (reminders.length === 0) return;
 
     await LocalNotifications.schedule({
       notifications: reminders.map((r) => ({
@@ -257,9 +299,9 @@ export async function rescheduleNotifications(): Promise<void> {
         channelId: CHANNEL_ID,
         schedule: { at: r.at, allowWhileIdle: true },
       })),
-    })
+    });
   } catch (e) {
-    console.error('reschedule notifications failed', e)
+    console.error("reschedule notifications failed", e);
   }
 }
 
@@ -270,27 +312,28 @@ export async function rescheduleNotifications(): Promise<void> {
 // page re-plans the full schedule from fresh data. A reminder fired mid-review
 // would be wrong on every axis — the user is *already* studying today.
 
-let sessionDepth = 0 // ref-counted: nested/unexpected double-mounts stay safe
+let sessionDepth = 0; // ref-counted: nested/unexpected double-mounts stay safe
 
 /** Mark a live study session: cancels pending reminders until it ends. */
 export async function beginStudySession(): Promise<void> {
-  if (!isNative()) return
-  sessionDepth++
-  if (sessionDepth > 1) return
+  if (!isNative()) return;
+  sessionDepth++;
+  if (sessionDepth > 1) return;
   try {
-    const { LocalNotifications } = await import('@capacitor/local-notifications')
-    await cancelAll(LocalNotifications)
+    const { LocalNotifications } =
+      await import("@capacitor/local-notifications");
+    await cancelAll(LocalNotifications);
   } catch (e) {
-    console.error('begin session notification cancel failed', e)
+    console.error("begin session notification cancel failed", e);
   }
 }
 
 /** End a study session: rebuild the reminder schedule from current data. */
 export async function endStudySession(): Promise<void> {
-  if (!isNative()) return
-  sessionDepth = Math.max(0, sessionDepth - 1)
-  if (sessionDepth > 0) return
-  await rescheduleNotifications()
+  if (!isNative()) return;
+  sessionDepth = Math.max(0, sessionDepth - 1);
+  if (sessionDepth > 0) return;
+  await rescheduleNotifications();
 }
 
 /**
@@ -298,15 +341,15 @@ export async function endStudySession(): Promise<void> {
  * then lay down the schedule. No-op on web.
  */
 export async function initNotifications(): Promise<void> {
-  if (!isNative()) return
+  if (!isNative()) return;
   try {
-    const repo = await off()
-    const settings = await repo.getSettings()
+    const repo = await off();
+    const settings = await repo.getSettings();
     if (settings.dailyReminderEnabled !== false) {
-      await ensureNotificationPermission()
+      await ensureNotificationPermission();
     }
   } catch (e) {
-    console.error('init notifications failed', e)
+    console.error("init notifications failed", e);
   }
-  await rescheduleNotifications()
+  await rescheduleNotifications();
 }

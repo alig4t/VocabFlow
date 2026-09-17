@@ -1,8 +1,8 @@
 interface OnboardingBackgroundProps {
-  className?: string
+  className?: string;
 }
 
-const STROKE = '#B99B32'
+const STROKE = "#B99B32";
 
 /**
  * Decorative organic line-art background, redrawn in SVG (no raster asset).
@@ -76,5 +76,5 @@ export function OnboardingBackground({ className }: OnboardingBackgroundProps) {
         <path d="M 140 272 C 147 269, 154 271, 158 277" />
       </g>
     </svg>
-  )
+  );
 }

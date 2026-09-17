@@ -1,39 +1,42 @@
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { Link, useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { toast } from '@/components/ui/use-toast'
-import { ThemeToggle } from '@/components/layout/ThemeToggle'
-import { useRegister } from '@/hooks/useAuth'
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Link, useNavigate } from "react-router-dom";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/use-toast";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import { useRegister } from "@/hooks/useAuth";
 
 const registerSchema = z
   .object({
-    name: z.string().min(1, 'نام الزامی است').min(2, 'نام باید حداقل ۲ کاراکتر باشد'),
-    email: z.string().min(1, 'ایمیل الزامی است').email('ایمیل معتبر وارد کنید'),
+    name: z
+      .string()
+      .min(1, "نام الزامی است")
+      .min(2, "نام باید حداقل ۲ کاراکتر باشد"),
+    email: z.string().min(1, "ایمیل الزامی است").email("ایمیل معتبر وارد کنید"),
     password: z
       .string()
-      .min(8, 'رمز عبور باید حداقل ۸ کاراکتر باشد')
-      .regex(/[A-Z]/, 'باید حداقل یک حرف بزرگ داشته باشد')
-      .regex(/[0-9]/, 'باید حداقل یک عدد داشته باشد'),
-    confirmPassword: z.string().min(1, 'رمزهای عبور مطابقت ندارند'),
+      .min(8, "رمز عبور باید حداقل ۸ کاراکتر باشد")
+      .regex(/[A-Z]/, "باید حداقل یک حرف بزرگ داشته باشد")
+      .regex(/[0-9]/, "باید حداقل یک عدد داشته باشد"),
+    confirmPassword: z.string().min(1, "رمزهای عبور مطابقت ندارند"),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: 'رمزهای عبور مطابقت ندارند',
-    path: ['confirmPassword'],
-  })
+    message: "رمزهای عبور مطابقت ندارند",
+    path: ["confirmPassword"],
+  });
 
-type RegisterFormValues = z.infer<typeof registerSchema>
+type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export function RegisterPage() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const navigate = useNavigate()
-  const register = useRegister()
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const navigate = useNavigate();
+  const register = useRegister();
 
   const {
     register: registerField,
@@ -41,31 +44,37 @@ export function RegisterPage() {
     formState: { errors },
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
-  })
+  });
 
   const onSubmit = (data: RegisterFormValues) => {
     register.mutate(
       { name: data.name, email: data.email, password: data.password },
       {
         onSuccess: () => {
-          navigate('/vocabulary')
+          navigate("/vocabulary");
         },
         onError: (error) => {
           toast({
-            title: 'ثبت‌نام ناموفق',
-            description: error.message ?? 'مشکلی پیش آمد. دوباره تلاش کنید.',
-            variant: 'destructive',
-          })
+            title: "ثبت‌نام ناموفق",
+            description: error.message ?? "مشکلی پیش آمد. دوباره تلاش کنید.",
+            variant: "destructive",
+          });
         },
-      }
-    )
-  }
+      },
+    );
+  };
 
   return (
-    <div dir="rtl" className="font-persian min-h-screen bg-gradient-to-br from-background via-background to-muted/30 flex items-center justify-center p-4">
+    <div
+      dir="rtl"
+      className="font-persian min-h-screen bg-gradient-to-br from-background via-background to-muted/30 flex items-center justify-center p-4"
+    >
       <ThemeToggle className="fixed left-4 top-4 z-20" />
       {/* Background decorative blobs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+      <div
+        className="absolute inset-0 overflow-hidden pointer-events-none"
+        aria-hidden="true"
+      >
         <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-primary/5 blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-primary/5 blur-3xl" />
       </div>
@@ -73,11 +82,15 @@ export function RegisterPage() {
       <div className="relative w-full max-w-md animate-fade-in">
         {/* Card */}
         <div className="bg-card border border-border/50 rounded-2xl shadow-xl shadow-black/5 dark:shadow-black/20 p-8">
-
           {/* Header */}
           <div className="flex flex-col items-center gap-3 mb-8">
             <div className="flex items-center justify-center w-14 h-14 overflow-hidden rounded-2xl bg-white ring-1 ring-border shadow-sm">
-              <img src="/logo/logo-flow-192.png" alt="وکب فلو" className="h-full w-full object-contain p-1.5" draggable={false} />
+              <img
+                src="/logo/logo-flow-192.png"
+                alt="وکب فلو"
+                className="h-full w-full object-contain p-1.5"
+                draggable={false}
+              />
             </div>
             <div className="text-center">
               <h1 className="text-2xl font-bold tracking-tight text-foreground">
@@ -102,11 +115,17 @@ export function RegisterPage() {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
-
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            noValidate
+            className="space-y-5"
+          >
             {/* Name */}
             <div className="space-y-1.5">
-              <Label htmlFor="name" className="text-sm font-medium text-foreground">
+              <Label
+                htmlFor="name"
+                className="text-sm font-medium text-foreground"
+              >
                 نام کامل
               </Label>
               <Input
@@ -114,19 +133,23 @@ export function RegisterPage() {
                 type="text"
                 autoComplete="name"
                 placeholder="مثلاً: علی محمدی"
-                aria-describedby={errors.name ? 'name-error' : undefined}
+                aria-describedby={errors.name ? "name-error" : undefined}
                 aria-invalid={!!errors.name}
                 className={[
-                  'h-11 transition-all duration-150',
-                  'focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-1',
+                  "h-11 transition-all duration-150",
+                  "focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-1",
                   errors.name
-                    ? 'border-destructive/70 focus-visible:ring-destructive/50'
-                    : 'border-input hover:border-muted-foreground/40',
-                ].join(' ')}
-                {...registerField('name')}
+                    ? "border-destructive/70 focus-visible:ring-destructive/50"
+                    : "border-input hover:border-muted-foreground/40",
+                ].join(" ")}
+                {...registerField("name")}
               />
               {errors.name && (
-                <p id="name-error" role="alert" className="text-xs font-medium text-destructive">
+                <p
+                  id="name-error"
+                  role="alert"
+                  className="text-xs font-medium text-destructive"
+                >
                   {errors.name.message}
                 </p>
               )}
@@ -134,7 +157,10 @@ export function RegisterPage() {
 
             {/* Email */}
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-sm font-medium text-foreground">
+              <Label
+                htmlFor="email"
+                className="text-sm font-medium text-foreground"
+              >
                 آدرس ایمیل
               </Label>
               <Input
@@ -142,19 +168,23 @@ export function RegisterPage() {
                 type="email"
                 autoComplete="email"
                 placeholder="example@gmail.com"
-                aria-describedby={errors.email ? 'email-error' : undefined}
+                aria-describedby={errors.email ? "email-error" : undefined}
                 aria-invalid={!!errors.email}
                 className={[
-                  'h-11 transition-all duration-150',
-                  'focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-1',
+                  "h-11 transition-all duration-150",
+                  "focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-1",
                   errors.email
-                    ? 'border-destructive/70 focus-visible:ring-destructive/50'
-                    : 'border-input hover:border-muted-foreground/40',
-                ].join(' ')}
-                {...registerField('email')}
+                    ? "border-destructive/70 focus-visible:ring-destructive/50"
+                    : "border-input hover:border-muted-foreground/40",
+                ].join(" ")}
+                {...registerField("email")}
               />
               {errors.email && (
-                <p id="email-error" role="alert" className="text-xs font-medium text-destructive">
+                <p
+                  id="email-error"
+                  role="alert"
+                  className="text-xs font-medium text-destructive"
+                >
                   {errors.email.message}
                 </p>
               )}
@@ -162,30 +192,35 @@ export function RegisterPage() {
 
             {/* Password */}
             <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-sm font-medium text-foreground">
+              <Label
+                htmlFor="password"
+                className="text-sm font-medium text-foreground"
+              >
                 رمز عبور
               </Label>
               <div className="relative">
                 <Input
                   id="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   placeholder="حداقل ۸ کاراکتر، ۱ حرف بزرگ، ۱ عدد"
-                  aria-describedby={errors.password ? 'password-error' : 'password-hint'}
+                  aria-describedby={
+                    errors.password ? "password-error" : "password-hint"
+                  }
                   aria-invalid={!!errors.password}
                   className={[
-                    'h-11 pl-11 transition-all duration-150',
-                    'focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-1',
+                    "h-11 pl-11 transition-all duration-150",
+                    "focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-1",
                     errors.password
-                      ? 'border-destructive/70 focus-visible:ring-destructive/50'
-                      : 'border-input hover:border-muted-foreground/40',
-                  ].join(' ')}
-                  {...registerField('password')}
+                      ? "border-destructive/70 focus-visible:ring-destructive/50"
+                      : "border-input hover:border-muted-foreground/40",
+                  ].join(" ")}
+                  {...registerField("password")}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                   className="absolute left-3 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors duration-150"
                 >
                   {showPassword ? (
@@ -196,7 +231,11 @@ export function RegisterPage() {
                 </button>
               </div>
               {errors.password ? (
-                <p id="password-error" role="alert" className="text-xs font-medium text-destructive">
+                <p
+                  id="password-error"
+                  role="alert"
+                  className="text-xs font-medium text-destructive"
+                >
                   {errors.password.message}
                 </p>
               ) : (
@@ -208,30 +247,41 @@ export function RegisterPage() {
 
             {/* Confirm Password */}
             <div className="space-y-1.5">
-              <Label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
+              <Label
+                htmlFor="confirmPassword"
+                className="text-sm font-medium text-foreground"
+              >
                 تکرار رمز عبور
               </Label>
               <div className="relative">
                 <Input
                   id="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
+                  type={showConfirmPassword ? "text" : "password"}
                   autoComplete="new-password"
                   placeholder="رمز عبور را دوباره وارد کنید"
-                  aria-describedby={errors.confirmPassword ? 'confirm-password-error' : undefined}
+                  aria-describedby={
+                    errors.confirmPassword
+                      ? "confirm-password-error"
+                      : undefined
+                  }
                   aria-invalid={!!errors.confirmPassword}
                   className={[
-                    'h-11 pl-11 transition-all duration-150',
-                    'focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-1',
+                    "h-11 pl-11 transition-all duration-150",
+                    "focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-1",
                     errors.confirmPassword
-                      ? 'border-destructive/70 focus-visible:ring-destructive/50'
-                      : 'border-input hover:border-muted-foreground/40',
-                  ].join(' ')}
-                  {...registerField('confirmPassword')}
+                      ? "border-destructive/70 focus-visible:ring-destructive/50"
+                      : "border-input hover:border-muted-foreground/40",
+                  ].join(" ")}
+                  {...registerField("confirmPassword")}
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword((prev) => !prev)}
-                  aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                  aria-label={
+                    showConfirmPassword
+                      ? "Hide confirm password"
+                      : "Show confirm password"
+                  }
                   className="absolute left-3 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors duration-150"
                 >
                   {showConfirmPassword ? (
@@ -242,7 +292,11 @@ export function RegisterPage() {
                 </button>
               </div>
               {errors.confirmPassword && (
-                <p id="confirm-password-error" role="alert" className="text-xs font-medium text-destructive">
+                <p
+                  id="confirm-password-error"
+                  role="alert"
+                  className="text-xs font-medium text-destructive"
+                >
                   {errors.confirmPassword.message}
                 </p>
               )}
@@ -261,14 +315,14 @@ export function RegisterPage() {
                   در حال ثبت‌نام...
                 </>
               ) : (
-                'ساخت حساب'
+                "ساخت حساب"
               )}
             </Button>
           </form>
 
           {/* Footer */}
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            قبلاً عضو شدید؟{' '}
+            قبلاً عضو شدید؟{" "}
             <Link
               to="/login"
               className="font-medium text-primary hover:text-primary/80 underline-offset-4 hover:underline transition-colors duration-150"
@@ -279,5 +333,5 @@ export function RegisterPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

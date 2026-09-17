@@ -1,8 +1,16 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Plus, BookOpen, Pencil, Trash2, Loader2, Layers, Library } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Plus,
+  BookOpen,
+  Pencil,
+  Trash2,
+  Loader2,
+  Layers,
+  Library,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -10,16 +18,16 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { useBooks, useDeleteBook } from '@/hooks/useBooks'
-import { toast } from '@/components/ui/use-toast'
-import { faNum } from '@/lib/format'
-import type { Book } from '@/types'
+} from "@/components/ui/dialog";
+import { useBooks, useDeleteBook } from "@/hooks/useBooks";
+import { toast } from "@/components/ui/use-toast";
+import { faNum } from "@/lib/format";
+import type { Book } from "@/types";
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
 function BookCover({ book }: { book: Book }) {
-  const volumes = book._count?.volumes ?? 0
+  const volumes = book._count?.volumes ?? 0;
   return (
     <div className="relative aspect-[3/4] overflow-hidden bg-gradient-to-br from-muted to-muted/50">
       {book.coverImage ? (
@@ -30,7 +38,10 @@ function BookCover({ book }: { book: Book }) {
           className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.05]"
         />
       ) : (
-        <div className="flex h-full w-full items-center justify-center" aria-hidden>
+        <div
+          className="flex h-full w-full items-center justify-center"
+          aria-hidden
+        >
           <BookOpen className="h-14 w-14 text-muted-foreground opacity-20" />
         </div>
       )}
@@ -43,7 +54,7 @@ function BookCover({ book }: { book: Book }) {
         {faNum(volumes)} جلد
       </span>
     </div>
-  )
+  );
 }
 
 function BookActions({
@@ -51,17 +62,27 @@ function BookActions({
   onVolumes,
   onDelete,
 }: {
-  onEdit: () => void
-  onVolumes: () => void
-  onDelete: () => void
+  onEdit: () => void;
+  onVolumes: () => void;
+  onDelete: () => void;
 }) {
   return (
     <div className="flex items-center gap-1.5">
-      <Button size="sm" className="h-8 flex-1 gap-1.5 text-xs" onClick={onVolumes}>
+      <Button
+        size="sm"
+        className="h-8 flex-1 gap-1.5 text-xs"
+        onClick={onVolumes}
+      >
         <Layers className="h-3.5 w-3.5" />
         مدیریت جلدها
       </Button>
-      <Button size="icon" variant="outline" className="h-8 w-8 shrink-0" onClick={onEdit} aria-label="ویرایش">
+      <Button
+        size="icon"
+        variant="outline"
+        className="h-8 w-8 shrink-0"
+        onClick={onEdit}
+        aria-label="ویرایش"
+      >
         <Pencil className="h-3.5 w-3.5" />
       </Button>
       <Button
@@ -74,7 +95,7 @@ function BookActions({
         <Trash2 className="h-3.5 w-3.5" />
       </Button>
     </div>
-  )
+  );
 }
 
 function BookCard({
@@ -83,10 +104,10 @@ function BookCard({
   onVolumes,
   onDelete,
 }: {
-  book: Book
-  onEdit: () => void
-  onVolumes: () => void
-  onDelete: () => void
+  book: Book;
+  onEdit: () => void;
+  onVolumes: () => void;
+  onDelete: () => void;
 }) {
   return (
     <article className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg">
@@ -96,11 +117,15 @@ function BookCard({
           {book.title}
         </h3>
         <div className="mt-auto">
-          <BookActions onEdit={onEdit} onVolumes={onVolumes} onDelete={onDelete} />
+          <BookActions
+            onEdit={onEdit}
+            onVolumes={onVolumes}
+            onDelete={onDelete}
+          />
         </div>
       </div>
     </article>
-  )
+  );
 }
 
 function DeleteBookDialog({
@@ -110,11 +135,11 @@ function DeleteBookDialog({
   onConfirm,
   isDeleting,
 }: {
-  book: Book | null
-  open: boolean
-  onClose: () => void
-  onConfirm: () => void
-  isDeleting: boolean
+  book: Book | null;
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  isDeleting: boolean;
 }) {
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -122,13 +147,18 @@ function DeleteBookDialog({
         <DialogHeader>
           <DialogTitle>حذف کتاب</DialogTitle>
           <DialogDescription>
-            آیا مطمئنید که می‌خواهید کتاب{' '}
-            <strong className="text-foreground">«{book?.title}»</strong> را حذف کنید؟ تمام
-            جلدها، درس‌ها و ارتباط کلمات با این کتاب نیز حذف خواهند شد.
+            آیا مطمئنید که می‌خواهید کتاب{" "}
+            <strong className="text-foreground">«{book?.title}»</strong> را حذف
+            کنید؟ تمام جلدها، درس‌ها و ارتباط کلمات با این کتاب نیز حذف خواهند
+            شد.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="flex-row-reverse gap-2">
-          <Button variant="destructive" onClick={onConfirm} disabled={isDeleting}>
+          <Button
+            variant="destructive"
+            onClick={onConfirm}
+            disabled={isDeleting}
+          >
             {isDeleting && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
             حذف
           </Button>
@@ -138,7 +168,7 @@ function DeleteBookDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
@@ -153,26 +183,26 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
         </Button>
       </CardContent>
     </Card>
-  )
+  );
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function BookListPage() {
-  const navigate = useNavigate()
-  const { data: books, isLoading } = useBooks()
-  const deleteBook = useDeleteBook()
-  const [bookToDelete, setBookToDelete] = useState<Book | null>(null)
+  const navigate = useNavigate();
+  const { data: books, isLoading } = useBooks();
+  const deleteBook = useDeleteBook();
+  const [bookToDelete, setBookToDelete] = useState<Book | null>(null);
 
   async function handleDeleteConfirm() {
-    if (!bookToDelete) return
+    if (!bookToDelete) return;
     try {
-      await deleteBook.mutateAsync(bookToDelete.id)
-      toast({ title: 'کتاب حذف شد', variant: 'success' })
+      await deleteBook.mutateAsync(bookToDelete.id);
+      toast({ title: "کتاب حذف شد", variant: "success" });
     } catch {
-      toast({ title: 'خطا در حذف کتاب', variant: 'destructive' })
+      toast({ title: "خطا در حذف کتاب", variant: "destructive" });
     } finally {
-      setBookToDelete(null)
+      setBookToDelete(null);
     }
   }
 
@@ -183,7 +213,7 @@ export function BookListPage() {
           <Library className="h-6 w-6 text-primary" />
           مدیریت کتاب‌ها
         </h1>
-        <Button onClick={() => navigate('/admin/books/new')}>
+        <Button onClick={() => navigate("/admin/books/new")}>
           <Plus className="h-4 w-4 ml-2" />
           افزودن کتاب
         </Button>
@@ -194,7 +224,7 @@ export function BookListPage() {
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : !books || books.length === 0 ? (
-        <EmptyState onAdd={() => navigate('/admin/books/new')} />
+        <EmptyState onAdd={() => navigate("/admin/books/new")} />
       ) : (
         <div className="grid grid-cols-1 gap-5 min-[440px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
           {books.map((book) => (
@@ -217,5 +247,5 @@ export function BookListPage() {
         isDeleting={deleteBook.isPending}
       />
     </section>
-  )
+  );
 }

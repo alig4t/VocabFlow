@@ -1,13 +1,13 @@
-import { cn } from '@/lib/utils'
+import { cn } from "@/lib/utils";
 
 interface HeroBlobProps {
-  className?: string
+  className?: string;
   /**
    * 1 — the field's main blob (`--deep-blob`, the theme's primary gold);
    * 2 — its lighter companion (`--deep-blob-2`), used for the high, small
    * counterweight instance.
    */
-  variant?: 1 | 2
+  variant?: 1 | 2;
 }
 
 /**
@@ -24,8 +24,10 @@ export function HeroBlob({ className, variant = 1 }: HeroBlobProps) {
       fill="none"
       aria-hidden="true"
       className={cn(
-        'pointer-events-none select-none',
-        variant === 1 ? 'fill-[hsl(var(--deep-blob))]' : 'fill-[hsl(var(--deep-blob-2))]',
+        "pointer-events-none select-none",
+        variant === 1
+          ? "fill-[hsl(var(--deep-blob))]"
+          : "fill-[hsl(var(--deep-blob-2))]",
         className,
       )}
     >
@@ -34,5 +36,5 @@ export function HeroBlob({ className, variant = 1 }: HeroBlobProps) {
         transform="translate(250.26398703965282 484.75660630077414)"
       />
     </svg>
-  )
+  );
 }

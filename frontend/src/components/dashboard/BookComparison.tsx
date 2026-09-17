@@ -1,10 +1,10 @@
-import { useMemo } from 'react'
-import { Progress } from '../ui/progress'
-import { faPercent, faNum } from '../../lib/format'
-import type { WatchlistBook } from '../../types'
+import { useMemo } from "react";
+import { Progress } from "../ui/progress";
+import { faPercent, faNum } from "../../lib/format";
+import type { WatchlistBook } from "../../types";
 
 interface BookComparisonProps {
-  books: WatchlistBook[]
+  books: WatchlistBook[];
 }
 
 /**
@@ -21,10 +21,14 @@ export function BookComparison({ books }: BookComparisonProps) {
         }))
         .sort((a, b) => b.progress - a.progress),
     [books],
-  )
+  );
 
   if (ranked.length === 0) {
-    return <p className="text-sm text-muted-foreground">کتابی برای مقایسه وجود ندارد.</p>
+    return (
+      <p className="text-sm text-muted-foreground">
+        کتابی برای مقایسه وجود ندارد.
+      </p>
+    );
   }
 
   return (
@@ -44,5 +48,5 @@ export function BookComparison({ books }: BookComparisonProps) {
         </li>
       ))}
     </ul>
-  )
+  );
 }

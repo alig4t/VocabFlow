@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from "react-router-dom";
 import {
   CalendarDays,
   Library,
@@ -6,21 +6,21 @@ import {
   CalendarClock,
   AlertTriangle,
   Activity,
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
-import { GlobalStats } from '@/components/dashboard/GlobalStats'
-import { SectionHeading } from '@/components/dashboard/SectionHeading'
-import { StudyTodayHero } from '@/components/dashboard/StudyTodayHero'
-import { TodayPracticeCard } from '@/components/dashboard/TodayPracticeCard'
-import { WatchlistBookCard } from '@/components/dashboard/WatchlistBookCard'
-import { ContinueLearning } from '@/components/dashboard/ContinueLearning'
-import { ActivityHeatmap } from '@/components/dashboard/ActivityHeatmap'
-import { BookComparison } from '@/components/dashboard/BookComparison'
-import { MemoryOverview } from '@/components/dashboard/MemoryOverview'
-import { UpcomingReviews } from '@/components/dashboard/UpcomingReviews'
-import { HardWords } from '@/components/dashboard/HardWords'
-import { useDashboard } from '@/hooks/useDashboard'
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { GlobalStats } from "@/components/dashboard/GlobalStats";
+import { SectionHeading } from "@/components/dashboard/SectionHeading";
+import { StudyTodayHero } from "@/components/dashboard/StudyTodayHero";
+import { TodayPracticeCard } from "@/components/dashboard/TodayPracticeCard";
+import { WatchlistBookCard } from "@/components/dashboard/WatchlistBookCard";
+import { ContinueLearning } from "@/components/dashboard/ContinueLearning";
+import { ActivityHeatmap } from "@/components/dashboard/ActivityHeatmap";
+import { BookComparison } from "@/components/dashboard/BookComparison";
+import { MemoryOverview } from "@/components/dashboard/MemoryOverview";
+import { UpcomingReviews } from "@/components/dashboard/UpcomingReviews";
+import { HardWords } from "@/components/dashboard/HardWords";
+import { useDashboard } from "@/hooks/useDashboard";
 
 function DashboardSkeleton() {
   return (
@@ -33,12 +33,12 @@ function DashboardSkeleton() {
         ))}
       </div>
     </div>
-  )
+  );
 }
 
 export function DashboardPage() {
-  const navigate = useNavigate()
-  const { data, isLoading, isError } = useDashboard()
+  const navigate = useNavigate();
+  const { data, isLoading, isError } = useDashboard();
 
   return (
     <div dir="rtl" className="page-atmosphere font-persian">
@@ -66,7 +66,9 @@ export function DashboardPage() {
           <DashboardSkeleton />
         ) : isError || !data ? (
           <div className="surface rounded-3xl px-6 py-12 text-center">
-            <p className="text-sm font-medium text-destructive">داشبورد بارگذاری نشد.</p>
+            <p className="text-sm font-medium text-destructive">
+              داشبورد بارگذاری نشد.
+            </p>
             <p className="mt-1 text-xs text-muted-foreground">
               اتصال خود را بررسی کنید و دوباره تلاش کنید.
             </p>
@@ -108,7 +110,10 @@ export function DashboardPage() {
                       از کتابخانه یک کتاب به لیست یادگیری خود اضافه کنید.
                     </p>
                   </div>
-                  <Button className="gap-2" onClick={() => navigate('/library')}>
+                  <Button
+                    className="gap-2"
+                    onClick={() => navigate("/library")}
+                  >
                     <Compass className="h-4 w-4" aria-hidden="true" />
                     رفتن به کتابخانه
                   </Button>
@@ -154,7 +159,10 @@ export function DashboardPage() {
 
                 <div className="surface space-y-3 rounded-3xl p-5 sm:p-6">
                   <p className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                    <CalendarDays className="h-4 w-4 text-accent-foreground" aria-hidden="true" />
+                    <CalendarDays
+                      className="h-4 w-4 text-accent-foreground"
+                      aria-hidden="true"
+                    />
                     مقایسه کتاب‌ها
                   </p>
                   <BookComparison books={data.watchlist} />
@@ -165,5 +173,5 @@ export function DashboardPage() {
         )}
       </div>
     </div>
-  )
+  );
 }

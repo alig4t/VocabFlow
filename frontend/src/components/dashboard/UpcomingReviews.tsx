@@ -1,18 +1,18 @@
-import { useMemo } from 'react'
-import { faNum } from '../../lib/format'
-import { cn } from '../../lib/utils'
-import type { UpcomingDay } from '../../types'
+import { useMemo } from "react";
+import { faNum } from "../../lib/format";
+import { cn } from "../../lib/utils";
+import type { UpcomingDay } from "../../types";
 
 interface UpcomingReviewsProps {
-  days: UpcomingDay[]
+  days: UpcomingDay[];
 }
 
 /** امروز / فردا / پس‌فردا, then the Persian weekday name. */
 function dayLabel(iso: string, index: number): string {
-  if (index === 0) return 'امروز'
-  if (index === 1) return 'فردا'
-  const d = new Date(`${iso}T12:00:00`)
-  return new Intl.DateTimeFormat('fa-IR', { weekday: 'short' }).format(d)
+  if (index === 0) return "امروز";
+  if (index === 1) return "فردا";
+  const d = new Date(`${iso}T12:00:00`);
+  return new Intl.DateTimeFormat("fa-IR", { weekday: "short" }).format(d);
 }
 
 /**
@@ -25,15 +25,15 @@ function dayLabel(iso: string, index: number): string {
  * still visible at a glance, and today is filled rather than outlined.
  */
 export function UpcomingReviews({ days }: UpcomingReviewsProps) {
-  const max = useMemo(() => Math.max(1, ...days.map((d) => d.count)), [days])
-  const total = useMemo(() => days.reduce((s, d) => s + d.count, 0), [days])
+  const max = useMemo(() => Math.max(1, ...days.map((d) => d.count)), [days]);
+  const total = useMemo(() => days.reduce((s, d) => s + d.count, 0), [days]);
 
   if (total === 0) {
     return (
       <p className="py-8 text-center text-sm text-muted-foreground">
         در هفت روز آینده مروری برنامه‌ریزی نشده است.
       </p>
-    )
+    );
   }
 
   return (
@@ -56,26 +56,29 @@ export function UpcomingReviews({ days }: UpcomingReviewsProps) {
 
         <ol className="relative flex justify-between gap-1">
           {days.map((day, i) => {
-            const isToday = i === 0
-            const load = day.count / max
+            const isToday = i === 0;
+            const load = day.count / max;
             // 26px empty → 46px at the busiest day; enough spread to read,
             // never so large that two neighbours collide on a narrow phone.
-            const size = day.count === 0 ? 26 : 26 + load * 20
+            const size = day.count === 0 ? 26 : 26 + load * 20;
             return (
-              <li key={day.date} className="flex min-w-0 flex-1 flex-col items-center gap-2">
+              <li
+                key={day.date}
+                className="flex min-w-0 flex-1 flex-col items-center gap-2"
+              >
                 <span className="text-[11px] font-bold tabular-nums text-foreground">
-                  {day.count > 0 ? faNum(day.count) : '—'}
+                  {day.count > 0 ? faNum(day.count) : "—"}
                 </span>
 
                 <span className="flex h-12 items-center justify-center">
                   <span
                     className={cn(
-                      'flex items-center justify-center rounded-full ring-4 ring-card transition-transform',
+                      "flex items-center justify-center rounded-full ring-4 ring-card transition-transform",
                       day.count === 0
-                        ? 'border border-dashed border-border bg-card'
+                        ? "border border-dashed border-border bg-card"
                         : isToday
-                          ? 'bg-primary'
-                          : 'bg-violet/25',
+                          ? "bg-primary"
+                          : "bg-violet/25",
                     )}
                     style={{ width: size, height: size }}
                     title={`${day.date} — ${day.count} مرور`}
@@ -88,17 +91,19 @@ export function UpcomingReviews({ days }: UpcomingReviewsProps) {
 
                 <span
                   className={cn(
-                    'w-full truncate text-center text-[11px]',
-                    isToday ? 'font-bold text-foreground' : 'text-muted-foreground',
+                    "w-full truncate text-center text-[11px]",
+                    isToday
+                      ? "font-bold text-foreground"
+                      : "text-muted-foreground",
                   )}
                 >
                   {dayLabel(day.date, i)}
                 </span>
               </li>
-            )
+            );
           })}
         </ol>
       </div>
     </figure>
-  )
+  );
 }

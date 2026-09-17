@@ -1,6 +1,6 @@
 interface OnboardingButtonProps {
-  label: string | React.ReactNode
-  onClick: () => void
+  label: string | React.ReactNode;
+  onClick: () => void;
 }
 
 /** Circular black forward button with a small Persian label. */
@@ -13,5 +13,5 @@ export function OnboardingButton({ label, onClick }: OnboardingButtonProps) {
     >
       {label}
     </button>
-  )
+  );
 }

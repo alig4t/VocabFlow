@@ -1,60 +1,64 @@
-import { Menu, Moon, Sun, Lamp, User, LogOut, Power } from 'lucide-react'
-import { useTheme } from './ThemeProvider'
-import { useAuthStore } from '../../store/authStore'
-import { isNative } from '../../lib/platform'
-import { cn } from '../../lib/utils'
-import { Button } from '../ui/button'
-import { Link } from 'react-router-dom'
+import { Menu, Moon, Sun, Lamp, User, LogOut, Power } from "lucide-react";
+import { useTheme } from "./ThemeProvider";
+import { useAuthStore } from "../../store/authStore";
+import { isNative } from "../../lib/platform";
+import { cn } from "../../lib/utils";
+import { Button } from "../ui/button";
+import { Link } from "react-router-dom";
 
 interface NavbarProps {
-  onMenuClick: () => void
+  onMenuClick: () => void;
   /**
    * On the dashboard the navbar merges into the hero band: transparent over
    * the violet gradient (which slides up behind it), white icons, glass
    * hovers. Every other page keeps the solid bar.
    */
-  hero?: boolean
+  hero?: boolean;
 }
 
 // Cycle order: light → dark → study → light.
-const THEME_CYCLE = { light: 'dark', dark: 'study', study: 'light' } as const
+const THEME_CYCLE = { light: "dark", dark: "study", study: "light" } as const;
 
 const THEME_META = {
-  light: { Icon: Sun, label: 'حالت روشن', next: 'حالت تاریک' },
-  dark: { Icon: Moon, label: 'حالت تاریک', next: 'حالت مطالعه' },
-  study: { Icon: Lamp, label: 'حالت مطالعه', next: 'حالت روشن' },
-} as const
+  light: { Icon: Sun, label: "حالت روشن", next: "حالت تاریک" },
+  dark: { Icon: Moon, label: "حالت تاریک", next: "حالت مطالعه" },
+  study: { Icon: Lamp, label: "حالت مطالعه", next: "حالت روشن" },
+} as const;
 
 export function Navbar({ onMenuClick, hero = false }: NavbarProps) {
-  const { resolvedTheme, setTheme } = useTheme()
-  const { user, clearAuth } = useAuthStore()
+  const { resolvedTheme, setTheme } = useTheme();
+  const { user, clearAuth } = useAuthStore();
 
-  const { Icon: ThemeIcon, label: themeLabel, next: nextLabel } = THEME_META[resolvedTheme]
+  const {
+    Icon: ThemeIcon,
+    label: themeLabel,
+    next: nextLabel,
+  } = THEME_META[resolvedTheme];
 
   const toggleTheme = () => {
-    setTheme(THEME_CYCLE[resolvedTheme])
-  }
+    setTheme(THEME_CYCLE[resolvedTheme]);
+  };
 
-  const native = isNative()
+  const native = isNative();
 
   const handleLogout = () => {
     // Offline app: no login/logout — the button simply closes the app.
     if (native) {
-      import('@capacitor/app').then((m) => m.App.exitApp()).catch(() => { })
-      return
+      import("@capacitor/app").then((m) => m.App.exitApp()).catch(() => {});
+      return;
     }
-    clearAuth()
-    window.location.href = '/login'
-  }
+    clearAuth();
+    window.location.href = "/login";
+  };
 
   return (
     <header
       dir="rtl"
       className={cn(
-        'font-persian relative z-10 flex h-16 shrink-0 items-center justify-between px-4 md:px-6',
+        "font-persian relative z-10 flex h-16 shrink-0 items-center justify-between px-4 md:px-6",
         hero
-          ? 'text-[hsl(45_60%_12%)]'
-          : 'border-b border-border bg-background/95 text-foreground backdrop-blur',
+          ? "text-[hsl(45_60%_12%)]"
+          : "border-b border-border bg-background/95 text-foreground backdrop-blur",
       )}
     >
       {/* راست: دکمه منو + لوگو — فقط وقتی سایدبار مخفی است (موبایل/عرض کم) */}
@@ -62,20 +66,43 @@ export function Navbar({ onMenuClick, hero = false }: NavbarProps) {
         <Button
           variant="ghost"
           size="icon"
-          className={cn('lg:hidden', hero && 'text-[hsl(45_60%_12%)] hover:bg-black/10 hover:text-[hsl(45_60%_12%)]')}
+          className={cn(
+            "lg:hidden",
+            hero &&
+              "text-[hsl(45_60%_12%)] hover:bg-black/10 hover:text-[hsl(45_60%_12%)]",
+          )}
           onClick={onMenuClick}
           aria-label="باز کردن منو"
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <Link to={'/'}>
+        <Link to={"/"}>
           <div className="flex items-center gap-2 lg:hidden">
             <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-white ring-1 ring-black/10">
-              <img src="/logo/logo-flow-192.png" alt="وکب فلو" className="h-full w-full object-contain p-0.5" draggable={false} />
+              <img
+                src="/logo/logo-flow-192.png"
+                alt="وکب فلو"
+                className="h-full w-full object-contain p-0.5"
+                draggable={false}
+              />
             </div>
             <div className="leading-tight">
-              <p className={cn('text-sm font-bold', hero ? 'text-[hsl(45_60%_12%)]' : 'text-foreground')}>وکب فلو </p>
-              <p className={cn('text-xs', hero ? 'text-[hsl(40_50%_26%)]' : 'text-muted-foreground')}>یادگیری زبان</p>
+              <p
+                className={cn(
+                  "text-sm font-bold",
+                  hero ? "text-[hsl(45_60%_12%)]" : "text-foreground",
+                )}
+              >
+                وکب فلو{" "}
+              </p>
+              <p
+                className={cn(
+                  "text-xs",
+                  hero ? "text-[hsl(40_50%_26%)]" : "text-muted-foreground",
+                )}
+              >
+                یادگیری زبان
+              </p>
             </div>
           </div>
         </Link>
@@ -86,15 +113,33 @@ export function Navbar({ onMenuClick, hero = false }: NavbarProps) {
         {/* اطلاعات کاربر */}
         {user && (
           <div className="hidden items-center gap-2 md:flex">
-            <div className={cn(
-              'flex h-8 w-8 items-center justify-center rounded-full',
-              hero ? 'bg-black/10 text-[hsl(45_60%_12%)] ring-1 ring-black/10' : 'bg-primary/10 text-primary',
-            )}>
+            <div
+              className={cn(
+                "flex h-8 w-8 items-center justify-center rounded-full",
+                hero
+                  ? "bg-black/10 text-[hsl(45_60%_12%)] ring-1 ring-black/10"
+                  : "bg-primary/10 text-primary",
+              )}
+            >
               <User className="h-4 w-4" />
             </div>
             <div className="leading-tight">
-              <p className={cn('text-sm font-medium', hero ? 'text-[hsl(45_60%_12%)]' : 'text-foreground')}>{user.name}</p>
-              <p className={cn('text-xs', hero ? 'text-[hsl(40_50%_26%)]' : 'text-muted-foreground')}>{user.email}</p>
+              <p
+                className={cn(
+                  "text-sm font-medium",
+                  hero ? "text-[hsl(45_60%_12%)]" : "text-foreground",
+                )}
+              >
+                {user.name}
+              </p>
+              <p
+                className={cn(
+                  "text-xs",
+                  hero ? "text-[hsl(40_50%_26%)]" : "text-muted-foreground",
+                )}
+              >
+                {user.email}
+              </p>
             </div>
           </div>
         )}
@@ -103,7 +148,10 @@ export function Navbar({ onMenuClick, hero = false }: NavbarProps) {
         <Button
           variant="ghost"
           size="icon"
-          className={cn(hero && 'text-[hsl(45_60%_12%)] hover:bg-black/10 hover:text-[hsl(45_60%_12%)]')}
+          className={cn(
+            hero &&
+              "text-[hsl(45_60%_12%)] hover:bg-black/10 hover:text-[hsl(45_60%_12%)]",
+          )}
           onClick={toggleTheme}
           title={`${themeLabel} — تغییر به ${nextLabel}`}
           aria-label={`${themeLabel}. تغییر به ${nextLabel}`}
@@ -116,16 +164,21 @@ export function Navbar({ onMenuClick, hero = false }: NavbarProps) {
           variant="ghost"
           size="icon"
           onClick={handleLogout}
-          aria-label={native ? 'بستن برنامه' : 'خروج از حساب'}
-          title={native ? 'بستن برنامه' : 'خروج از حساب'}
+          aria-label={native ? "بستن برنامه" : "خروج از حساب"}
+          title={native ? "بستن برنامه" : "خروج از حساب"}
           className={cn(
-            'text-muted-foreground hover:text-destructive',
-            hero && 'text-[hsl(45_60%_12%)]/70 hover:bg-black/10 hover:text-[hsl(45_60%_12%)]',
+            "text-muted-foreground hover:text-destructive",
+            hero &&
+              "text-[hsl(45_60%_12%)]/70 hover:bg-black/10 hover:text-[hsl(45_60%_12%)]",
           )}
         >
-          {native ? <Power className="h-5 w-5" /> : <LogOut className="h-5 w-5" />}
+          {native ? (
+            <Power className="h-5 w-5" />
+          ) : (
+            <LogOut className="h-5 w-5" />
+          )}
         </Button>
       </div>
     </header>
-  )
+  );
 }

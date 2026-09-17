@@ -1,18 +1,18 @@
-import { useLayoutEffect, useRef, useState } from 'react'
-import { useLocation } from 'react-router-dom'
-import { Navbar } from './Navbar'
-import { Sidebar } from './Sidebar'
-import { BottomNav } from './BottomNav'
-import { SCROLL_CONTAINER_ID } from '@/lib/scroll'
+import { useLayoutEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
+import { Navbar } from "./Navbar";
+import { Sidebar } from "./Sidebar";
+import { BottomNav } from "./BottomNav";
+import { SCROLL_CONTAINER_ID } from "@/lib/scroll";
 
 interface LayoutProps {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 
 export function Layout({ children }: LayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { pathname } = useLocation()
-  const mainRef = useRef<HTMLElement>(null)
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { pathname } = useLocation();
+  const mainRef = useRef<HTMLElement>(null);
 
   /*
     On the dashboard the navbar merges into the hero band: it renders INSIDE
@@ -22,7 +22,7 @@ export function Layout({ children }: LayoutProps) {
     hero inside main could never paint under a bar outside it. Everywhere else
     the solid navbar sits above <main> as before.
   */
-  const mergedHeroNav = pathname === '/dashboard'
+  const mergedHeroNav = pathname === "/dashboard";
 
   // Every route renders its own <Layout>, but React reconciles them into the
   // same element, so <main> survives navigation with its scrollTop intact and
@@ -31,19 +31,22 @@ export function Layout({ children }: LayoutProps) {
   // are deliberately excluded — those pages scroll themselves.
   useLayoutEffect(() => {
     const reset = () => {
-      if (mainRef.current) mainRef.current.scrollTop = 0
+      if (mainRef.current) mainRef.current.scrollTop = 0;
       // Some WebView/landing cases scroll the document instead of <main>.
-      if (window.scrollY) window.scrollTo(0, 0)
-    }
-    reset()
+      if (window.scrollY) window.scrollTo(0, 0);
+    };
+    reset();
     // A page whose content lands after this commit (cached query data, images,
     // fonts) can leave the box scrolled, so reset once more on the next frame.
-    const raf = requestAnimationFrame(reset)
-    return () => cancelAnimationFrame(raf)
-  }, [pathname])
+    const raf = requestAnimationFrame(reset);
+    return () => cancelAnimationFrame(raf);
+  }, [pathname]);
 
   return (
-    <div dir="rtl" className="flex h-[100dvh] overflow-hidden bg-background text-foreground">
+    <div
+      dir="rtl"
+      className="flex h-[100dvh] overflow-hidden bg-background text-foreground"
+    >
       {/* Mobile overlay — z-30 sits above the BottomNav (z-20) so the dimmed
           backdrop covers it too, but still under the sidebar panel itself. */}
       {sidebarOpen && (
@@ -54,10 +57,7 @@ export function Layout({ children }: LayoutProps) {
       )}
 
       {/* Sidebar */}
-      <Sidebar
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Main area */}
       <div className="flex flex-1 flex-col overflow-hidden">
@@ -68,7 +68,9 @@ export function Layout({ children }: LayoutProps) {
           ref={mainRef}
           className="flex-1 transform-gpu overflow-y-auto px-2 py-4 [backface-visibility:hidden] [overflow-anchor:none] max-lg:pb-24 sm:p-4 md:p-6 lg:p-8"
         >
-          {mergedHeroNav && <Navbar hero onMenuClick={() => setSidebarOpen(true)} />}
+          {mergedHeroNav && (
+            <Navbar hero onMenuClick={() => setSidebarOpen(true)} />
+          )}
           {children}
         </main>
       </div>
@@ -76,5 +78,5 @@ export function Layout({ children }: LayoutProps) {
       {/* نوار ناوبری پایین موبایل */}
       <BottomNav />
     </div>
-  )
+  );
 }

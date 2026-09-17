@@ -1,11 +1,26 @@
-import { useState } from 'react'
-import { SlidersHorizontal, Volume2, Eye, BookOpen, Shuffle, ArrowLeftRight, Trash2, Loader2, AlertTriangle, Bell, Clock, Flame, History, BookMarked } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Switch } from '@/components/ui/switch'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Tooltip } from '@/components/ui/tooltip'
+import { useState } from "react";
+import {
+  SlidersHorizontal,
+  Volume2,
+  Eye,
+  BookOpen,
+  Shuffle,
+  ArrowLeftRight,
+  Trash2,
+  Loader2,
+  AlertTriangle,
+  Bell,
+  Clock,
+  Flame,
+  History,
+  BookMarked,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip } from "@/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -13,20 +28,28 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog'
-import { useSettings, useUpdateSettings } from '@/hooks/useSettings'
-import { usePlans, useUpdatePlan, useDeletePlan } from '@/hooks/usePlans'
-import { useToast } from '@/components/ui/use-toast'
-import { isNative } from '@/lib/platform'
-import { ensureNotificationPermission, rescheduleNotifications } from '@/lib/notifications'
-import { cn, getErrorMessage } from '@/lib/utils'
-import { faNum } from '@/lib/format'
-import type { CardOrder, LearningPlan, ReviewMode, UserSettings } from '@/types'
+} from "@/components/ui/dialog";
+import { useSettings, useUpdateSettings } from "@/hooks/useSettings";
+import { usePlans, useUpdatePlan, useDeletePlan } from "@/hooks/usePlans";
+import { useToast } from "@/components/ui/use-toast";
+import { isNative } from "@/lib/platform";
+import {
+  ensureNotificationPermission,
+  rescheduleNotifications,
+} from "@/lib/notifications";
+import { cn, getErrorMessage } from "@/lib/utils";
+import { faNum } from "@/lib/format";
+import type {
+  CardOrder,
+  LearningPlan,
+  ReviewMode,
+  UserSettings,
+} from "@/types";
 
-const DAILY_OPTIONS = [10, 20, 30, 40, 50]
+const DAILY_OPTIONS = [10, 20, 30, 40, 50];
 // Keep in sync with backend/src/modules/plans/plan.service.ts (MIN/MAX_DAILY_GOAL).
-const MIN_DAILY_GOAL = 5
-const MAX_DAILY_GOAL = 500
+const MIN_DAILY_GOAL = 5;
+const MAX_DAILY_GOAL = 500;
 
 function SettingRow({
   icon,
@@ -41,11 +64,11 @@ function SettingRow({
    */
   stacked = false,
 }: {
-  icon: React.ReactNode
-  title: string
-  description: string
-  children: React.ReactNode
-  stacked?: boolean
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+  stacked?: boolean;
 }) {
   if (stacked) {
     return (
@@ -59,7 +82,7 @@ function SettingRow({
         </div>
         <div className="mt-3 ps-8">{children}</div>
       </div>
-    )
+    );
   }
 
   return (
@@ -73,7 +96,7 @@ function SettingRow({
       </div>
       <div className="shrink-0">{children}</div>
     </div>
-  )
+  );
 }
 
 /** A two-option segmented toggle. */
@@ -82,9 +105,9 @@ function Segmented<T extends string>({
   options,
   onChange,
 }: {
-  value: T
-  options: { value: T; label: string }[]
-  onChange: (v: T) => void
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (v: T) => void;
 }) {
   return (
     <div className="flex w-full items-center gap-0.5 rounded-lg bg-muted p-0.5">
@@ -93,41 +116,50 @@ function Segmented<T extends string>({
           key={o.value}
           onClick={() => onChange(o.value)}
           className={cn(
-            'flex-1 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+            "flex-1 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
             value === o.value
-              ? 'bg-primary text-primary-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground',
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
           )}
         >
           {o.label}
         </button>
       ))}
     </div>
-  )
+  );
 }
 
 function PlanCard({ plan }: { plan: LearningPlan }) {
-  const updatePlan = useUpdatePlan()
-  const deletePlan = useDeletePlan()
-  const { toast } = useToast()
-  const [confirmOpen, setConfirmOpen] = useState(false)
+  const updatePlan = useUpdatePlan();
+  const deletePlan = useDeletePlan();
+  const { toast } = useToast();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   function handleDelete() {
     deletePlan.mutate(plan.id, {
       onSuccess: () => {
-        toast({ title: 'برنامه حذف شد', description: plan.volumeTitle, variant: 'default' })
-        setConfirmOpen(false)
+        toast({
+          title: "برنامه حذف شد",
+          description: plan.volumeTitle,
+          variant: "default",
+        });
+        setConfirmOpen(false);
       },
-      onError: () => toast({ title: 'خطا', description: 'حذف ناموفق بود.', variant: 'destructive' }),
-    })
+      onError: () =>
+        toast({
+          title: "خطا",
+          description: "حذف ناموفق بود.",
+          variant: "destructive",
+        }),
+    });
   }
 
   function handleUpdateError(error: unknown) {
     toast({
-      title: 'خطا',
-      description: getErrorMessage(error, 'ذخیره‌ی تغییرات ناموفق بود.'),
-      variant: 'destructive',
-    })
+      title: "خطا",
+      description: getErrorMessage(error, "ذخیره‌ی تغییرات ناموفق بود."),
+      variant: "destructive",
+    });
   }
 
   return (
@@ -137,7 +169,9 @@ function PlanCard({ plan }: { plan: LearningPlan }) {
           <p className="truncate text-sm font-bold text-foreground">
             {plan.bookTitle} — {plan.volumeTitle}
           </p>
-          <p className="text-xs text-muted-foreground">{faNum(plan.totalWords)} واژه</p>
+          <p className="text-xs text-muted-foreground">
+            {faNum(plan.totalWords)} واژه
+          </p>
         </div>
         <Tooltip label="حذف برنامه یادگیری" side="top">
           <Button
@@ -161,13 +195,24 @@ function PlanCard({ plan }: { plan: LearningPlan }) {
               حذف برنامه یادگیری؟
             </DialogTitle>
             <DialogDescription className="leading-relaxed">
-              برنامه‌ی <span className="font-semibold text-foreground">{plan.bookTitle} — {plan.volumeTitle}</span>{' '}
-              حذف می‌شود و <span className="font-semibold text-foreground">پیشرفت مرور و زمان‌بندی SM-2</span> شما
-              برای واژگان این جلد نیز پاک خواهد شد. این عمل قابل بازگشت نیست.
+              برنامه‌ی{" "}
+              <span className="font-semibold text-foreground">
+                {plan.bookTitle} — {plan.volumeTitle}
+              </span>{" "}
+              حذف می‌شود و{" "}
+              <span className="font-semibold text-foreground">
+                پیشرفت مرور و زمان‌بندی SM-2
+              </span>{" "}
+              شما برای واژگان این جلد نیز پاک خواهد شد. این عمل قابل بازگشت
+              نیست.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-2">
-            <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={deletePlan.isPending}>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmOpen(false)}
+              disabled={deletePlan.isPending}
+            >
               انصراف
             </Button>
             <Button
@@ -176,7 +221,11 @@ function PlanCard({ plan }: { plan: LearningPlan }) {
               disabled={deletePlan.isPending}
               className="gap-2"
             >
-              {deletePlan.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              {deletePlan.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
               حذف کن
             </Button>
           </DialogFooter>
@@ -184,7 +233,9 @@ function PlanCard({ plan }: { plan: LearningPlan }) {
       </Dialog>
 
       <div className="mt-3 space-y-1">
-        <p className="text-xs font-medium text-muted-foreground">واژگان جدید در روز</p>
+        <p className="text-xs font-medium text-muted-foreground">
+          واژگان جدید در روز
+        </p>
         <div className="flex flex-wrap gap-1.5">
           {DAILY_OPTIONS.map((n) => (
             <button
@@ -193,16 +244,19 @@ function PlanCard({ plan }: { plan: LearningPlan }) {
                 updatePlan.mutate(
                   {
                     id: plan.id,
-                    input: { dailyNewWords: n, dailyGoal: Math.max(plan.dailyGoal, n) },
+                    input: {
+                      dailyNewWords: n,
+                      dailyGoal: Math.max(plan.dailyGoal, n),
+                    },
                   },
                   { onError: handleUpdateError },
                 )
               }
               className={cn(
-                'min-w-[3rem] rounded-lg border px-3 py-1.5 text-sm font-semibold tabular-nums transition-colors',
+                "min-w-[3rem] rounded-lg border px-3 py-1.5 text-sm font-semibold tabular-nums transition-colors",
                 plan.dailyNewWords === n
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-border text-foreground hover:bg-accent',
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border text-foreground hover:bg-accent",
               )}
             >
               {faNum(n)}
@@ -212,24 +266,32 @@ function PlanCard({ plan }: { plan: LearningPlan }) {
       </div>
 
       <div className="mt-3 space-y-1">
-        <p className="text-xs font-medium text-muted-foreground">هدف روزانه (مرور)</p>
+        <p className="text-xs font-medium text-muted-foreground">
+          هدف روزانه (مرور)
+        </p>
         <Input
           type="number"
           min={Math.max(plan.dailyNewWords, MIN_DAILY_GOAL)}
           max={MAX_DAILY_GOAL}
           defaultValue={plan.dailyGoal}
           onBlur={(e) => {
-            const v = Number(e.target.value)
-            const clamped = Math.min(MAX_DAILY_GOAL, Math.max(v, plan.dailyNewWords, MIN_DAILY_GOAL))
+            const v = Number(e.target.value);
+            const clamped = Math.min(
+              MAX_DAILY_GOAL,
+              Math.max(v, plan.dailyNewWords, MIN_DAILY_GOAL),
+            );
             if (Number.isFinite(v) && clamped !== plan.dailyGoal) {
-              updatePlan.mutate({ id: plan.id, input: { dailyGoal: clamped } }, { onError: handleUpdateError })
+              updatePlan.mutate(
+                { id: plan.id, input: { dailyGoal: clamped } },
+                { onError: handleUpdateError },
+              );
             }
           }}
           className="w-24 tabular-nums"
         />
       </div>
     </div>
-  )
+  );
 }
 
 /**
@@ -237,27 +299,31 @@ function PlanCard({ plan }: { plan: LearningPlan }) {
  * switch requests OS permission; every change rebuilds the local schedule.
  */
 function NotificationsCard({ settings }: { settings: UserSettings }) {
-  const updateSettings = useUpdateSettings()
-  const { toast } = useToast()
+  const updateSettings = useUpdateSettings();
+  const { toast } = useToast();
 
-  const enabled = settings.dailyReminderEnabled !== false
+  const enabled = settings.dailyReminderEnabled !== false;
 
-  const apply = (patch: Partial<UserSettings>, opts?: { requestPermission?: boolean }) =>
+  const apply = (
+    patch: Partial<UserSettings>,
+    opts?: { requestPermission?: boolean },
+  ) =>
     updateSettings.mutate(patch, {
       onSuccess: async () => {
         if (opts?.requestPermission) {
-          const granted = await ensureNotificationPermission()
+          const granted = await ensureNotificationPermission();
           if (!granted) {
             toast({
-              title: 'اجازه‌ی اعلان داده نشد',
-              description: 'برای دریافت یادآور، اعلان‌ها را در تنظیمات گوشی برای وکب فلو فعال کنید.',
-              variant: 'destructive',
-            })
+              title: "اجازه‌ی اعلان داده نشد",
+              description:
+                "برای دریافت یادآور، اعلان‌ها را در تنظیمات گوشی برای وکب فلو فعال کنید.",
+              variant: "destructive",
+            });
           }
         }
-        await rescheduleNotifications()
+        await rescheduleNotifications();
       },
-    })
+    });
 
   return (
     <Card>
@@ -272,7 +338,9 @@ function NotificationsCard({ settings }: { settings: UserSettings }) {
         >
           <Switch
             checked={enabled}
-            onCheckedChange={(v) => apply({ dailyReminderEnabled: v }, { requestPermission: v })}
+            onCheckedChange={(v) =>
+              apply({ dailyReminderEnabled: v }, { requestPermission: v })
+            }
           />
         </SettingRow>
 
@@ -285,9 +353,10 @@ function NotificationsCard({ settings }: { settings: UserSettings }) {
             >
               <Input
                 type="time"
-                value={settings.dailyReminderTime ?? '20:00'}
+                value={settings.dailyReminderTime ?? "20:00"}
                 onChange={(e) => {
-                  if (e.target.value) apply({ dailyReminderTime: e.target.value })
+                  if (e.target.value)
+                    apply({ dailyReminderTime: e.target.value });
                 }}
                 className="w-32 tabular-nums"
               />
@@ -329,24 +398,29 @@ function NotificationsCard({ settings }: { settings: UserSettings }) {
         )}
       </CardContent>
     </Card>
-  )
+  );
 }
 
 export function SettingsPage() {
-  const { data: settings, isLoading } = useSettings()
-  const { data: plans } = usePlans()
-  const updateSettings = useUpdateSettings()
+  const { data: settings, isLoading } = useSettings();
+  const { data: plans } = usePlans();
+  const updateSettings = useUpdateSettings();
 
-  const set = (patch: Partial<UserSettings>) => updateSettings.mutate(patch)
+  const set = (patch: Partial<UserSettings>) => updateSettings.mutate(patch);
 
   return (
     <div dir="rtl" className="font-persian mx-auto max-w-3xl space-y-6">
       <header>
         <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-foreground">
-          <SlidersHorizontal className="h-6 w-6 text-primary" aria-hidden="true" />
+          <SlidersHorizontal
+            className="h-6 w-6 text-primary"
+            aria-hidden="true"
+          />
           تنظیمات
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">مطالعه و برنامه‌ی یادگیری خود را شخصی‌سازی کنید.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          مطالعه و برنامه‌ی یادگیری خود را شخصی‌سازی کنید.
+        </p>
       </header>
 
       {/* Study preferences */}
@@ -373,8 +447,8 @@ export function SettingsPage() {
                   value={settings.studyDirection}
                   onChange={(v) => set({ studyDirection: v })}
                   options={[
-                    { value: 'EN_TO_FA', label: 'انگلیسی → فارسی' },
-                    { value: 'FA_TO_EN', label: 'فارسی → انگلیسی' },
+                    { value: "EN_TO_FA", label: "انگلیسی → فارسی" },
+                    { value: "FA_TO_EN", label: "فارسی → انگلیسی" },
                   ]}
                 />
               </SettingRow>
@@ -422,8 +496,8 @@ export function SettingsPage() {
                   value={settings.cardOrder}
                   onChange={(v) => set({ cardOrder: v })}
                   options={[
-                    { value: 'SEQUENTIAL', label: 'ترتیبی' },
-                    { value: 'RANDOM', label: 'تصادفی' },
+                    { value: "SEQUENTIAL", label: "ترتیبی" },
+                    { value: "RANDOM", label: "تصادفی" },
                   ]}
                 />
               </SettingRow>
@@ -461,5 +535,5 @@ export function SettingsPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

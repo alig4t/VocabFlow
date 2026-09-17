@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from "react-router-dom";
 import {
   GraduationCap,
   CheckCircle2,
@@ -9,22 +9,22 @@ import {
   BarChart3,
   Compass,
   Trophy,
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { ProgressRing } from '@/components/dashboard/ProgressRing'
-import { HeroBlob } from '@/components/dashboard/HeroBlob'
-import { HeroPattern } from '@/components/dashboard/HeroPattern'
-import { useStudyToday } from '@/hooks/useStudy'
-import { faNum, faPercent } from '@/lib/format'
-import { cn } from '@/lib/utils'
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ProgressRing } from "@/components/dashboard/ProgressRing";
+import { HeroBlob } from "@/components/dashboard/HeroBlob";
+import { HeroPattern } from "@/components/dashboard/HeroPattern";
+import { useStudyToday } from "@/hooks/useStudy";
+import { faNum, faPercent } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 interface StudyTodayHeroProps {
   /** Consecutive study days. Pill is hidden at zero. */
-  streak?: number
+  streak?: number;
   /** 0–100 share of answers marked known. Pill is hidden with no data. */
-  accuracy?: number
+  accuracy?: number;
   /** Words currently in the SM-2 review cycle. Pill is hidden at zero. */
-  wordsInMemory?: number
+  wordsInMemory?: number;
 }
 
 /*
@@ -32,12 +32,12 @@ interface StudyTodayHeroProps {
   Deep amber marks numbers and icons; everything else is ink or white glass.
 */
 const TONE = {
-  amber: 'text-[hsl(36_85%_32%)]',
-  ink: 'text-deep-foreground',
-} as const
+  amber: "text-[hsl(36_85%_32%)]",
+  ink: "text-deep-foreground",
+} as const;
 
 /** Glass — white frosted, the band's one material for chips and badges. */
-const GLASS = 'bg-white/35 ring-1 ring-white/50 backdrop-blur-md'
+const GLASS = "bg-white/35 ring-1 ring-white/50 backdrop-blur-md";
 
 /**
  * A stat chip — one number worth knowing before anything else. Frosted white
@@ -50,25 +50,35 @@ function StatChip({
   label,
   tone,
 }: {
-  icon: typeof Flame
-  value: string
-  label: string
-  tone: string
+  icon: typeof Flame;
+  value: string;
+  label: string;
+  tone: string;
 }) {
   return (
-    <span className={cn('inline-flex items-center gap-1.5 rounded-full py-1.5 pe-3 ps-2.5', GLASS)}>
-      <Icon className={cn('h-4 w-4 shrink-0', tone)} aria-hidden="true" />
-      <span className="text-sm font-bold tabular-nums text-deep-foreground">{value}</span>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full py-1.5 pe-3 ps-2.5",
+        GLASS,
+      )}
+    >
+      <Icon className={cn("h-4 w-4 shrink-0", tone)} aria-hidden="true" />
+      <span className="text-sm font-bold tabular-nums text-deep-foreground">
+        {value}
+      </span>
       <span className="text-[11px] text-deep-muted">{label}</span>
     </span>
-  )
+  );
 }
 
 /** A drawn separator dot. See the note where it is used. */
 function Dot() {
   return (
-    <li aria-hidden="true" className="h-1 w-1 shrink-0 rounded-full bg-current opacity-40" />
-  )
+    <li
+      aria-hidden="true"
+      className="h-1 w-1 shrink-0 rounded-full bg-current opacity-40"
+    />
+  );
 }
 
 /** The merged band's single primary action: an ink pill, white text. */
@@ -76,8 +86,8 @@ function HeroCTA({
   children,
   onClick,
 }: {
-  children: React.ReactNode
-  onClick: () => void
+  children: React.ReactNode;
+  onClick: () => void;
 }) {
   return (
     <Button
@@ -87,7 +97,7 @@ function HeroCTA({
     >
       {children}
     </Button>
-  )
+  );
 }
 
 /** A quiet secondary action — glass, never a greyed-out primary. */
@@ -95,22 +105,22 @@ function GhostCTA({
   children,
   onClick,
 }: {
-  children: React.ReactNode
-  onClick: () => void
+  children: React.ReactNode;
+  onClick: () => void;
 }) {
   return (
     <Button
       size="lg"
       variant="outline"
       className={cn(
-        'h-14 w-full shrink-0 gap-2 rounded-full border-white/60 px-8 text-base font-bold text-deep-foreground hover:bg-white/50 hover:text-deep-foreground sm:w-auto',
+        "h-14 w-full shrink-0 gap-2 rounded-full border-white/60 px-8 text-base font-bold text-deep-foreground hover:bg-white/50 hover:text-deep-foreground sm:w-auto",
         GLASS,
       )}
       onClick={onClick}
     >
       {children}
     </Button>
-  )
+  );
 }
 
 /**
@@ -141,40 +151,55 @@ export function StudyTodayHero({
   accuracy = 0,
   wordsInMemory = 0,
 }: StudyTodayHeroProps) {
-  const navigate = useNavigate()
-  const { data, isLoading } = useStudyToday()
+  const navigate = useNavigate();
+  const { data, isLoading } = useStudyToday();
 
-  const meta = data?.meta
-  const dueCount = meta?.dueCount ?? 0
-  const newCount = meta?.newCount ?? 0
-  const reviewedToday = meta?.reviewedToday ?? 0
-  const plan = meta?.plans[0]
+  const meta = data?.meta;
+  const dueCount = meta?.dueCount ?? 0;
+  const newCount = meta?.newCount ?? 0;
+  const reviewedToday = meta?.reviewedToday ?? 0;
+  const plan = meta?.plans[0];
 
-  const remaining = dueCount + newCount
+  const remaining = dueCount + newCount;
   // Today's whole workload = what's left plus what's already been answered.
-  const planned = remaining + reviewedToday
-  const progress = planned > 0 ? (reviewedToday / planned) * 100 : 100
-  const done = remaining === 0
+  const planned = remaining + reviewedToday;
+  const progress = planned > 0 ? (reviewedToday / planned) * 100 : 100;
+  const done = remaining === 0;
 
   const lessonLabel =
     plan && plan.currentLesson != null
       ? // faNum, and an em dash rather than "·" — see the separator note below.
-        `${plan.continueLesson ? 'ادامه‌ی' : 'شروع'} درس ${faNum(plan.currentLesson)} — ${plan.bookTitle}`
-      : null
+        `${plan.continueLesson ? "ادامه‌ی" : "شروع"} درس ${faNum(plan.currentLesson)} — ${plan.bookTitle}`
+      : null;
 
   const chips = (
     <div className="flex flex-wrap justify-center gap-2 sm:justify-start">
       {streak > 0 && (
-        <StatChip icon={Flame} value={faNum(streak)} label="روز پیاپی" tone={TONE.amber} />
+        <StatChip
+          icon={Flame}
+          value={faNum(streak)}
+          label="روز پیاپی"
+          tone={TONE.amber}
+        />
       )}
       {accuracy > 0 && (
-        <StatChip icon={Target} value={faPercent(accuracy)} label="دقت" tone={TONE.ink} />
+        <StatChip
+          icon={Target}
+          value={faPercent(accuracy)}
+          label="دقت"
+          tone={TONE.ink}
+        />
       )}
       {wordsInMemory > 0 && (
-        <StatChip icon={Brain} value={faNum(wordsInMemory)} label="واژه در حافظه" tone={TONE.ink} />
+        <StatChip
+          icon={Brain}
+          value={faNum(wordsInMemory)}
+          label="واژه در حافظه"
+          tone={TONE.ink}
+        />
       )}
     </div>
-  )
+  );
 
   return (
     <section
@@ -210,7 +235,9 @@ export function StudyTodayHero({
             The at-a-glance numbers, on their own row — centred on phones to
             match the centred stack below, start-aligned from `sm`.
           */}
-          {!isLoading && (streak > 0 || accuracy > 0 || wordsInMemory > 0) && chips}
+          {!isLoading &&
+            (streak > 0 || accuracy > 0 || wordsInMemory > 0) &&
+            chips}
 
           {isLoading ? (
             /*
@@ -238,7 +265,7 @@ export function StudyTodayHero({
                   یک کتاب از کتابخانه انتخاب کن تا برنامه روزانه‌ات ساخته شود.
                 </p>
               </div>
-              <HeroCTA onClick={() => navigate('/library')}>
+              <HeroCTA onClick={() => navigate("/library")}>
                 <Compass className="h-5 w-5" aria-hidden="true" />
                 انتخاب کتاب
               </HeroCTA>
@@ -254,17 +281,21 @@ export function StudyTodayHero({
                 <h2 className="text-[1.625rem] font-black leading-[1.3] sm:text-4xl">
                   {done ? (
                     <>
-                      <span className="text-deep-foreground">امروز تمام شد</span>
+                      <span className="text-deep-foreground">
+                        امروز تمام شد
+                      </span>
                       <span className="mt-1 block text-base font-bold text-deep-muted sm:text-xl">
                         {reviewedToday > 0
-                          ? 'هدف امروزت را کامل کردی.'
-                          : 'برای امروز چیزی در صف نبود.'}
+                          ? "هدف امروزت را کامل کردی."
+                          : "برای امروز چیزی در صف نبود."}
                       </span>
                     </>
                   ) : (
                     <>
-                      امروز{' '}
-                      <span className={TONE.amber}>{faNum(remaining)} واژه</span>
+                      امروز{" "}
+                      <span className={TONE.amber}>
+                        {faNum(remaining)} واژه
+                      </span>
                       <span className="block">در انتظار توست</span>
                     </>
                   )}
@@ -279,20 +310,30 @@ export function StudyTodayHero({
                 {done && (reviewedToday > 0 || streak > 0) && (
                   <ul className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
                     {reviewedToday > 0 && (
-                      <li className={cn(
-                        'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-bold text-deep-foreground',
-                        GLASS,
-                      )}>
-                        <CheckCircle2 className={cn('h-4 w-4', TONE.amber)} aria-hidden="true" />
+                      <li
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-bold text-deep-foreground",
+                          GLASS,
+                        )}
+                      >
+                        <CheckCircle2
+                          className={cn("h-4 w-4", TONE.amber)}
+                          aria-hidden="true"
+                        />
                         {faNum(reviewedToday)} واژه مرور شد
                       </li>
                     )}
                     {streak > 0 && (
-                      <li className={cn(
-                        'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-bold text-deep-foreground',
-                        GLASS,
-                      )}>
-                        <Flame className={cn('h-4 w-4', TONE.amber)} aria-hidden="true" />
+                      <li
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-bold text-deep-foreground",
+                          GLASS,
+                        )}
+                      >
+                        <Flame
+                          className={cn("h-4 w-4", TONE.amber)}
+                          aria-hidden="true"
+                        />
                         {faNum(streak)} روز پیاپی
                       </li>
                     )}
@@ -326,13 +367,13 @@ export function StudyTodayHero({
 
                 <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center">
                   {done ? (
-                    <GhostCTA onClick={() => navigate('/statistics')}>
+                    <GhostCTA onClick={() => navigate("/statistics")}>
                       <BarChart3 className="h-5 w-5" aria-hidden="true" />
                       مشاهده پیشرفت
                       <ArrowLeft className="h-4 w-4" aria-hidden="true" />
                     </GhostCTA>
                   ) : (
-                    <HeroCTA onClick={() => navigate('/study')}>
+                    <HeroCTA onClick={() => navigate("/study")}>
                       <GraduationCap className="h-5 w-5" aria-hidden="true" />
                       شروع مطالعه
                       <ArrowLeft className="h-4 w-4" aria-hidden="true" />
@@ -340,7 +381,9 @@ export function StudyTodayHero({
                   )}
 
                   {lessonLabel && !done && (
-                    <p className="truncate text-xs text-deep-muted">{lessonLabel}</p>
+                    <p className="truncate text-xs text-deep-muted">
+                      {lessonLabel}
+                    </p>
                   )}
                 </div>
               </div>
@@ -356,11 +399,14 @@ export function StudyTodayHero({
                 <div className="order-1 flex shrink-0 flex-col items-center gap-3 sm:order-2">
                   <span
                     className={cn(
-                      'flex h-20 w-20 items-center justify-center rounded-[1.75rem] shadow-lg shadow-black/10',
+                      "flex h-20 w-20 items-center justify-center rounded-[1.75rem] shadow-lg shadow-black/10",
                       GLASS,
                     )}
                   >
-                    <Trophy className={cn('h-10 w-10', TONE.amber)} aria-hidden="true" />
+                    <Trophy
+                      className={cn("h-10 w-10", TONE.amber)}
+                      aria-hidden="true"
+                    />
                   </span>
                   {reviewedToday > 0 && (
                     <p className="text-center leading-tight">
@@ -388,8 +434,8 @@ export function StudyTodayHero({
                   */
                   trackClassName={
                     progress === 0
-                      ? 'stroke-[hsl(45_60%_10%_/_0.3)]'
-                      : 'stroke-deep-track'
+                      ? "stroke-[hsl(45_60%_10%_/_0.3)]"
+                      : "stroke-deep-track"
                   }
                   className="order-1 h-36 w-36 shrink-0 sm:order-2 sm:h-52 sm:w-52"
                   label={`${Math.round(progress)} درصد از مطالعه امروز انجام شده`}
@@ -397,7 +443,9 @@ export function StudyTodayHero({
                   <span className="text-[2.6rem] font-black tabular-nums leading-none text-deep-foreground sm:text-6xl">
                     {faNum(remaining)}
                   </span>
-                  <span className="mt-1.5 text-[11px] font-medium text-deep-muted">واژه</span>
+                  <span className="mt-1.5 text-[11px] font-medium text-deep-muted">
+                    واژه
+                  </span>
                 </ProgressRing>
               )}
             </div>
@@ -448,5 +496,5 @@ export function StudyTodayHero({
         />
       </svg>
     </section>
-  )
+  );
 }

@@ -1,6 +1,6 @@
-import type { CSSProperties } from 'react'
-import { BrainIllustration } from './BrainIllustration'
-import { cn } from '../../lib/utils'
+import type { CSSProperties } from "react";
+import { BrainIllustration } from "./BrainIllustration";
+import { cn } from "../../lib/utils";
 
 /**
  * Where each drifting word sits, as a percentage of the stage.
@@ -40,43 +40,43 @@ const SLOTS = [
   { x: 89, y: 39, size: 8, dur: 7.8, delay: 0.9 },
   { x: 19, y: 53, size: 8, dur: 8.4, delay: 3.3 },
   { x: 81, y: 51, size: 8, dur: 9.7, delay: 1.5 },
-] as const
+] as const;
 
 /**
  * Cycled across the words so the halo carries the card's own colour system:
  * violet for new, amber for mid-flight, mint for banked.
  */
-const TONES = ['text-violet', 'text-warning', 'text-mint'] as const
+const TONES = ["text-violet", "text-warning", "text-mint"] as const;
 
 /** Used before the account has vocabulary of its own. */
 const FALLBACK = [
-  'remember',
-  'vocabulary',
-  'review',
-  'fluent',
-  'improve',
-  'recall',
-  'practice',
-  'learn',
-  'words',
-  'memory',
-  'repeat',
-  'meaning',
-  'spelling',
-  'sentence',
-  'phrase',
-  'context',
-  'listen',
-  'speak',
-  'read',
-  'write',
-  'daily',
-]
+  "remember",
+  "vocabulary",
+  "review",
+  "fluent",
+  "improve",
+  "recall",
+  "practice",
+  "learn",
+  "words",
+  "memory",
+  "repeat",
+  "meaning",
+  "spelling",
+  "sentence",
+  "phrase",
+  "context",
+  "listen",
+  "speak",
+  "read",
+  "write",
+  "daily",
+];
 
 interface MemoryWordHaloProps {
   /** The reader's own words. Padded from FALLBACK when there aren't enough. */
-  words?: string[]
-  className?: string
+  words?: string[];
+  className?: string;
 }
 
 /**
@@ -87,19 +87,22 @@ interface MemoryWordHaloProps {
  * assistive technology: the counts underneath carry the meaning.
  */
 export function MemoryWordHalo({ words = [], className }: MemoryWordHaloProps) {
-  const pool = [...words, ...FALLBACK.filter((w) => !words.includes(w))]
+  const pool = [...words, ...FALLBACK.filter((w) => !words.includes(w))];
 
   return (
     <div
       aria-hidden="true"
-      className={cn('relative mx-auto h-48 w-full max-w-md select-none sm:h-56', className)}
+      className={cn(
+        "relative mx-auto h-48 w-full max-w-md select-none sm:h-56",
+        className,
+      )}
     >
       {SLOTS.map((slot, i) => (
         <span
           key={i}
           dir="ltr"
           className={cn(
-            'word-drift absolute -translate-x-1/2 whitespace-nowrap font-semibold lowercase leading-none',
+            "word-drift absolute -translate-x-1/2 whitespace-nowrap font-semibold lowercase leading-none",
             TONES[i % TONES.length],
           )}
           style={
@@ -107,11 +110,11 @@ export function MemoryWordHalo({ words = [], className }: MemoryWordHaloProps) {
               left: `${slot.x}%`,
               top: `${slot.y}%`,
               fontSize: `${slot.size}px`,
-              '--drift-dur': `${slot.dur}s`,
-              '--drift-delay': `${slot.delay}s`,
+              "--drift-dur": `${slot.dur}s`,
+              "--drift-delay": `${slot.delay}s`,
               // Level set per theme — see the note on the tokens.
-              '--drift-min': 'var(--drift-out-min)',
-              '--drift-max': 'var(--drift-out-max)',
+              "--drift-min": "var(--drift-out-min)",
+              "--drift-max": "var(--drift-out-max)",
             } as CSSProperties
           }
         >
@@ -129,5 +132,5 @@ export function MemoryWordHalo({ words = [], className }: MemoryWordHaloProps) {
 
       <BrainIllustration className="absolute left-1/2 top-[58%] h-32 w-32 -translate-x-1/2 -translate-y-1/2 sm:h-40 sm:w-40" />
     </div>
-  )
+  );
 }

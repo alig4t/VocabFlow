@@ -1,10 +1,10 @@
-import { Flame, Repeat2, Clock, Target } from 'lucide-react'
-import { StatTile } from './StatTile'
-import { faNum, faPercent } from '../../lib/format'
-import type { DashboardGlobalStats } from '../../types'
+import { Flame, Repeat2, Clock, Target } from "lucide-react";
+import { StatTile } from "./StatTile";
+import { faNum, faPercent } from "../../lib/format";
+import type { DashboardGlobalStats } from "../../types";
 
 interface GlobalStatsProps {
-  stats: DashboardGlobalStats
+  stats: DashboardGlobalStats;
 }
 
 /**
@@ -19,7 +19,7 @@ interface GlobalStatsProps {
 export function GlobalStats({ stats }: GlobalStatsProps) {
   // accuracyRate is 0 both when there are no answers and when every answer was
   // wrong; the latter effectively never happens, so treat 0 as "no data yet".
-  const noReviews = stats.accuracyRate === 0
+  const noReviews = stats.accuracyRate === 0;
 
   return (
     <section
@@ -63,5 +63,5 @@ export function GlobalStats({ stats }: GlobalStatsProps) {
         emptyLabel="هنوز جلسه‌ای نبوده"
       />
     </section>
-  )
+  );
 }

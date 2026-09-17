@@ -1,106 +1,184 @@
-import { Suspense, lazy, useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useAuthStore } from './store/authStore'
-import { ThemeProvider } from './components/layout/ThemeProvider'
-import { Layout } from './components/layout/Layout'
-import { PageLoader } from './components/layout/PageLoader'
-import { SeedLoader } from './components/layout/SeedLoader'
-import { TopLoadingBar } from './components/layout/TopLoadingBar'
-import { NativeBackButton } from './components/layout/NativeBackButton'
-import { StatusBarSync } from './components/layout/StatusBarSync'
-import { Toaster } from './components/ui/toast'
-import { isNative } from './lib/platform'
-import { isOnboardingCompleted } from './lib/onboarding'
-import { prepareNative } from './offline/bootstrap'
-import { initNotifications, rescheduleNotifications } from './lib/notifications'
-import { type Role } from './types'
+import { Suspense, lazy, useEffect, useState } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useAuthStore } from "./store/authStore";
+import { ThemeProvider } from "./components/layout/ThemeProvider";
+import { Layout } from "./components/layout/Layout";
+import { PageLoader } from "./components/layout/PageLoader";
+import { SeedLoader } from "./components/layout/SeedLoader";
+import { TopLoadingBar } from "./components/layout/TopLoadingBar";
+import { NativeBackButton } from "./components/layout/NativeBackButton";
+import { StatusBarSync } from "./components/layout/StatusBarSync";
+import { Toaster } from "./components/ui/toast";
+import { isNative } from "./lib/platform";
+import { isOnboardingCompleted } from "./lib/onboarding";
+import { prepareNative } from "./offline/bootstrap";
+import {
+  initNotifications,
+  rescheduleNotifications,
+} from "./lib/notifications";
+import { type Role } from "./types";
 
 // ── Lazy-loaded pages (code-split; PageLoader shows while chunks load) ────────
-const LandingPage = lazy(() => import('./pages/LandingPage'))
-const OnboardingPage = lazy(() => import('./pages/onboarding/OnboardingPage'))
-const LoginPage = lazy(() => import('./pages/auth/LoginPage').then((m) => ({ default: m.LoginPage })))
-const RegisterPage = lazy(() => import('./pages/auth/RegisterPage').then((m) => ({ default: m.RegisterPage })))
-const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })))
-const HardWordsPage = lazy(() => import('./pages/dashboard/HardWordsPage').then((m) => ({ default: m.HardWordsPage })))
-const StatisticsPage = lazy(() => import('./pages/stats/StatisticsPage').then((m) => ({ default: m.StatisticsPage })))
-const LibraryPage = lazy(() => import('./pages/library/LibraryPage').then((m) => ({ default: m.LibraryPage })))
-const BookDetailPage = lazy(() => import('./pages/library/BookDetailPage').then((m) => ({ default: m.BookDetailPage })))
-const VocabularyPage = lazy(() => import('./pages/vocabulary/VocabularyPage').then((m) => ({ default: m.VocabularyPage })))
-const ReviewPage = lazy(() => import('./pages/vocabulary/ReviewPage').then((m) => ({ default: m.ReviewPage })))
-const StudySessionPage = lazy(() => import('./pages/study/StudySessionPage').then((m) => ({ default: m.StudySessionPage })))
-const ReviewTodayPage = lazy(() => import('./pages/study/ReviewTodayPage').then((m) => ({ default: m.ReviewTodayPage })))
-const SettingsPage = lazy(() => import('./pages/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })))
-const AboutPage = lazy(() => import('./pages/about/AboutPage').then((m) => ({ default: m.AboutPage })))
-const GuidePage = lazy(() => import('./pages/guide/GuidePage').then((m) => ({ default: m.GuidePage })))
-const AdminPage = lazy(() => import('./pages/admin/AdminPage').then((m) => ({ default: m.AdminPage })))
-const UsersPage = lazy(() => import('./pages/admin/UsersPage').then((m) => ({ default: m.UsersPage })))
-const WordFormPage = lazy(() => import('./pages/admin/WordFormPage').then((m) => ({ default: m.WordFormPage })))
-const BookListPage = lazy(() => import('./pages/admin/books/BookListPage').then((m) => ({ default: m.BookListPage })))
-const BookFormPage = lazy(() => import('./pages/admin/books/BookFormPage').then((m) => ({ default: m.BookFormPage })))
-const VolumeManagerPage = lazy(() => import('./pages/admin/books/VolumeManagerPage').then((m) => ({ default: m.VolumeManagerPage })))
-const LessonManagerPage = lazy(() => import('./pages/admin/books/LessonManagerPage').then((m) => ({ default: m.LessonManagerPage })))
+const LandingPage = lazy(() => import("./pages/LandingPage"));
+const OnboardingPage = lazy(() => import("./pages/onboarding/OnboardingPage"));
+const LoginPage = lazy(() =>
+  import("./pages/auth/LoginPage").then((m) => ({ default: m.LoginPage })),
+);
+const RegisterPage = lazy(() =>
+  import("./pages/auth/RegisterPage").then((m) => ({
+    default: m.RegisterPage,
+  })),
+);
+const DashboardPage = lazy(() =>
+  import("./pages/dashboard/DashboardPage").then((m) => ({
+    default: m.DashboardPage,
+  })),
+);
+const HardWordsPage = lazy(() =>
+  import("./pages/dashboard/HardWordsPage").then((m) => ({
+    default: m.HardWordsPage,
+  })),
+);
+const StatisticsPage = lazy(() =>
+  import("./pages/stats/StatisticsPage").then((m) => ({
+    default: m.StatisticsPage,
+  })),
+);
+const LibraryPage = lazy(() =>
+  import("./pages/library/LibraryPage").then((m) => ({
+    default: m.LibraryPage,
+  })),
+);
+const BookDetailPage = lazy(() =>
+  import("./pages/library/BookDetailPage").then((m) => ({
+    default: m.BookDetailPage,
+  })),
+);
+const VocabularyPage = lazy(() =>
+  import("./pages/vocabulary/VocabularyPage").then((m) => ({
+    default: m.VocabularyPage,
+  })),
+);
+const ReviewPage = lazy(() =>
+  import("./pages/vocabulary/ReviewPage").then((m) => ({
+    default: m.ReviewPage,
+  })),
+);
+const StudySessionPage = lazy(() =>
+  import("./pages/study/StudySessionPage").then((m) => ({
+    default: m.StudySessionPage,
+  })),
+);
+const ReviewTodayPage = lazy(() =>
+  import("./pages/study/ReviewTodayPage").then((m) => ({
+    default: m.ReviewTodayPage,
+  })),
+);
+const SettingsPage = lazy(() =>
+  import("./pages/settings/SettingsPage").then((m) => ({
+    default: m.SettingsPage,
+  })),
+);
+const AboutPage = lazy(() =>
+  import("./pages/about/AboutPage").then((m) => ({ default: m.AboutPage })),
+);
+const GuidePage = lazy(() =>
+  import("./pages/guide/GuidePage").then((m) => ({ default: m.GuidePage })),
+);
+const AdminPage = lazy(() =>
+  import("./pages/admin/AdminPage").then((m) => ({ default: m.AdminPage })),
+);
+const UsersPage = lazy(() =>
+  import("./pages/admin/UsersPage").then((m) => ({ default: m.UsersPage })),
+);
+const WordFormPage = lazy(() =>
+  import("./pages/admin/WordFormPage").then((m) => ({
+    default: m.WordFormPage,
+  })),
+);
+const BookListPage = lazy(() =>
+  import("./pages/admin/books/BookListPage").then((m) => ({
+    default: m.BookListPage,
+  })),
+);
+const BookFormPage = lazy(() =>
+  import("./pages/admin/books/BookFormPage").then((m) => ({
+    default: m.BookFormPage,
+  })),
+);
+const VolumeManagerPage = lazy(() =>
+  import("./pages/admin/books/VolumeManagerPage").then((m) => ({
+    default: m.VolumeManagerPage,
+  })),
+);
+const LessonManagerPage = lazy(() =>
+  import("./pages/admin/books/LessonManagerPage").then((m) => ({
+    default: m.LessonManagerPage,
+  })),
+);
 
 // ProtectedRoute: redirects unauthenticated users to /login
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  if (!isAuthenticated) return <Navigate to="/login" replace />
-  return <>{children}</>
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return <>{children}</>;
 }
 
 // AdminRoute: requires ADMIN role; redirects others to /dashboard
 function AdminRoute({ children }: { children: React.ReactNode }) {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  const user = useAuthStore((s) => s.user)
-  if (!isAuthenticated) return <Navigate to="/login" replace />
-  if (user?.role !== ('ADMIN' as Role)) return <Navigate to="/dashboard" replace />
-  return <>{children}</>
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role !== ("ADMIN" as Role))
+    return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
 }
 
 // PublicRoute: redirects authenticated users away from auth pages
 function PublicRoute({ children }: { children: React.ReactNode }) {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  if (isAuthenticated) return <Navigate to="/dashboard" replace />
-  return <>{children}</>
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
 }
 
 export default function App() {
-  const initAuth = useAuthStore((s) => s.initAuth)
-  const isReady = useAuthStore((s) => s.isReady)
+  const initAuth = useAuthStore((s) => s.initAuth);
+  const isReady = useAuthStore((s) => s.isReady);
 
   // Native offline build seeds the local SQLite DB on first launch.
-  const [dbReady, setDbReady] = useState(!isNative())
-  const [seed, setSeed] = useState({ progress: 0, label: '' })
+  const [dbReady, setDbReady] = useState(!isNative());
+  const [seed, setSeed] = useState({ progress: 0, label: "" });
 
   useEffect(() => {
-    initAuth()
-  }, [initAuth])
+    initAuth();
+  }, [initAuth]);
 
   useEffect(() => {
-    if (!isNative()) return
+    if (!isNative()) return;
     prepareNative((progress, label) => setSeed({ progress, label }))
       .then(() => setDbReady(true))
       .catch((e) => {
-        console.error('offline seed failed', e)
-        setDbReady(true)
-      })
-  }, [])
+        console.error("offline seed failed", e);
+        setDbReady(true);
+      });
+  }, []);
 
   // Native: schedule study reminders once the offline DB is ready, and rebuild
   // the schedule every time the app is brought back to the foreground (so a
   // session completed elsewhere / a new day is reflected). No-op on web.
   useEffect(() => {
-    if (!isNative() || !dbReady) return
-    initNotifications()
-    let remove: (() => void) | undefined
-    import('@capacitor/app').then(({ App: CapApp }) => {
-      CapApp.addListener('appStateChange', ({ isActive }) => {
-        if (isActive) rescheduleNotifications()
+    if (!isNative() || !dbReady) return;
+    initNotifications();
+    let remove: (() => void) | undefined;
+    import("@capacitor/app").then(({ App: CapApp }) => {
+      CapApp.addListener("appStateChange", ({ isActive }) => {
+        if (isActive) rescheduleNotifications();
       }).then((handle) => {
-        remove = () => handle.remove()
-      })
-    })
-    return () => remove?.()
-  }, [dbReady])
+        remove = () => handle.remove();
+      });
+    });
+    return () => remove?.();
+  }, [dbReady]);
 
   // Block route rendering until auth is restored from localStorage.
   if (!isReady) {
@@ -108,7 +186,7 @@ export default function App() {
       <ThemeProvider defaultTheme="system" storageKey="eng-theme">
         <PageLoader />
       </ThemeProvider>
-    )
+    );
   }
 
   // Native: block until the offline DB is seeded and ready.
@@ -117,7 +195,7 @@ export default function App() {
       <ThemeProvider defaultTheme="system" storageKey="eng-theme">
         <SeedLoader progress={seed.progress} label={seed.label} />
       </ThemeProvider>
-    )
+    );
   }
 
   return (
@@ -134,7 +212,11 @@ export default function App() {
             <Route
               path="/onboarding"
               element={
-                isOnboardingCompleted() ? <Navigate to="/dashboard" replace /> : <OnboardingPage />
+                isOnboardingCompleted() ? (
+                  <Navigate to="/dashboard" replace />
+                ) : (
+                  <OnboardingPage />
+                )
               }
             />
 
@@ -142,7 +224,10 @@ export default function App() {
               path="/"
               element={
                 isNative() ? (
-                  <Navigate to={isOnboardingCompleted() ? '/dashboard' : '/onboarding'} replace />
+                  <Navigate
+                    to={isOnboardingCompleted() ? "/dashboard" : "/onboarding"}
+                    replace
+                  />
                 ) : (
                   <LandingPage />
                 )
@@ -387,5 +472,5 @@ export default function App() {
         </Suspense>
       </BrowserRouter>
     </ThemeProvider>
-  )
+  );
 }

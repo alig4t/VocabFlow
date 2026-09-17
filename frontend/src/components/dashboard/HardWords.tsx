@@ -1,22 +1,22 @@
-import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, AlertTriangle } from 'lucide-react'
-import { Button } from '../ui/button'
-import { faNum } from '../../lib/format'
-import { cn } from '../../lib/utils'
-import type { HardWordItem } from '../../types'
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, AlertTriangle } from "lucide-react";
+import { Button } from "../ui/button";
+import { faNum } from "../../lib/format";
+import { cn } from "../../lib/utils";
+import type { HardWordItem } from "../../types";
 
 interface HardWordsProps {
-  words: HardWordItem[]
+  words: HardWordItem[];
 }
 
 /** "۵ بار سخت" / "۳ بار غلط" — whichever count dominates for this word. */
 function struggleLabel(w: HardWordItem): string {
-  if (w.hardCount >= w.wrongCount) return `${faNum(w.hardCount)} بار سخت`
-  return `${faNum(w.wrongCount)} بار غلط`
+  if (w.hardCount >= w.wrongCount) return `${faNum(w.hardCount)} بار سخت`;
+  return `${faNum(w.wrongCount)} بار غلط`;
 }
 
 /** Four strikes is where a word stops being tricky and becomes a blocker. */
-const MAX_STRIKES = 4
+const MAX_STRIKES = 4;
 
 /**
  * The words that resist memorisation, as a row of cards you swipe through.
@@ -27,14 +27,14 @@ const MAX_STRIKES = 4
  * list lives on `/hard-words`, reachable from the button below.
  */
 export function HardWords({ words }: HardWordsProps) {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   if (words.length === 0) {
     return (
       <p className="py-8 text-center text-sm text-muted-foreground">
         فعلاً واژه‌ی دردسرسازی نداری — عالیه! 🎉
       </p>
-    )
+    );
   }
 
   return (
@@ -45,7 +45,10 @@ export function HardWords({ words }: HardWordsProps) {
       */}
       <ul className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2">
         {words.map((w) => {
-          const strikes = Math.min(MAX_STRIKES, Math.max(w.hardCount, w.wrongCount))
+          const strikes = Math.min(
+            MAX_STRIKES,
+            Math.max(w.hardCount, w.wrongCount),
+          );
           return (
             <li
               key={w.wordId}
@@ -62,10 +65,15 @@ export function HardWords({ words }: HardWordsProps) {
                 >
                   {w.eng}
                 </span>
-                <AlertTriangle className="h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
+                <AlertTriangle
+                  className="h-4 w-4 shrink-0 text-warning"
+                  aria-hidden="true"
+                />
               </div>
 
-              <span className="truncate text-xs text-muted-foreground">{w.per}</span>
+              <span className="truncate text-xs text-muted-foreground">
+                {w.per}
+              </span>
 
               <span
                 className="flex gap-1 pt-1"
@@ -76,8 +84,8 @@ export function HardWords({ words }: HardWordsProps) {
                   <span
                     key={i}
                     className={cn(
-                      'h-1.5 w-1.5 rounded-full',
-                      i < strikes ? 'bg-warning' : 'bg-warning/20',
+                      "h-1.5 w-1.5 rounded-full",
+                      i < strikes ? "bg-warning" : "bg-warning/20",
                     )}
                   />
                 ))}
@@ -87,7 +95,7 @@ export function HardWords({ words }: HardWordsProps) {
                 {struggleLabel(w)}
               </span>
             </li>
-          )
+          );
         })}
       </ul>
 
@@ -95,11 +103,11 @@ export function HardWords({ words }: HardWordsProps) {
         variant="outline"
         size="sm"
         className="w-full gap-2"
-        onClick={() => navigate('/hard-words')}
+        onClick={() => navigate("/hard-words")}
       >
         مرور واژه‌های سخت
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
       </Button>
     </div>
-  )
+  );
 }

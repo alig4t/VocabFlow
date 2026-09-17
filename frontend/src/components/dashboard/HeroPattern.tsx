@@ -7,7 +7,10 @@
  */
 export function HeroPattern() {
   return (
-    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 overflow-hidden"
+    >
       {/* The dot grid, masked to the upper-inline-start half. */}
       <div className="hero-dots hero-dots-mask absolute inset-0" />
 
@@ -42,5 +45,5 @@ export function HeroPattern() {
       <span className="absolute end-[14%] top-[34%] h-1.5 w-1.5 rounded-full bg-[hsl(36_85%_32%_/_0.3)]" />
       <span className="absolute start-[8%] top-[52%] h-1 w-1 rounded-full bg-[hsl(45_60%_10%_/_0.14)]" />
     </div>
-  )
+  );
 }

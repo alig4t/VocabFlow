@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { BookText, Check, Loader2, GraduationCap } from 'lucide-react'
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { BookText, Check, Loader2, GraduationCap } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -8,52 +8,59 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { useVolumes } from '@/hooks/useBooks'
-import { usePlans, useCreatePlan } from '@/hooks/usePlans'
-import { useToast } from '@/components/ui/use-toast'
-import { cn, getErrorMessage } from '@/lib/utils'
-import { faNum } from '@/lib/format'
-import type { DiscoveryBook } from '@/types'
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { useVolumes } from "@/hooks/useBooks";
+import { usePlans, useCreatePlan } from "@/hooks/usePlans";
+import { useToast } from "@/components/ui/use-toast";
+import { cn, getErrorMessage } from "@/lib/utils";
+import { faNum } from "@/lib/format";
+import type { DiscoveryBook } from "@/types";
 
-const DAILY_OPTIONS = [10, 20, 30, 40, 50]
+const DAILY_OPTIONS = [10, 20, 30, 40, 50];
 
 interface StartPlanDialogProps {
-  book: DiscoveryBook | null
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  book: DiscoveryBook | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   /** Pre-select this volume when the dialog opens (e.g. from the book detail page). */
-  initialVolumeId?: string
+  initialVolumeId?: string;
 }
 
 /**
  * Add a book VOLUME (not the whole book) to the learning plan and choose how
  * many new words to learn per day. Single-volume books skip volume selection.
  */
-export function StartPlanDialog({ book, open, onOpenChange, initialVolumeId }: StartPlanDialogProps) {
-  const navigate = useNavigate()
-  const { toast } = useToast()
-  const { data: volumes, isLoading: volumesLoading } = useVolumes(open && book ? book.id : '')
-  const { data: plans } = usePlans()
-  const createPlan = useCreatePlan()
+export function StartPlanDialog({
+  book,
+  open,
+  onOpenChange,
+  initialVolumeId,
+}: StartPlanDialogProps) {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { data: volumes, isLoading: volumesLoading } = useVolumes(
+    open && book ? book.id : "",
+  );
+  const { data: plans } = usePlans();
+  const createPlan = useCreatePlan();
 
-  const [volumeId, setVolumeId] = useState<string>('')
-  const [dailyNewWords, setDailyNewWords] = useState<number>(20)
+  const [volumeId, setVolumeId] = useState<string>("");
+  const [dailyNewWords, setDailyNewWords] = useState<number>(20);
 
   const plannedVolumeIds = useMemo(
     () => new Set((plans ?? []).map((p) => p.volumeId)),
     [plans],
-  )
+  );
 
   // Reset selection each time the dialog opens for a new book. When the caller
   // pre-selects a volume (from the detail page), honour it instead of clearing.
   useEffect(() => {
     if (open) {
-      setVolumeId(initialVolumeId ?? '')
-      setDailyNewWords(20)
+      setVolumeId(initialVolumeId ?? "");
+      setDailyNewWords(20);
     }
-  }, [open, book?.id, initialVolumeId])
+  }, [open, book?.id, initialVolumeId]);
 
   // Auto-select when there is exactly one volume. Declared AFTER the reset
   // effect above: when `volumes` is already cache-warm both effects fire in
@@ -62,36 +69,38 @@ export function StartPlanDialog({ book, open, onOpenChange, initialVolumeId }: S
   // single-volume books with no selectable volume and a permanently
   // disabled "شروع یادگیری" button.
   useEffect(() => {
-    if (open && volumes && volumes.length === 1) setVolumeId(volumes[0].id)
-  }, [open, volumes])
+    if (open && volumes && volumes.length === 1) setVolumeId(volumes[0].id);
+  }, [open, volumes]);
 
-  const singleVolume = volumes?.length === 1
-  const canConfirm = Boolean(volumeId) && !createPlan.isPending
-  const alreadyPlanned = volumeId ? plannedVolumeIds.has(volumeId) : false
+  const singleVolume = volumes?.length === 1;
+  const canConfirm = Boolean(volumeId) && !createPlan.isPending;
+  const alreadyPlanned = volumeId ? plannedVolumeIds.has(volumeId) : false;
 
   function handleConfirm() {
-    if (!volumeId) return
+    if (!volumeId) return;
     createPlan.mutate(
       { volumeId, dailyNewWords, dailyGoal: dailyNewWords * 3 },
       {
         onSuccess: () => {
           toast({
-            title: alreadyPlanned ? 'برنامه به‌روزرسانی شد' : 'به برنامه‌ی یادگیری اضافه شد',
+            title: alreadyPlanned
+              ? "برنامه به‌روزرسانی شد"
+              : "به برنامه‌ی یادگیری اضافه شد",
             description: `${dailyNewWords} واژه جدید در روز`,
-            variant: 'success',
-          })
-          onOpenChange(false)
-          navigate('/study')
+            variant: "success",
+          });
+          onOpenChange(false);
+          navigate("/study");
         },
         onError: (error) => {
           toast({
-            title: 'خطا',
-            description: getErrorMessage(error, 'عملیات ناموفق بود.'),
-            variant: 'destructive',
-          })
+            title: "خطا",
+            description: getErrorMessage(error, "عملیات ناموفق بود."),
+            variant: "destructive",
+          });
         },
       },
-    )
+    );
   }
 
   return (
@@ -109,23 +118,25 @@ export function StartPlanDialog({ book, open, onOpenChange, initialVolumeId }: S
           {/* Volume picker */}
           {!singleVolume && (
             <div className="space-y-2">
-              <p className="text-sm font-medium text-foreground">جلد را انتخاب کنید</p>
+              <p className="text-sm font-medium text-foreground">
+                جلد را انتخاب کنید
+              </p>
               {volumesLoading ? (
                 <div className="h-20 animate-pulse rounded-lg bg-muted" />
               ) : (
                 <div className="grid max-h-64 grid-cols-2 gap-y-2 gap-x-2 p-1.5 overflow-y-auto sm:grid-cols-3">
                   {volumes?.map((v) => {
-                    const planned = plannedVolumeIds.has(v.id)
-                    const selected = volumeId === v.id
+                    const planned = plannedVolumeIds.has(v.id);
+                    const selected = volumeId === v.id;
                     return (
                       <button
                         key={v.id}
                         onClick={() => setVolumeId(v.id)}
                         className={cn(
-                          'group relative flex flex-col items-center gap-2 rounded-xl border p-2 text-center transition-colors',
+                          "group relative flex flex-col items-center gap-2 rounded-xl border p-2 text-center transition-colors",
                           selected
-                            ? 'border-primary bg-primary/5 ring-2 ring-primary'
-                            : 'border-border hover:border-primary/50 hover:bg-accent',
+                            ? "border-primary bg-primary/5 ring-2 ring-primary"
+                            : "border-border hover:border-primary/50 hover:bg-accent",
                         )}
                       >
                         {v.coverImage ? (
@@ -154,7 +165,7 @@ export function StartPlanDialog({ book, open, onOpenChange, initialVolumeId }: S
                           </span>
                         )}
                       </button>
-                    )
+                    );
                   })}
                 </div>
               )}
@@ -163,17 +174,19 @@ export function StartPlanDialog({ book, open, onOpenChange, initialVolumeId }: S
 
           {/* Daily new-words picker */}
           <div className="space-y-2">
-            <p className="text-sm font-medium text-foreground">هر روز چند واژه جدید؟</p>
+            <p className="text-sm font-medium text-foreground">
+              هر روز چند واژه جدید؟
+            </p>
             <div className="flex flex-wrap gap-2">
               {DAILY_OPTIONS.map((n) => (
                 <button
                   key={n}
                   onClick={() => setDailyNewWords(n)}
                   className={cn(
-                    'min-w-[3.5rem] rounded-lg border px-4 py-2 text-sm font-semibold tabular-nums transition-colors',
+                    "min-w-[3.5rem] rounded-lg border px-4 py-2 text-sm font-semibold tabular-nums transition-colors",
                     dailyNewWords === n
-                      ? 'border-primary bg-primary text-primary-foreground shadow-sm'
-                      : 'border-border text-foreground hover:bg-accent',
+                      ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                      : "border-border text-foreground hover:bg-accent",
                   )}
                 >
                   {faNum(n)}
@@ -181,7 +194,8 @@ export function StartPlanDialog({ book, open, onOpenChange, initialVolumeId }: S
               ))}
             </div>
             <p className="text-xs text-muted-foreground">
-              واژگان جدید به‌تدریج و بر اساس این سقف روزانه وارد چرخه‌ی یادگیری می‌شوند.
+              واژگان جدید به‌تدریج و بر اساس این سقف روزانه وارد چرخه‌ی یادگیری
+              می‌شوند.
             </p>
           </div>
         </div>
@@ -190,16 +204,20 @@ export function StartPlanDialog({ book, open, onOpenChange, initialVolumeId }: S
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             انصراف
           </Button>
-          <Button onClick={handleConfirm} disabled={!canConfirm} className="gap-2">
+          <Button
+            onClick={handleConfirm}
+            disabled={!canConfirm}
+            className="gap-2"
+          >
             {createPlan.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <GraduationCap className="h-4 w-4" />
             )}
-            {alreadyPlanned ? 'به‌روزرسانی برنامه' : 'شروع یادگیری'}
+            {alreadyPlanned ? "به‌روزرسانی برنامه" : "شروع یادگیری"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
