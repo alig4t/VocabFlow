@@ -327,7 +327,7 @@
     font-family: "Anjoman", system-ui, sans-serif;
   }
 
-  .font-anjoman-bold{
+  .font-anjoman-bold {
     font-family: "Anjoman-bold";
   }
 
@@ -463,29 +463,31 @@
 
   /*
     Full bleed like `page-bleed`, but also sliding up under the transparent
-    hero navbar (h-16 = 4rem) so the gradient runs edge to edge behind it.
+    hero navbar (h-16 = 4rem + the edge-to-edge status-bar inset) so the
+    gradient runs edge to edge behind it, up to the top of the screen.
     Replaces `page-bleed` — don't stack both, they'd fight over margin-top.
+    Keep the -4rem/-env() parts in sync with the Navbar's height.
   */
   .page-bleed-under-nav {
     margin-inline: -0.5rem;
-    margin-top: calc(-1rem - 4rem);
+    margin-top: calc(-1rem - 4rem - env(safe-area-inset-top));
   }
   @media (min-width: 640px) {
     .page-bleed-under-nav {
       margin-inline: -1rem;
-      margin-top: calc(-1rem - 4rem);
+      margin-top: calc(-1rem - 4rem - env(safe-area-inset-top));
     }
   }
   @media (min-width: 768px) {
     .page-bleed-under-nav {
       margin-inline: -1.5rem;
-      margin-top: calc(-1.5rem - 4rem);
+      margin-top: calc(-1.5rem - 4rem - env(safe-area-inset-top));
     }
   }
   @media (min-width: 1024px) {
     .page-bleed-under-nav {
       margin-inline: -2rem;
-      margin-top: calc(-2rem - 4rem);
+      margin-top: calc(-2rem - 4rem - env(safe-area-inset-top));
     }
   }
 

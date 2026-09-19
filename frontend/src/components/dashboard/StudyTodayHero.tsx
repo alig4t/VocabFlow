@@ -204,7 +204,7 @@ export function StudyTodayHero({
   return (
     <section
       dir="rtl"
-      className="page-bleed-under-nav bg-hero-deep relative overflow-hidden pb-20 pt-24 text-deep-foreground sm:pb-24 sm:pt-28"
+      className="page-bleed-under-nav bg-hero-deep relative overflow-hidden pb-20 pt-[calc(6rem+env(safe-area-inset-top))] text-deep-foreground sm:pb-24 sm:pt-[calc(7rem+env(safe-area-inset-top))]"
     >
       {/*
         The reference's organic blobs: one large, low, behind the dial; one

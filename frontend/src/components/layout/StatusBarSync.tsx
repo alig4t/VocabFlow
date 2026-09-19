@@ -1,45 +1,29 @@
 import { useEffect } from "react";
-import { useLocation } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import { useTheme, type ResolvedTheme } from "./ThemeProvider";
 
 interface StatusBarSpec {
-  color: string;
   darkIcons: boolean;
 }
 
 /*
-  Status bar colors for regular pages: the exact --background of each theme
-  (hex of the HSL in index.css), so the bar reads as a seamless extension of
-  the page surface.
+  The status bar is always a transparent overlay on top of the WebView
+  (edge-to-edge); icon color per theme is the only thing left to configure.
+  Top inset is handled in CSS via env(safe-area-inset-top).
 */
 const BACKGROUND: Record<ResolvedTheme, StatusBarSpec> = {
-  light: { color: "#FBFAF8", darkIcons: true },
-  dark: { color: "#080C16", darkIcons: false },
-  study: { color: "#EFE9DC", darkIcons: true },
-};
-
-/*
-  The dashboard's hero band (`.bg-hero-deep`) opens the page with a gold
-  gradient under a light radial glow, and the transparent navbar merges into
-  it. These are the rendered colors at the very top of that band per theme
-  (--deep-1 blended with the 55%-alpha top glow), so the status bar continues
-  the band instead of cutting it with a background-colored strip.
-*/
-const DASHBOARD_HERO: Record<ResolvedTheme, StatusBarSpec> = {
-  light: { color: "#FFE687", darkIcons: true },
-  dark: { color: "#FAD264", darkIcons: true },
-  study: { color: "#F8D67C", darkIcons: true },
+  light: { darkIcons: true },
+  dark: { darkIcons: false },
+  study: { darkIcons: true },
 };
 
 /**
- * Keeps the Android status bar in sync with the active theme and route.
- * Renders nothing; must live inside <BrowserRouter> (uses useLocation).
- * No-op on the web — every call is native-only and failure-tolerant.
+ * Keeps the Android status bar transparent (edge-to-edge) with theme-matched
+ * icon colors. Renders nothing. No-op on the web — every call is native-only
+ * and failure-tolerant.
  */
 export function StatusBarSync() {
   const { resolvedTheme } = useTheme();
-  const { pathname } = useLocation();
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
@@ -47,32 +31,19 @@ export function StatusBarSync() {
     import("@capacitor/status-bar")
       .then(({ StatusBar, Style }) => {
         if (cancelled) return;
-        const spec =
-          pathname === "/dashboard"
-            ? DASHBOARD_HERO[resolvedTheme]
-            : BACKGROUND[resolvedTheme];
-        // Onboarding paints a full-bleed background image from the very top of
-        // the screen, so the WebView must overlay a transparent status bar.
-        // Elsewhere overlay:false keeps the WebView below the status bar — on
-        // Android 15+ (targetSdk 35) edge-to-edge is enforced and would
-        // otherwise slide content under it. Safe no-op on older versions.
-        if (pathname === "/onboarding") {
-          StatusBar.setOverlaysWebView({ overlay: true }).catch(
-            () => undefined,
-          );
-          StatusBar.setStyle({ style: Style.Light }).catch(() => undefined);
-          StatusBar.setBackgroundColor({ color: "#00000000" }).catch(
-            () => undefined,
-          );
-          return;
-        }
-        StatusBar.setOverlaysWebView({ overlay: false }).catch(() => undefined);
+        const spec = BACKGROUND[resolvedTheme];
+        // Always edge-to-edge: the WebView draws under a transparent status
+        // bar on every Android version (on 15+ edge-to-edge is enforced
+        // anyway and overlay:false is ignored). The layout pads its top edge
+        // with env(safe-area-inset-top) instead, which resolves to the real
+        // status-bar height on native and 0 on the web.
+        StatusBar.setOverlaysWebView({ overlay: true }).catch(() => undefined);
         // Android style mapping (per the plugin's native source):
         // Style.Light = light status bar → DARK icons; Style.Dark → LIGHT icons.
         StatusBar.setStyle({
           style: spec.darkIcons ? Style.Light : Style.Dark,
         }).catch(() => undefined);
-        StatusBar.setBackgroundColor({ color: spec.color }).catch(
+        StatusBar.setBackgroundColor({ color: "#00000000" }).catch(
           () => undefined,
         );
       })
@@ -80,7 +51,7 @@ export function StatusBarSync() {
     return () => {
       cancelled = true;
     };
-  }, [resolvedTheme, pathname]);
+  }, [resolvedTheme]);
 
   return null;
 }
