@@ -2082,8 +2082,20 @@ export async function getNotificationStatus(): Promise<NotificationStatus> {
     cursor.setDate(cursor.getDate() - 1);
   }
 
+  // "Studied today" must reflect *any* study activity, not just a finished
+  // session: `study_sessions` rows are only written when a session completes,
+  // but `progress.last_reviewed_at` updates on every answer. Without this, a
+  // half-finished morning session still triggers the evening "you haven't
+  // studied today" reminder.
+  const reviewedToday = (
+    await query<{ last_reviewed_at: string }>(
+      "SELECT last_reviewed_at FROM progress WHERE last_reviewed_at IS NOT NULL",
+      [],
+    )
+  ).some((r) => dayOf(r.last_reviewed_at) === today);
+
   return {
-    studiedToday: sessionDays.has(today),
+    studiedToday: sessionDays.has(today) || reviewedToday,
     dueCount: todayQueue.meta.dueCount,
     newCount: todayQueue.meta.newCount,
     streak,
