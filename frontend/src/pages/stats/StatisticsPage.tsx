@@ -35,8 +35,20 @@ function faShortDate(iso: string): string {
 
 /** Reviews per day over the last 30 days. */
 function DailyReviewsChart({ days }: { days: DailyStat[] }) {
-  const max = useMemo(() => Math.max(1, ...days.map((d) => d.reviews)), [days]);
-  const total = useMemo(() => days.reduce((s, d) => s + d.reviews, 0), [days]);
+  // Oldest → newest regardless of the order the API returns, so with dir=ltr
+  // time always reads forward along the x-axis (oldest on the left).
+  const ordered = useMemo(
+    () => [...days].sort((a, b) => a.date.localeCompare(b.date)),
+    [days],
+  );
+  const max = useMemo(
+    () => Math.max(1, ...ordered.map((d) => d.reviews)),
+    [ordered],
+  );
+  const total = useMemo(
+    () => ordered.reduce((s, d) => s + d.reviews, 0),
+    [ordered],
+  );
 
   if (total === 0) {
     return (
@@ -53,7 +65,7 @@ function DailyReviewsChart({ days }: { days: DailyStat[] }) {
       </figcaption>
       {/* dir=ltr so the oldest day sits on the left and time reads forward. */}
       <div dir="ltr" className="flex h-28 items-end gap-[3px]">
-        {days.map((d) => (
+        {ordered.map((d) => (
           <span
             key={d.date}
             title={`${d.date} — ${d.reviews} مرور`}
@@ -74,8 +86,8 @@ function DailyReviewsChart({ days }: { days: DailyStat[] }) {
         dir="ltr"
         className="flex justify-between text-[11px] text-muted-foreground"
       >
-        <span>{faShortDate(days[0].date)}</span>
-        <span>{faShortDate(days[days.length - 1].date)}</span>
+        <span>{faShortDate(ordered[0].date)}</span>
+        <span>{faShortDate(ordered[ordered.length - 1].date)}</span>
       </div>
     </figure>
   );
