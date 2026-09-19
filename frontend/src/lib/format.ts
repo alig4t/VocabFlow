@@ -35,19 +35,30 @@ export interface Motivation {
 
 /**
  * Progress-based motivational message (feature.txt thresholds), refined with
- * `notReadWords`/`dueCount` so "read every word" isn't conflated with
- * "mastered": SM-2 keeps scheduling reviews for a word after it's first
- * answered correctly, so a book can have every word read (`notReadWords===0`)
- * while reviews are still pending (`dueCount>0`) — that state needs its own
- * wording instead of reusing the generic 80%+ "تقریباً مسلط شدی" bucket.
+ * `notReadWords`/`stableWords`/`totalWords` so "read every word" isn't
+ * conflated with "mastered": SM-2 keeps scheduling reviews for a word after
+ * it's first answered correctly, so a book can have every word read
+ * (`notReadWords===0`) while words are still on their way to long-term
+ * memory (`stableWords < totalWords`) — that state needs its own wording
+ * instead of reusing the generic 80%+ "تقریباً مسلط شدی" bucket.
+ *
+ * A book is fully finished only when every word is read AND its SM-2 interval
+ * has reached the stable threshold (≥21 days) — i.e. stableWords has caught
+ * up with totalWords. `dueCount` alone can't tell: it only counts reviews due
+ * *right now*, so a fully-read book with future scheduled reviews would
+ * otherwise still claim mastery.
  */
 export function motivation(
   progress: number,
   notReadWords: number,
-  dueCount: number,
+  stableWords: number,
+  totalWords: number,
 ): Motivation {
-  if (notReadWords === 0 && dueCount === 0) {
-    return { label: "این کتاب رو کامل مسلط شدی 🎉", tone: "text-success" };
+  if (notReadWords === 0 && totalWords > 0 && stableWords >= totalWords) {
+    return {
+      label: "این کتاب رو کامل مسلط شدی 🎉",
+      tone: "text-success",
+    };
   }
   if (notReadWords === 0) {
     return {

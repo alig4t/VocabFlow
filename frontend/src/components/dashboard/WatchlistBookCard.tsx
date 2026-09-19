@@ -61,9 +61,20 @@ export function WatchlistBookCard({ book }: WatchlistBookCardProps) {
   const navigate = useNavigate();
   const progress =
     book.totalWords > 0 ? (book.knownWords / book.totalWords) * 100 : 0;
-  const mood = motivation(progress, book.notReadWords, book.dueCount);
-  // Nothing left for this book at all — every word read AND no review due.
-  const bookComplete = book.notReadWords === 0 && book.dueCount === 0;
+  const mood = motivation(
+    progress,
+    book.notReadWords,
+    book.stableWords,
+    book.totalWords,
+  );
+  // Nothing left for this book at all — every word read AND every word settled
+  // in long-term memory (stableWords caught up with totalWords). dueCount
+  // alone can't tell: it's zero on days with no review due, even while future
+  // reviews are still scheduled.
+  const bookComplete =
+    book.notReadWords === 0 &&
+    book.totalWords > 0 &&
+    book.stableWords >= book.totalWords;
 
   return (
     <article className="surface flex flex-col gap-4 overflow-hidden rounded-3xl p-4 transition-shadow hover:shadow-lg">
@@ -163,23 +174,24 @@ export function WatchlistBookCard({ book }: WatchlistBookCardProps) {
       <footer className="mt-auto flex items-center justify-between gap-3">
         {/* A drawn dot, not "·" — beside Persian numerals a middot reads as ۰. */}
         <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-          {book.dueCount === 0 && (
-            <>
-              <span>
-                {book.notReadWords === book.totalWords
-                  ? // Nothing has ever been introduced for this book (freshly
-                    // added) — "همه مرورها انجام شد" would falsely imply reviews
-                    // existed and got finished. notReadWords===totalWords is
-                    // equivalent to introducedWords===0 on both the offline and
-                    // backend paths.
-                    "هنوز واژه‌ای برای مرور نداری"
-                  : "همه مرورها انجام شد"}
-              </span>
-              <span
-                aria-hidden="true"
-                className="h-1 w-1 shrink-0 rounded-full bg-current opacity-40"
-              />
-            </>
+          {bookComplete ? (
+            <span>همه مرورها انجام شد</span>
+          ) : book.notReadWords === book.totalWords ? (
+            // Nothing has ever been introduced for this book (freshly added) —
+            // "مرورها در جریانه" would falsely imply reviews existed. This
+            // equivalence of notReadWords===totalWords and introducedWords===0
+            // holds on both the offline and backend paths.
+            <span>هنوز واژه‌ای برای مرور نداری</span>
+          ) : book.notReadWords === 0 ? (
+            // All words read, but some are still on their way to the 21-day
+            // stable interval — reviews remain, just not due today.
+            <span>مرورها هنوز در جریانه</span>
+          ) : null}
+          {bookComplete && (
+            <span
+              aria-hidden="true"
+              className="h-1 w-1 shrink-0 rounded-full bg-current opacity-40"
+            />
           )}
           <span>~{faNum(book.estimatedDays)} روز تا پایان</span>
         </span>

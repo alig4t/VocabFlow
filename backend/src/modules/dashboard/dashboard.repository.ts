@@ -9,6 +9,8 @@ export interface VolumeStats {
   /** KNOWN words that were answered "سخت" (HARD) at least once — a subset of knownWords. */
   hardWords: number
   introducedWords: number
+  /** Introduced words whose SM-2 interval reached STABLE_INTERVAL_DAYS (≥21). */
+  stableWords: number
   reviewedToday: number
   dueCount: number
   lastStudiedAt: Date | null
@@ -62,7 +64,7 @@ export class DashboardRepository {
     const inVolume = { lesson: { volumeId } }
     const progressInVolume = { userId, reviewMode: mode, word: inVolume }
 
-    const [totalWords, knownWords, unknownWords, hardWords, introducedWords, reviewedToday, dueCount, lastRow] =
+    const [totalWords, knownWords, unknownWords, hardWords, introducedWords, stableWords, reviewedToday, dueCount, lastRow] =
       await Promise.all([
         prisma.word.count({ where: inVolume }),
         prisma.userWordProgress.count({ where: { ...progressInVolume, status: WordStatus.KNOWN } }),
@@ -74,6 +76,13 @@ export class DashboardRepository {
         }),
         prisma.userWordProgress.count({
           where: { ...progressInVolume, introducedAt: { not: null } },
+        }),
+        prisma.userWordProgress.count({
+          where: {
+            ...progressInVolume,
+            introducedAt: { not: null },
+            intervalDays: { gte: STABLE_INTERVAL_DAYS },
+          },
         }),
         prisma.userWordProgress.count({
           where: { ...progressInVolume, lastReviewedAt: { gte: dayStart, lte: dayEnd } },
@@ -98,6 +107,7 @@ export class DashboardRepository {
       unknownWords,
       hardWords,
       introducedWords,
+      stableWords,
       reviewedToday,
       dueCount,
       lastStudiedAt: lastRow?.lastReviewedAt ?? null,

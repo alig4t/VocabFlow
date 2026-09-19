@@ -14,6 +14,12 @@ export interface WatchlistBook {
   /** KNOWN words in this volume that were answered "سخت" (HARD) at least once. */
   hardWords: number
   notReadWords: number
+  /**
+   * Words of this volume whose SM-2 interval reached ≥21 days ("پایدار").
+   * The book is only truly finished when this reaches totalWords — every word
+   * read is NOT the same as every word settled in long-term memory.
+   */
+  stableWords: number
   reviewedToday: number
   lastStudiedAt: string | null
   dueCount: number
@@ -131,6 +137,7 @@ export class DashboardService {
           unknownWords: s.unknownWords,
           hardWords: s.hardWords,
           notReadWords: Math.max(0, s.totalWords - s.introducedWords),
+          stableWords: s.stableWords,
           reviewedToday: s.reviewedToday,
           lastStudiedAt: s.lastStudiedAt ? s.lastStudiedAt.toISOString() : null,
           dueCount: s.dueCount,

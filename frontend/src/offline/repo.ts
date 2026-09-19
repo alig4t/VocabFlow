@@ -853,6 +853,7 @@ export async function getDashboard(): Promise<DashboardData> {
       notKnownRow,
       hardRow,
       introRow,
+      stableRow,
       reviewedRow,
       dueRow,
       lastRow,
@@ -880,6 +881,11 @@ export async function getDashboard(): Promise<DashboardData> {
         `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
            WHERE pr.review_mode=? AND pr.introduced_at IS NOT NULL AND ${inVolume}`,
         [mode, p.volume_id],
+      ),
+      query<{ c: number }>(
+        `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
+           WHERE pr.review_mode=? AND pr.introduced_at IS NOT NULL AND pr.interval_days>=? AND ${inVolume}`,
+        [mode, STABLE_INTERVAL_DAYS, p.volume_id],
       ),
       query<{ c: number }>(
         `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
@@ -914,6 +920,7 @@ export async function getDashboard(): Promise<DashboardData> {
       unknownWords: notKnown,
       hardWords: hard,
       notReadWords: notRead,
+      stableWords: stableRow[0]?.c ?? 0,
       reviewedToday: reviewedRow[0]?.c ?? 0,
       lastStudiedAt: lastRow[0]?.t ?? null,
       dueCount: dueRow[0]?.c ?? 0,

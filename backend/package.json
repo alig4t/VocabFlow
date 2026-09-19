@@ -1,6 +1,6 @@
 {
   "name": "english-learning-backend",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "English Learning Platform API",
   "main": "dist/server.js",
   "scripts": {

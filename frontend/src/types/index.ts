@@ -216,6 +216,11 @@ export interface WatchlistBook {
   /** KNOWN words in this volume answered "سخت" (HARD) at least once — a subset of knownWords. */
   hardWords: number;
   notReadWords: number;
+  /**
+   * Words of this volume whose SM-2 interval reached ≥21 days ("پایدار").
+   * Reviews are truly finished only when this reaches totalWords.
+   */
+  stableWords: number;
   reviewedToday: number;
   /** ISO date of the last study session, or null if never studied. */
   lastStudiedAt: string | null;
