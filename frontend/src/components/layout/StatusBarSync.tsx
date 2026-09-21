@@ -9,7 +9,7 @@ interface StatusBarSpec {
 /*
   The status bar is always a transparent overlay on top of the WebView
   (edge-to-edge); icon color per theme is the only thing left to configure.
-  Top inset is handled in CSS via env(safe-area-inset-top).
+  Top inset is handled in CSS via --safe-top (see src/lib/safeArea.ts).
 */
 const BACKGROUND: Record<ResolvedTheme, StatusBarSpec> = {
   light: { darkIcons: true },
@@ -35,8 +35,8 @@ export function StatusBarSync() {
         // Always edge-to-edge: the WebView draws under a transparent status
         // bar on every Android version (on 15+ edge-to-edge is enforced
         // anyway and overlay:false is ignored). The layout pads its top edge
-        // with env(safe-area-inset-top) instead, which resolves to the real
-        // status-bar height on native and 0 on the web.
+        // with the CSS --safe-top variable instead (native insets injected by
+        // src/lib/safeArea.ts, falling back to env() / 0 on the web).
         StatusBar.setOverlaysWebView({ overlay: true }).catch(() => undefined);
         // Android style mapping (per the plugin's native source):
         // Style.Light = light status bar → DARK icons; Style.Dark → LIGHT icons.

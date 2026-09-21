@@ -133,7 +133,7 @@ export function BottomNav() {
       <nav
         dir="rtl"
         className="font-persian fixed inset-x-0 bottom-0 z-20 grid h-16 grid-cols-5 border-t border-border bg-card/95 shadow-[0_-4px_16px_-6px_hsl(var(--foreground)/0.15)] backdrop-blur-md lg:hidden"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        style={{ paddingBottom: "var(--safe-bottom)" }}
         aria-label="ناوبری اصلی موبایل"
       >
         <NavLink
@@ -214,7 +214,7 @@ export function BottomNav() {
           <DialogPrimitive.Content
             dir="rtl"
             className={cn(
-              "fixed inset-x-0 bottom-0 z-50 rounded-t-2xl border-t border-border bg-card px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 shadow-2xl",
+              "fixed inset-x-0 bottom-0 z-50 rounded-t-2xl border-t border-border bg-card px-4 pb-[max(1.25rem,var(--safe-bottom))] pt-3 shadow-2xl",
               "duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
               "lg:hidden",
             )}

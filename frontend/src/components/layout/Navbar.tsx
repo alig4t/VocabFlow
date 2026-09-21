@@ -55,7 +55,7 @@ export function Navbar({ onMenuClick, hero = false }: NavbarProps) {
     <header
       dir="rtl"
       className={cn(
-        "font-persian relative z-10 flex h-[calc(4rem+env(safe-area-inset-top))] shrink-0 items-center justify-between pt-[env(safe-area-inset-top)] px-4 md:px-6",
+        "font-persian relative z-10 flex h-[calc(4rem+var(--safe-top))] shrink-0 items-center justify-between pt-[var(--safe-top)] px-4 md:px-6",
         hero
           ? "text-[hsl(45_60%_12%)]"
           : "border-b border-border bg-background/95 text-foreground backdrop-blur",

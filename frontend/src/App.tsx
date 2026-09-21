@@ -16,6 +16,7 @@ import {
   initNotifications,
   rescheduleNotifications,
 } from "./lib/notifications";
+import { syncSafeAreaVars } from "./lib/safeArea";
 import { type Role } from "./types";
 
 // ── Lazy-loaded pages (code-split; PageLoader shows while chunks load) ────────
@@ -163,6 +164,15 @@ export default function App() {
       });
   }, []);
 
+  // Native: mirror the real system-bar insets into CSS variables (the WebView
+  // doesn't expose the full status-bar height through env() on Android). Runs
+  // at startup and again on every resume — insets can change with rotation.
+  // No-op on web.
+  useEffect(() => {
+    if (!isNative()) return;
+    syncSafeAreaVars();
+  }, []);
+
   // Native: schedule study reminders once the offline DB is ready, and rebuild
   // the schedule every time the app is brought back to the foreground (so a
   // session completed elsewhere / a new day is reflected). No-op on web.
@@ -172,7 +182,10 @@ export default function App() {
     let remove: (() => void) | undefined;
     import("@capacitor/app").then(({ App: CapApp }) => {
       CapApp.addListener("appStateChange", ({ isActive }) => {
-        if (isActive) rescheduleNotifications();
+        if (isActive) {
+          rescheduleNotifications();
+          syncSafeAreaVars();
+        }
       }).then((handle) => {
         remove = () => handle.remove();
       });

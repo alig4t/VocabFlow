@@ -470,24 +470,24 @@
   */
   .page-bleed-under-nav {
     margin-inline: -0.5rem;
-    margin-top: calc(-1rem - 4rem - env(safe-area-inset-top));
+    margin-top: calc(-1rem - 4rem - var(--safe-top));
   }
   @media (min-width: 640px) {
     .page-bleed-under-nav {
       margin-inline: -1rem;
-      margin-top: calc(-1rem - 4rem - env(safe-area-inset-top));
+      margin-top: calc(-1rem - 4rem - var(--safe-top));
     }
   }
   @media (min-width: 768px) {
     .page-bleed-under-nav {
       margin-inline: -1.5rem;
-      margin-top: calc(-1.5rem - 4rem - env(safe-area-inset-top));
+      margin-top: calc(-1.5rem - 4rem - var(--safe-top));
     }
   }
   @media (min-width: 1024px) {
     .page-bleed-under-nav {
       margin-inline: -2rem;
-      margin-top: calc(-2rem - 4rem - env(safe-area-inset-top));
+      margin-top: calc(-2rem - 4rem - var(--safe-top));
     }
   }
 
@@ -594,6 +594,17 @@
 :root {
   --drift-out-min: 0.26;
   --drift-out-max: 0.5;
+  /*
+    Real native system-bar heights, injected by src/lib/safeArea.ts from the
+    SafeArea Android plugin. Android's WebView doesn't report the full status
+    bar (only the cutout) through env(safe-area-inset-*), so --safe-top /
+    --safe-bottom take whichever is larger: the native value or env(). Both
+    fall back to 0 on the web build.
+  */
+  --safe-top-px: 0px;
+  --safe-bottom-px: 0px;
+  --safe-top: max(env(safe-area-inset-top), var(--safe-top-px));
+  --safe-bottom: max(env(safe-area-inset-bottom), var(--safe-bottom-px));
 }
 .dark {
   --drift-out-min: 0.4;
