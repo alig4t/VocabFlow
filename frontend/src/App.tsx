@@ -197,6 +197,12 @@ export default function App() {
   if (!isReady) {
     return (
       <ThemeProvider defaultTheme="system" storageKey="eng-theme">
+        {/* Loading phases render outside <BrowserRouter>, but the status bar
+            must already follow the theme here — otherwise the seeding screen
+            (which can last a while on first launch) keeps the boot-time light
+            bar: wrong icon contrast in light mode, a white bar over a dark
+            page in dark mode. */}
+        <StatusBarSync />
         <PageLoader />
       </ThemeProvider>
     );
@@ -206,6 +212,7 @@ export default function App() {
   if (!dbReady) {
     return (
       <ThemeProvider defaultTheme="system" storageKey="eng-theme">
+        <StatusBarSync />
         <SeedLoader progress={seed.progress} label={seed.label} />
       </ThemeProvider>
     );
