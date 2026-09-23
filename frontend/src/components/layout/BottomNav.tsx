@@ -27,15 +27,23 @@ interface NavItem {
   to: string;
   icon: React.ReactNode;
   label: string;
+  /** One-line purpose hint, shown under the label in the "more" sheet. */
+  description?: string;
 }
 
 // آیتم‌های شیت «بیشتر» — همان صفحاتی که در سایدبار هستند ولی در نوار پایین جا نشدند
 const moreItems: NavItem[] = [
-  { to: "/vocabulary", icon: <Book className="h-5 w-5" />, label: "واژگان" },
+  {
+    to: "/vocabulary",
+    icon: <Book className="h-5 w-5" />,
+    label: "واژگان",
+    description: "جستجو و مشاهده‌ی همه‌ی واژه‌ها، مثل یک دیکشنری",
+  },
   {
     to: "/vocabulary/review",
     icon: <Play className="h-5 w-5" />,
     label: "مرور آزاد",
+    description: "مرور دلخواه واژه‌ها، جدا از برنامه‌ی روزانه",
   },
 ];
 
@@ -86,7 +94,14 @@ function MoreLink({
       }
     >
       {item.icon}
-      {item.label}
+      <span className="flex min-w-0 flex-col">
+        <span>{item.label}</span>
+        {item.description && (
+          <span className="truncate text-[11px] font-normal text-muted-foreground/80">
+            {item.description}
+          </span>
+        )}
+      </span>
     </NavLink>
   );
 }

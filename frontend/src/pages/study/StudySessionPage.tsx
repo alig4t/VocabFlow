@@ -208,7 +208,7 @@ function computeSessionStats(
 /** Answer buttons — revealed only after the card is flipped (spec: view then rate). */
 function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
   const btn =
-    "w-full whitespace-nowrap rounded-lg border px-2 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2";
+    "w-full rounded-lg border px-2 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2";
   return (
     <div className="flex items-stretch gap-2">
       <Tooltip label="اصلاً یادم نیامد" className="flex-1">
@@ -221,7 +221,7 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
           )}
         >
           بلد نیستم
-          {isNative() && <span className="text-[7px]">(اصلاً یادم نیامد)</span>}
+          {isNative() && <span className="text-[10px] leading-tight">(اصلاً یادم نیامد)</span>}
         </button>
       </Tooltip>
       <Tooltip label="به سختی یادم آمد" className="flex-1">
@@ -234,7 +234,7 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
           )}
         >
           سخت
-          {isNative() && <span className="text-[7px]">(به سختی یادم آمد)</span>}
+          {isNative() && <span className="text-[10px] leading-tight">(به سختی یادم آمد)</span>}
         </button>
       </Tooltip>
       <Tooltip label="به‌راحتی یادم آمد" className="flex-1">
@@ -248,7 +248,7 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
         >
           بلدم
           {isNative() && (
-            <span className="text-[7px]">(به‌راحتی یادم آمد)</span>
+            <span className="text-[10px] leading-tight">(به‌راحتی یادم آمد)</span>
           )}
         </button>
       </Tooltip>
@@ -262,7 +262,7 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
           )}
         >
           رد
-          {isNative() && <span className="text-[7px]">(فعلاً رد کن)</span>}
+          {isNative() && <span className="text-[10px] leading-tight">(فعلاً رد کن)</span>}
         </button>
       </Tooltip>
     </div>
@@ -277,7 +277,7 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
  */
 function ReadBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
   const btn =
-    "whitespace-nowrap rounded-lg border px-2 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2";
+    "rounded-lg border px-2 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2";
   return (
     <div className="flex items-stretch gap-2">
       <Tooltip label="این واژه جدید را خواندم" className="flex-1">

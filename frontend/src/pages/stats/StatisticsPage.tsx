@@ -13,6 +13,9 @@ import {
   AlertTriangle,
   ArrowRight,
   Info,
+  Flame,
+  BookCheck,
+  AlarmClock,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,7 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StatTile } from "@/components/dashboard/StatTile";
 import { MemoryOverview } from "@/components/dashboard/MemoryOverview";
 import { ActivityHeatmap } from "@/components/dashboard/ActivityHeatmap";
-import { useStats } from "@/hooks/useDashboard";
+import { useStats, useDashboard } from "@/hooks/useDashboard";
 import { faNum, faPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { DailyStat, LearningStats } from "@/types";
@@ -183,6 +186,9 @@ function StatsSkeleton() {
 export function StatisticsPage() {
   const navigate = useNavigate();
   const { data, isLoading, isError } = useStats();
+  // Present-state numbers the review log can't answer (current streak, learned
+  // words, due queue) come from the dashboard endpoint — both online & offline.
+  const { data: dash } = useDashboard();
 
   return (
     <div dir="rtl" className="font-persian mx-auto max-w-5xl space-y-6">
@@ -220,6 +226,9 @@ export function StatisticsPage() {
       ) : (
         <StatsContent
           stats={data}
+          currentStreak={dash?.stats.currentStreak ?? 0}
+          learnedWords={dash?.stats.totalWordsLearned ?? 0}
+          dueNow={(dash?.queue ?? []).reduce((s, q) => s + q.dueCount, 0)}
           onOpenHardWords={() => navigate("/hard-words")}
         />
       )}
@@ -229,9 +238,15 @@ export function StatisticsPage() {
 
 function StatsContent({
   stats,
+  currentStreak,
+  learnedWords,
+  dueNow,
   onOpenHardWords,
 }: {
   stats: LearningStats;
+  currentStreak: number;
+  learnedWords: number;
+  dueNow: number;
   onOpenHardWords: () => void;
 }) {
   const { totals, records } = stats;
@@ -262,8 +277,34 @@ function StatsContent({
       {/* Headline numbers */}
       <section
         aria-label="خلاصه آمار"
-        className="grid grid-cols-2 gap-3 lg:grid-cols-4"
+        className="grid grid-cols-2 gap-3 lg:grid-cols-3"
       >
+        <StatTile
+          icon={Flame}
+          accent="warning"
+          label="روزهای پیاپی"
+          value={faNum(currentStreak)}
+          hint="فعلی"
+          empty={currentStreak === 0}
+          emptyLabel="با مطالعه‌ی امروز شروع می‌شود"
+        />
+        <StatTile
+          icon={BookCheck}
+          accent="mint"
+          label="واژه‌های یادگرفته"
+          value={faNum(learnedWords)}
+          empty={learnedWords === 0}
+          emptyLabel="با اولین جلسه پر می‌شود"
+        />
+        <StatTile
+          icon={AlarmClock}
+          accent="violet"
+          label="موعد مرور امروز"
+          value={faNum(dueNow)}
+          hint={dueNow > 0 ? "آماده‌ی مرور" : undefined}
+          empty={dueNow === 0}
+          emptyLabel="چیزی عقب نیفتاده"
+        />
         <StatTile
           icon={Repeat2}
           accent="primary"

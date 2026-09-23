@@ -63,7 +63,12 @@ export function ReviewCard({
     <div className="w-full max-w-4xl mx-auto select-none">
       <div
         className="relative w-full"
-        style={{ perspective: "1200px", height: "420px" }}
+        style={{
+          perspective: "1200px",
+          // Viewport-aware: shrink on short screens so the card plus the answer
+          // bar fit without page scroll, cap at 420px on tall ones.
+          height: "clamp(300px, 60dvh, 420px)",
+        }}
       >
         <div
           className="relative w-full h-full"

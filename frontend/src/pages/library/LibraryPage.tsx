@@ -7,15 +7,18 @@ import {
   BookText,
   Combine,
   MessagesSquare,
+  Sparkles,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DiscoveryBookCard } from "@/components/library/DiscoveryBookCard";
+import { RecommendedBookCard } from "@/components/library/RecommendedBookCard";
 import { StartPlanDialog } from "@/components/library/StartPlanDialog";
 import { useDiscoveryBooks } from "@/hooks/useDashboard";
 import {
   CATEGORY_META,
   CATEGORY_ORDER,
+  RECOMMENDED_TITLES,
   getBookMeta,
   type BookCategory,
 } from "@/lib/bookMeta";
@@ -38,10 +41,31 @@ export function LibraryPage() {
     setDialogOpen(true);
   }
 
+  // Recommended section is a curated entry point for undecided users; its
+  // books are de-duplicated from the category lists so the page doesn't
+  // repeat itself. While searching, recommendations fold back into their
+  // normal categories so results stay predictable.
+  const recommendedTitles = useMemo(
+    () => new Set(RECOMMENDED_TITLES.map((r) => r.title)),
+    [],
+  );
+
+  const recommended = useMemo(() => {
+    if (query.trim()) return [];
+    return RECOMMENDED_TITLES.map((r) => ({
+      reason: r.reason,
+      book: (books ?? []).find((b) => b.title === r.title),
+    })).filter((r): r is { reason: string; book: DiscoveryBook } =>
+      Boolean(r.book),
+    );
+  }, [books, query]);
+
   // Filter by title / author / description, then bucket into category sections.
   const grouped = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const filtering = Boolean(q);
     const filtered = (books ?? []).filter((b) => {
+      if (!filtering && recommendedTitles.has(b.title)) return false;
       if (!q) return true;
       const meta = getBookMeta(b.title);
       return (
@@ -58,7 +82,7 @@ export function LibraryPage() {
       map.get(cat)!.push(b);
     }
     return map;
-  }, [books, query]);
+  }, [books, query, recommendedTitles]);
 
   const totalShown = useMemo(
     () => [...grouped.values()].reduce((s, arr) => s + arr.length, 0),
@@ -119,7 +143,7 @@ export function LibraryPage() {
             لطفاً بعداً دوباره تلاش کنید.
           </p>
         </Card>
-      ) : totalShown === 0 ? (
+      ) : recommended.length === 0 && totalShown === 0 ? (
         <Card className="flex flex-col items-center gap-3 px-6 py-14 text-center">
           <BookOpen
             className="h-10 w-10 text-muted-foreground opacity-40"
@@ -131,6 +155,34 @@ export function LibraryPage() {
         </Card>
       ) : (
         <div className="space-y-10">
+          {recommended.length > 0 && (
+            <section className="space-y-4" aria-label="کتاب‌های پیشنهادی">
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+                  <Sparkles className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                  <h2 className="text-lg font-bold text-foreground">
+                    کتاب‌های پیشنهادی
+                  </h2>
+                  <p className="mt-0.5 text-sm leading-6 text-muted-foreground">
+                    نمی‌دانی از کجا شروع کنی؟ این سه کتاب مسیرِ مطمئنی برای
+                    شروع هستند.
+                  </p>
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {recommended.map(({ book, reason }) => (
+                  <RecommendedBookCard
+                    key={book.id}
+                    book={book}
+                    reason={reason}
+                    onStartPlan={handleStartPlan}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
           {CATEGORY_ORDER.map((cat) => {
             const items = grouped.get(cat);
             if (!items || items.length === 0) return null;

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { BookText, Check, Loader2, GraduationCap } from "lucide-react";
 import {
   Dialog,
-  DialogContent,
+  DialogBottomContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
@@ -105,7 +105,7 @@ export function StartPlanDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent dir="rtl" className="font-persian max-w-lg">
+      <DialogBottomContent dir="rtl" className="font-persian">
         <DialogHeader className="text-right sm:text-right">
           <DialogTitle className="flex items-center gap-2">
             <GraduationCap className="h-5 w-5 text-primary" />
@@ -200,14 +200,18 @@ export function StartPlanDialog({
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="flex-row gap-2 sm:flex-row">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={() => onOpenChange(false)}
+          >
             انصراف
           </Button>
           <Button
             onClick={handleConfirm}
             disabled={!canConfirm}
-            className="gap-2"
+            className="flex-1 gap-2"
           >
             {createPlan.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -217,7 +221,7 @@ export function StartPlanDialog({
             {alreadyPlanned ? "به‌روزرسانی برنامه" : "شروع یادگیری"}
           </Button>
         </DialogFooter>
-      </DialogContent>
+      </DialogBottomContent>
     </Dialog>
   );
 }

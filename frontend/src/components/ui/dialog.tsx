@@ -47,6 +47,36 @@ const DialogContent = React.forwardRef<
 ));
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
+/**
+ * Mobile-first bottom sheet: slides up from the bottom edge, height follows
+ * the content (capped at ~85vh with internal scroll). On >=sm it keeps the
+ * sheet look but is constrained to the sheet max-width, centered.
+ */
+const DialogBottomContent = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
+>(({ className, children, ...props }, ref) => (
+  <DialogPortal>
+    <DialogOverlay />
+    <DialogPrimitive.Content
+      ref={ref}
+      className={cn(
+        "fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[85dvh] w-full max-w-lg flex-col gap-4 overflow-y-auto rounded-t-2xl border border-border bg-background p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-lg duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
+        className,
+      )}
+      {...props}
+    >
+      {/* Drag handle — the standard bottom-sheet affordance */}
+      <div
+        className="mx-auto h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground/25"
+        aria-hidden="true"
+      />
+      {children}
+    </DialogPrimitive.Content>
+  </DialogPortal>
+));
+DialogBottomContent.displayName = DialogPrimitive.Content.displayName;
+
 const DialogHeader = ({
   className,
   ...props
@@ -109,6 +139,7 @@ export {
   DialogClose,
   DialogTrigger,
   DialogContent,
+  DialogBottomContent,
   DialogHeader,
   DialogFooter,
   DialogTitle,
