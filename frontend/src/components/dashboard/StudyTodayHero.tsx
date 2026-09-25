@@ -414,7 +414,7 @@ export function StudyTodayHero({
                         {faNum(reviewedToday)}
                       </span>
                       <span className="mt-1 block text-xs font-medium text-deep-muted">
-                        واژه مرور شدی
+                        واژه مرور شد
                       </span>
                     </p>
                   )}

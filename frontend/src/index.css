@@ -923,3 +923,19 @@
     transition: none !important;
   }
 }
+.place-cap {
+  position: relative;
+}
+
+.place-cap::before {
+  content: "";
+  position: absolute;
+  width: 66px;
+  height: 45px;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: hsl(var(--background));
+  border-radius: 0 0 38px 38px;
+  z-index: -1;
+}

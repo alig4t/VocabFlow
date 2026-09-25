@@ -147,7 +147,7 @@ export function BottomNav() {
     <>
       <nav
         dir="rtl"
-        className="font-persian fixed inset-x-0 bottom-0 z-20 grid h-16 grid-cols-5 border-t border-border bg-card/95 shadow-[0_-4px_16px_-6px_hsl(var(--foreground)/0.15)] backdrop-blur-md lg:hidden"
+        className="font-persian fixed inset-x-0 bottom-0 z-20 grid h-16 grid-cols-5 overflow-visible border-t border-border bg-card/95 shadow-[0_-4px_16px_-6px_hsl(var(--foreground)/0.15)] backdrop-blur-md lg:hidden"
         style={{ paddingBottom: "var(--safe-bottom)" }}
         aria-label="ناوبری اصلی موبایل"
       >
@@ -181,12 +181,12 @@ export function BottomNav() {
         <NavLink
           to="/study"
           end
-          className="relative flex items-end justify-center pb-1.5"
+          className="place-cap relative z-10 flex items-end justify-center pb-1.5"
           aria-label="مطالعه امروز"
         >
           <span
             className={cn(
-              "flex h-14 w-14 -translate-y-5 items-center justify-center rounded-full bg-primary text-primary-foreground ring-4 ring-card transition-all duration-200",
+              "flex h-14 w-14 -translate-y-5 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all duration-200",
               "shadow-[0_6px_16px_-4px_hsl(var(--primary)/0.55)] active:scale-90 active:shadow-[0_2px_8px_-2px_hsl(var(--primary)/0.45)]",
               pathname === "/study" &&
                 "-translate-y-6 shadow-[0_8px_20px_-4px_hsl(var(--primary)/0.7)]",

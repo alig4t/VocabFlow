@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Volume2, VolumeX, BookOpen, RotateCcw } from "lucide-react";
+import {
+  Volume2,
+  VolumeX,
+  BookOpen,
+  RotateCcw,
+  ArrowRight,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/tooltip";
 import { ReviewCard } from "@/components/vocabulary/ReviewCard";
@@ -221,7 +227,7 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
           )}
         >
           بلد نیستم
-          {isNative() && <span className="text-[10px] leading-tight">(اصلاً یادم نیامد)</span>}
+          {isNative() && <span className="text-[7px] leading-tight">(اصلاً یادم نیامد)</span>}
         </button>
       </Tooltip>
       <Tooltip label="به سختی یادم آمد" className="flex-1">
@@ -234,7 +240,7 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
           )}
         >
           سخت
-          {isNative() && <span className="text-[10px] leading-tight">(به سختی یادم آمد)</span>}
+          {isNative() && <span className="text-[7px] leading-tight">(به سختی یادم آمد)</span>}
         </button>
       </Tooltip>
       <Tooltip label="به‌راحتی یادم آمد" className="flex-1">
@@ -248,7 +254,7 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
         >
           بلدم
           {isNative() && (
-            <span className="text-[10px] leading-tight">(به‌راحتی یادم آمد)</span>
+            <span className="text-[7px] leading-tight">(به‌راحتی یادم آمد)</span>
           )}
         </button>
       </Tooltip>
@@ -262,7 +268,7 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
           )}
         >
           رد
-          {isNative() && <span className="text-[10px] leading-tight">(فعلاً رد کن)</span>}
+          {isNative() && <span className="text-[7px] leading-tight">(فعلاً رد کن)</span>}
         </button>
       </Tooltip>
     </div>
@@ -881,7 +887,7 @@ export function StudySessionPage() {
   return (
     <div
       dir="rtl"
-      className="font-persian mx-auto max-w-3xl space-y-4 px-2 py-4 sm:px-4 sm:py-6"
+      className="font-persian mx-auto max-w-3xl space-y-4 px-2 py-4 pt-2 sm:px-4 sm:py-6"
     >
       {/* Toolbar */}
       <div className="flex items-center gap-2">
@@ -892,7 +898,7 @@ export function StudySessionPage() {
           className="h-8 w-8 flex-shrink-0"
           title="بازگشت"
         >
-          <ArrowLeft className="h-5 w-5" />
+          <ArrowRight className="h-5 w-5" />
         </Button>
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-sm font-bold text-foreground">

@@ -11,7 +11,6 @@ import {
   BrainCog,
   ArrowLeftRight,
   AlertTriangle,
-  ArrowRight,
   Info,
   Flame,
   BookCheck,
@@ -202,14 +201,14 @@ export function StatisticsPage() {
             مسیری که تا اینجا آمده‌ای — بر پایه‌ی همه‌ی پاسخ‌های ثبت‌شده
           </p>
         </div>
-        <Button
-          variant="outline"
-          className="gap-2 self-start sm:self-auto"
-          onClick={() => navigate("/dashboard")}
-        >
-          <ArrowRight className="h-4 w-4" aria-hidden="true" />
-          بازگشت به داشبورد
-        </Button>
+        {/*<Button*/}
+        {/*  variant="outline"*/}
+        {/*  className="gap-2 self-start sm:self-auto"*/}
+        {/*  onClick={() => navigate("/dashboard")}*/}
+        {/*>*/}
+        {/*  <ArrowRight className="h-4 w-4" aria-hidden="true" />*/}
+        {/*  بازگشت به داشبورد*/}
+        {/*</Button>*/}
       </header>
 
       {isLoading ? (
@@ -284,7 +283,7 @@ function StatsContent({
           accent="warning"
           label="روزهای پیاپی"
           value={faNum(currentStreak)}
-          hint="فعلی"
+          hint="روز پیاپی"
           empty={currentStreak === 0}
           emptyLabel="با مطالعه‌ی امروز شروع می‌شود"
         />
