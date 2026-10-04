@@ -149,6 +149,7 @@ if (isNative()) {
 - **مسیر `/`:** تا وقتی onboarding تمام نشده → `/onboarding`، بعد → `/dashboard`.
 - **یادآورها:** کارت «یادآورها» در `/settings` فقط روی نیتیو (→ `NOTIFICATIONS.md`).
 - **Safe area / نوار وضعیت:** با targetSdk 35 اپ edge-to-edge است و `env(safe-area-inset-*)` وب‌ویو ناقص است؛ `SafeAreaPlugin` + `lib/safeArea.ts` + `StatusBarSync.tsx` این را جبران می‌کنند.
+- **جهت صفحه:** فقط عمودی (`android:screenOrientation="portrait"` روی `MainActivity` در `AndroidManifest.xml`)؛ با افقی شدن گوشی اپ نمی‌چرخد. (اگر روزی targetSdk به ۳۶ برسد، اندروید ۱۶ این قفل را روی صفحه‌های بزرگ/تبلت نادیده می‌گیرد.)
 
 ---
 

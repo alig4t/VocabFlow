@@ -223,7 +223,7 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
           className={cn(
             btn,
             "border-red-300 text-red-700 hover:bg-red-50 focus-visible:ring-red-400 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40",
-            `${isNative() ? "flex flex-col" : ""}`,
+            isNative() && "flex flex-col items-center justify-center text-center",
           )}
         >
           بلد نیستم
@@ -236,7 +236,7 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
           className={cn(
             btn,
             "border-amber-300 text-amber-700 hover:bg-amber-50 focus-visible:ring-amber-400 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/40",
-            `${isNative() ? "flex flex-col" : ""}`,
+            isNative() && "flex flex-col items-center justify-center text-center",
           )}
         >
           سخت
@@ -249,7 +249,7 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
           className={cn(
             btn,
             "border-green-300 text-green-700 hover:bg-green-50 focus-visible:ring-green-400 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950/40",
-            `${isNative() ? "flex flex-col" : ""}`,
+            isNative() && "flex flex-col items-center justify-center text-center",
           )}
         >
           بلدم
@@ -264,7 +264,7 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
           className={cn(
             btn,
             "max-w-[4.5rem] border-dashed border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring",
-            `${isNative() ? "flex flex-col" : ""}`,
+            isNative() && "flex flex-col items-center justify-center text-center",
           )}
         >
           رد
