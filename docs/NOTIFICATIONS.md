@@ -1,7 +1,12 @@
 # VocabFlow — سیستم اعلان‌ها (Push / Local Notifications)
 
 راهنمای کامل معماری، منطق، و جزئیات فنیِ سیستم یادآورِ مطالعه در نسخه‌ی **اندروید آفلاین** VocabFlow.
-مکملِ [`ANDROID.md`](ANDROID.md) و [`PROJECT_TECH_REFERENCE.md`](PROJECT_TECH_REFERENCE.md).
+مکملِ [`ANDROID.md`](ANDROID.md) و [`FRONTEND.md`](FRONTEND.md).
+
+> **وضعیت (ممیزی 2026-10-04):** پیاده‌سازی‌شده و فقط-نیتیو (`src/lib/notifications.ts`؛ روی وب همه‌ی توابع زود
+> برمی‌گردند). ثابت‌ها و جریان این سند با کد تطبیق داده شد. بخش‌های ۸ تا ۱۰ گزارش همان سشن پیاده‌سازی‌اند
+> (تاریخی). از آن زمان نردبان یادآور با پیش‌بینی ۳۰ روزه‌ی سررسیدهای SM-2 (`repo.getUpcomingDueCounts`) ترکیب شده
+> و یادآورها در طول یک جلسه‌ی مطالعه‌ی فعال کنسل می‌شوند. فایل spec اولیه (`notif.txt`) در repo نیست.
 
 > **خلاصه‌ی یک‌خطی:** چون نسخه‌ی اندروید کاملاً آفلاین است و **سرور ندارد**، اعلان‌ها به‌صورت
 > **Local Notification زمان‌بندی‌شده روی خود گوشی** پیاده شده‌اند (نه Push سروری). منطقِ «چه‌وقت و چه پیامی»
@@ -140,7 +145,8 @@ const REMINDER_DAYS = [0, 1, 3, 6, 10, 15, 21, 30]
   - `OVERDUE_AFTER_DAYS = 3` — آستانه‌ی تغییر لحن به «برگشت»
   - `OVERDUE_DAYS` — مشتق از دو تای بالا؛ برای چرخشِ متن
   - `OVERDUE_MESSAGES` — ۳ نسخه‌ی متنِ کم‌فشار
-  - `BASE_ID = 4200` — id‌ها: `BASE_ID + index` → `4200 .. 4207`
+  - `FORECAST_DAYS = 30` — افق پیش‌بینی سررسیدهای SM-2 که با نردبان ادغام می‌شود (اضافه‌شده بعد از سشن اولیه)
+  - `BASE_ID = 4200` — id‌ها: `BASE_ID .. BASE_ID + MAX_SCHEDULED − 1` که `MAX_SCHEDULED = REMINDER_DAYS.length + FORECAST_DAYS` (در نسخه‌ی اولیه فقط `4200 .. 4207` بود)
     (بازه فقط بزرگ‌تر می‌شود، پس id‌های به‌جامانده از نردبانِ کوتاه‌ترِ قبلی هم کنسل می‌شوند — بدون orphan)
 - زمان‌بندی با `schedule: { at, allowWhileIdle: true }` → فایرِ دقیق حتی در Doze.
 
@@ -232,7 +238,7 @@ cd frontend
 npm install                 # پلاگین جدید نصب می‌شود
 npx vite build              # ⚠ مستقیم vite، نه npm run build
 npx cap sync android        # ثبت پلاگین + merge مانیفست
-cd android && JAVA_HOME=/usr/lib/jvm/java-17-openjdk ./gradlew assembleDebug
+cd android && JAVA_HOME=/usr/lib/jvm/java-17-openjdk ./gradlew assembleDebug   # لینوکس — روال کامل در ANDROID.md
 ```
 خروجی: `frontend/android/app/build/outputs/apk/debug/app-debug.apk` (کپی در روت: `VocabFlow-offline-debug.apk`).
 

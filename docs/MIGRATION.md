@@ -1,5 +1,12 @@
 # Migration Guide: MySQL to PostgreSQL
 
+> **Historical (audit 2026-10-04).** This describes the one-time move from the original single-table MySQL
+> database and reflects the schema *as it was then* (7 tables). The current schema has 17 tables — see
+> `backend/prisma/schema.prisma` and [`DATABASE_SCHEMA.html`](DATABASE_SCHEMA.html). The automated version of this
+> import is `npm run db:migrate-mysql` (`backend/prisma/migrate-mysql.ts`, reads the git-ignored `words-new.sql` at the
+> repo root). Normal content now comes from `books/` via `npm run db:seed-all-datas` (see
+> [`CONTENT_PIPELINE.md`](CONTENT_PIPELINE.md)). Nothing here is needed for day-to-day work.
+
 This document describes how to migrate the original MySQL database (containing a flat `words` table) to the new PostgreSQL schema used by the English Learning Platform.
 
 ---

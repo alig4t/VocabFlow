@@ -1,0 +1,991 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>*,*::before,*::after{box-sizing:border-box}body{margin:0}img,svg{max-width:100%}</style>
+<title>شمای دیتابیس VocabFlow</title>
+
+<style>
+  :root {
+    --bg:        #F4F6FA;
+    --surface:   #FFFFFF;
+    --surface-2: #EDF1F7;
+    --ink:       #0F1A2E;
+    --ink-2:     #34405A;
+    --muted:     #5D6880;
+    --line:      #DCE2ED;
+    --line-2:    #C6CFDE;
+    --gold:      #91700D;
+    --gold-bg:   #F6EDD3;
+    --teal:      #10695C;
+    --teal-bg:   #DCEEEA;
+    --indigo:    #3B4CA8;
+    --indigo-bg: #E1E5F7;
+    --rose:      #97324B;
+    --rose-bg:   #F6E1E6;
+
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: "Vazirmatn", "IRANSans", "Segoe UI", system-ui, -apple-system, "Noto Sans Arabic", sans-serif;
+
+    --step-0: 0.9375rem;
+    --step-1: 1.0625rem;
+    --step-2: 1.375rem;
+    --step-3: 1.875rem;
+    --step-4: 2.625rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:        #0A1220;
+      --surface:   #111C2F;
+      --surface-2: #17243B;
+      --ink:       #E6ECF7;
+      --ink-2:     #C2CCE0;
+      --muted:     #8B98B3;
+      --line:      #21304B;
+      --line-2:    #2D3F5F;
+      --gold:      #E2BA55;
+      --gold-bg:   #2A2312;
+      --teal:      #52C2AC;
+      --teal-bg:   #0F2A28;
+      --indigo:    #94A0F0;
+      --indigo-bg: #1A2044;
+      --rose:      #E88BA0;
+      --rose-bg:   #2E1721;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg:        #0A1220;
+    --surface:   #111C2F;
+    --surface-2: #17243B;
+    --ink:       #E6ECF7;
+    --ink-2:     #C2CCE0;
+    --muted:     #8B98B3;
+    --line:      #21304B;
+    --line-2:    #2D3F5F;
+    --gold:      #E2BA55;
+    --gold-bg:   #2A2312;
+    --teal:      #52C2AC;
+    --teal-bg:   #0F2A28;
+    --indigo:    #94A0F0;
+    --indigo-bg: #1A2044;
+    --rose:      #E88BA0;
+    --rose-bg:   #2E1721;
+  }
+
+  :root[data-theme="light"] {
+    --bg:        #F4F6FA;
+    --surface:   #FFFFFF;
+    --surface-2: #EDF1F7;
+    --ink:       #0F1A2E;
+    --ink-2:     #34405A;
+    --muted:     #5D6880;
+    --line:      #DCE2ED;
+    --line-2:    #C6CFDE;
+    --gold:      #91700D;
+    --gold-bg:   #F6EDD3;
+    --teal:      #10695C;
+    --teal-bg:   #DCEEEA;
+    --indigo:    #3B4CA8;
+    --indigo-bg: #E1E5F7;
+    --rose:      #97324B;
+    --rose-bg:   #F6E1E6;
+  }
+
+  .page {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: var(--step-0);
+    line-height: 1.75;
+    direction: rtl;
+    padding: 3rem 1.25rem 5rem;
+    min-height: 100vh;
+  }
+
+  .wrap {
+    max-width: 68rem;
+    margin-inline: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 3.5rem;
+  }
+
+  /* ── header ───────────────────────────────────────────── */
+
+  .masthead {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding-bottom: 2rem;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold);
+    direction: ltr;
+    text-align: right;
+  }
+
+  .masthead h1 {
+    font-size: var(--step-4);
+    line-height: 1.15;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  .lede {
+    font-size: var(--step-1);
+    color: var(--ink-2);
+    max-width: 60ch;
+    margin: 0;
+  }
+
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 2.5rem;
+    padding-top: 0.5rem;
+  }
+
+  .fact {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+
+  .fact b {
+    font-size: var(--step-3);
+    font-weight: 800;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  .fact span {
+    font-size: 0.8125rem;
+    color: var(--muted);
+  }
+
+  /* ── sections ─────────────────────────────────────────── */
+
+  section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .sec-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.9rem;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--line-2);
+    padding-bottom: 0.6rem;
+  }
+
+  .sec-head h2 {
+    font-size: var(--step-2);
+    font-weight: 750;
+    letter-spacing: -0.01em;
+    margin: 0;
+    line-height: 1.3;
+  }
+
+  .sec-head p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.875rem;
+    flex: 1 1 18ch;
+  }
+
+  /* ── diagram ──────────────────────────────────────────── */
+
+  .diagram {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 1.25rem;
+    overflow-x: auto;
+    direction: ltr;
+  }
+
+  .diagram pre.tree {
+    margin: 0;
+    min-width: 34rem;
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    line-height: 1.7;
+    color: var(--ink-2);
+    white-space: pre;
+  }
+
+  .diagram pre.tree b {
+    color: var(--gold);
+    font-weight: 700;
+  }
+
+  /* ── table cards ──────────────────────────────────────── */
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+    gap: 1rem;
+    align-items: start;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--dom, var(--line-2));
+    padding: 1rem 1.1rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+  }
+
+  .card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .tname {
+    font-family: var(--mono);
+    font-size: 0.9375rem;
+    font-weight: 700;
+    direction: ltr;
+    unicode-bidi: isolate;
+    color: var(--ink);
+  }
+
+  .tfa {
+    font-size: 0.8125rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .card > p {
+    margin: 0;
+    font-size: 0.8125rem;
+    line-height: 1.7;
+    color: var(--ink-2);
+  }
+
+  .cols {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--line);
+  }
+
+  .col {
+    display: grid;
+    grid-template-columns: minmax(9rem, auto) 1fr;
+    gap: 0 0.75rem;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid var(--line);
+    align-items: baseline;
+  }
+
+  .col:last-child { border-bottom: 0; }
+
+  .col code {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    direction: ltr;
+    unicode-bidi: isolate;
+    text-align: left;
+    color: var(--ink);
+    word-break: break-word;
+  }
+
+  .col code em {
+    font-style: normal;
+    color: var(--muted);
+    font-size: 0.6875rem;
+  }
+
+  .col small {
+    font-size: 0.75rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .k {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.625rem;
+    letter-spacing: 0.04em;
+    padding: 0.05rem 0.3rem;
+    border-radius: 2px;
+    vertical-align: 1px;
+    direction: ltr;
+    unicode-bidi: isolate;
+  }
+
+  .k-pk { background: var(--gold-bg);   color: var(--gold); }
+  .k-fk { background: var(--indigo-bg); color: var(--indigo); }
+  .k-u  { background: var(--teal-bg);   color: var(--teal); }
+
+  /* ── plain tables ─────────────────────────────────────── */
+
+  .tablebox {
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    background: var(--surface);
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 34rem;
+    font-size: 0.8125rem;
+  }
+
+  th, td {
+    text-align: right;
+    padding: 0.55rem 0.9rem;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+
+  th {
+    background: var(--surface-2);
+    font-weight: 700;
+    font-size: 0.75rem;
+    color: var(--ink-2);
+    white-space: nowrap;
+  }
+
+  tbody tr:last-child td { border-bottom: 0; }
+
+  td.m, th.m {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    direction: ltr;
+    unicode-bidi: isolate;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  /* ── notes ────────────────────────────────────────────── */
+
+  .notes {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  .note {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0 0.9rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-inline-start: 3px solid var(--nc, var(--gold));
+    padding: 0.8rem 1rem;
+  }
+
+  .note b {
+    grid-column: 1 / -1;
+    font-size: 0.9375rem;
+    font-weight: 700;
+  }
+
+  .note p {
+    grid-column: 1 / -1;
+    margin: 0.2rem 0 0;
+    font-size: 0.8438rem;
+    color: var(--ink-2);
+    line-height: 1.8;
+    max-width: 72ch;
+  }
+
+  code.i {
+    font-family: var(--mono);
+    font-size: 0.8125em;
+    direction: ltr;
+    unicode-bidi: isolate;
+    background: var(--surface-2);
+    padding: 0.05rem 0.3rem;
+    border-radius: 2px;
+  }
+
+  .enums {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: 0.75rem;
+  }
+
+  .enum {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 0.8rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .enum-name {
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    direction: ltr;
+    unicode-bidi: isolate;
+    color: var(--gold);
+  }
+
+  .vals {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  .vals code {
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    padding: 0.1rem 0.35rem;
+    direction: ltr;
+    unicode-bidi: isolate;
+  }
+
+  .enum small {
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  footer {
+    border-top: 1px solid var(--line-2);
+    padding-top: 1.25rem;
+    font-size: 0.8125rem;
+    color: var(--muted);
+  }
+
+  footer p { margin: 0 0 0.35rem; }
+
+  @media (max-width: 34rem) {
+    .col { grid-template-columns: 1fr; gap: 0.1rem; }
+    .col code { text-align: right; direction: ltr; }
+    .facts { gap: 0 1.5rem; }
+  }
+</style>
+
+</head>
+<body>
+<div class="page">
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">PostgreSQL · Prisma · schema.prisma</div>
+    <h1>شمای دیتابیس VocabFlow</h1>
+    <p class="lede">
+      نقشهٔ کامل جدول‌ها، ستون‌ها و ارتباط‌ها — استخراج‌شده از
+      <code class="i">backend/prisma/schema.prisma</code> و نسخهٔ آفلاین
+      <code class="i">frontend/src/offline/db.ts</code>.
+    </p>
+    <div class="facts">
+      <div class="fact"><b>۱۶</b><span>جدول</span></div>
+      <div class="fact"><b>۴</b><span>enum</span></div>
+      <div class="fact"><b>۹</b><span>migration</span></div>
+      <div class="fact"><b>۱۳</b><span>جدول در نسخهٔ آفلاین</span></div>
+    </div>
+  </header>
+
+  <!-- ══ نمودار ══ -->
+  <section>
+    <div class="sec-head">
+      <h2>نمودار ارتباط‌ها</h2>
+      <p>خط‌های دوشاخه = رابطهٔ یک‌به‌چند. همهٔ کلیدهای خارجی به‌جز <code class="i">words → learning_modules</code> و <code class="i">words → lessons</code> روی حذف، Cascade هستند.</p>
+    </div>
+    <div class="diagram">
+<pre class="tree">
+<b>محتوا</b>
+books
+ └─ volumes ─────────────────────► learning_plans ◄──┐
+     └─ lessons                                      │
+         └─ words ◄──── learning_modules             │
+             ├─ word_examples                        │
+             ├─ word_phrases                         │
+             │   └─ word_phrase_examples             │
+             └─ user_word_progress ◄─────────────┐   │
+                                                 │   │
+<b>کاربر</b>                                          │   │
+users ───────────────────────────────────────────┴───┘
+ ├─ refresh_tokens
+ ├─ user_settings          (یک‌به‌یک)
+ ├─ watchlist_items ─────► books
+ ├─ learning_plans ──────► volumes
+ ├─ study_sessions
+ └─ user_word_progress ──► words
+
+<b>جدا افتاده</b>
+synonym_groups            (بدون کلید خارجی و بدون رابطه)
+</pre>
+    </div>
+  </section>
+
+  <!-- ══ کاربر ══ -->
+  <section>
+    <div class="sec-head">
+      <h2>۱. کاربر، احراز هویت و تنظیمات</h2>
+      <p>هستهٔ حساب کاربری. حذف کاربر همهٔ داده‌های وابسته را Cascade می‌کند.</p>
+    </div>
+    <div class="grid">
+
+      <article class="card" style="--dom: var(--indigo)">
+        <div class="card-head"><span class="tname">users</span><span class="tfa">کاربران</span></div>
+        <div class="cols">
+          <div class="col"><code>id <em>String</em></code><small><span class="k k-pk">PK</span> cuid</small></div>
+          <div class="col"><code>email <em>String</em></code><small><span class="k k-u">UNIQUE</span></small></div>
+          <div class="col"><code>password_hash <em>String</em></code><small>هش رمز عبور</small></div>
+          <div class="col"><code>name <em>String</em></code><small>—</small></div>
+          <div class="col"><code>role <em>Role</em></code><small>پیش‌فرض <code class="i">USER</code></small></div>
+          <div class="col"><code>created_at / updated_at</code><small>DateTime</small></div>
+        </div>
+      </article>
+
+      <article class="card" style="--dom: var(--indigo)">
+        <div class="card-head"><span class="tname">refresh_tokens</span><span class="tfa">توکن تازه‌سازی</span></div>
+        <div class="cols">
+          <div class="col"><code>id <em>String</em></code><small><span class="k k-pk">PK</span></small></div>
+          <div class="col"><code>token <em>String</em></code><small><span class="k k-u">UNIQUE</span></small></div>
+          <div class="col"><code>user_id <em>String</em></code><small><span class="k k-fk">FK</span> → users · Cascade</small></div>
+          <div class="col"><code>expires_at <em>DateTime</em></code><small>زمان انقضا</small></div>
+          <div class="col"><code>created_at <em>DateTime</em></code><small>—</small></div>
+        </div>
+      </article>
+
+      <article class="card" style="--dom: var(--indigo)">
+        <div class="card-head"><span class="tname">user_settings</span><span class="tfa">تنظیمات کاربر</span></div>
+        <p>رابطهٔ یک‌به‌یک؛ خودِ <code class="i">user_id</code> کلید اصلی است.</p>
+        <div class="cols">
+          <div class="col"><code>user_id <em>String</em></code><small><span class="k k-pk">PK</span> <span class="k k-fk">FK</span> → users</small></div>
+          <div class="col"><code>study_direction <em>ReviewMode</em></code><small>پیش‌فرض <code class="i">EN_TO_FA</code></small></div>
+          <div class="col"><code>auto_play_audio <em>Boolean</em></code><small>پخش خودکار تلفظ</small></div>
+          <div class="col"><code>show_phonetics <em>Boolean</em></code><small>نمایش آوانگاری</small></div>
+          <div class="col"><code>show_examples <em>Boolean</em></code><small>نمایش مثال‌ها</small></div>
+          <div class="col"><code>card_order <em>CardOrder</em></code><small>ترتیب کارت‌ها</small></div>
+          <div class="col"><code>updated_at <em>DateTime</em></code><small>—</small></div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ══ محتوا ══ -->
+  <section>
+    <div class="sec-head">
+      <h2>۲. محتوا — کتابخانه و واژه‌ها</h2>
+      <p>سلسله‌مراتب اصلی محتوا: <code class="i">book → volume → lesson → word</code>، و زیرشاخه‌های هر واژه.</p>
+    </div>
+    <div class="grid">
+
+      <article class="card" style="--dom: var(--teal)">
+        <div class="card-head"><span class="tname">books</span><span class="tfa">کتاب‌ها</span></div>
+        <div class="cols">
+          <div class="col"><code>id <em>String</em></code><small><span class="k k-pk">PK</span></small></div>
+          <div class="col"><code>title <em>String</em></code><small>عنوان کتاب</small></div>
+          <div class="col"><code>description <em>String?</em></code><small>توضیح</small></div>
+          <div class="col"><code>cover_image <em>String?</em></code><small>تصویر جلد</small></div>
+          <div class="col"><code>created_at / updated_at</code><small>—</small></div>
+        </div>
+      </article>
+
+      <article class="card" style="--dom: var(--teal)">
+        <div class="card-head"><span class="tname">volumes</span><span class="tfa">جلدها</span></div>
+        <p>یکتا روی <code class="i">(book_id, volume_number)</code>.</p>
+        <div class="cols">
+          <div class="col"><code>id <em>String</em></code><small><span class="k k-pk">PK</span></small></div>
+          <div class="col"><code>book_id <em>String</em></code><small><span class="k k-fk">FK</span> → books · Cascade</small></div>
+          <div class="col"><code>volume_number <em>Int</em></code><small>شمارهٔ جلد</small></div>
+          <div class="col"><code>title <em>String?</em></code><small>—</small></div>
+          <div class="col"><code>cover_image <em>String?</em></code><small>—</small></div>
+          <div class="col"><code>created_at <em>DateTime</em></code><small>—</small></div>
+        </div>
+      </article>
+
+      <article class="card" style="--dom: var(--teal)">
+        <div class="card-head"><span class="tname">lessons</span><span class="tfa">درس‌ها</span></div>
+        <p>یکتا روی <code class="i">(volume_id, lesson_number)</code>.</p>
+        <div class="cols">
+          <div class="col"><code>id <em>String</em></code><small><span class="k k-pk">PK</span></small></div>
+          <div class="col"><code>volume_id <em>String</em></code><small><span class="k k-fk">FK</span> → volumes · Cascade</small></div>
+          <div class="col"><code>lesson_number <em>Int</em></code><small>شمارهٔ درس</small></div>
+          <div class="col"><code>title <em>String?</em></code><small>—</small></div>
+          <div class="col"><code>created_at <em>DateTime</em></code><small>—</small></div>
+        </div>
+      </article>
+
+      <article class="card" style="--dom: var(--gold)">
+        <div class="card-head"><span class="tname">words</span><span class="tfa">واژه‌ها — جدول محوری</span></div>
+        <p><code class="i">lesson_id</code> اختیاری است؛ یعنی واژه می‌تواند بدون درس هم وجود داشته باشد. اما <code class="i">module_id</code> اجباری است.</p>
+        <div class="cols">
+          <div class="col"><code>id <em>String</em></code><small><span class="k k-pk">PK</span></small></div>
+          <div class="col"><code>eng / per <em>String</em></code><small>واژهٔ انگلیسی و معنی فارسی</small></div>
+          <div class="col"><code>description <em>String?</em></code><small>تعریف انگلیسی</small></div>
+          <div class="col"><code>description_per <em>String?</em></code><small>همان تعریف به فارسی</small></div>
+          <div class="col"><code>pronunciation <em>String?</em></code><small>آوانگاری</small></div>
+          <div class="col"><code>part_of_speech <em>String?</em></code><small>نقش دستوری</small></div>
+          <div class="col"><code>word_forms <em>String?</em></code><small>صورت‌های دیگر واژه</small></div>
+          <div class="col"><code>synonyms <em>String[]</em></code><small>آرایهٔ متنی · پیش‌فرض خالی</small></div>
+          <div class="col"><code>antonyms <em>String[]</em></code><small>آرایهٔ متنی · پیش‌فرض خالی</small></div>
+          <div class="col"><code>primary_example <em>String?</em></code><small>مثال اصلی</small></div>
+          <div class="col"><code>primary_example_trs <em>String?</em></code><small>ترجمهٔ مثال اصلی</small></div>
+          <div class="col"><code>pronunciation_audio <em>String?</em></code><small>مسیر فایل صوتی</small></div>
+          <div class="col"><code>chapter / unit <em>Int?</em></code><small>دسته‌بندی قدیمی · ایندکس مشترک</small></div>
+          <div class="col"><code>lesson_id <em>String?</em></code><small><span class="k k-fk">FK</span> → lessons · بدون Cascade</small></div>
+          <div class="col"><code>module_id <em>String</em></code><small><span class="k k-fk">FK</span> → learning_modules</small></div>
+          <div class="col"><code>created_at / updated_at</code><small>—</small></div>
+        </div>
+      </article>
+
+      <article class="card" style="--dom: var(--teal)">
+        <div class="card-head"><span class="tname">word_examples</span><span class="tfa">مثال‌های واژه</span></div>
+        <div class="cols">
+          <div class="col"><code>id <em>String</em></code><small><span class="k k-pk">PK</span></small></div>
+          <div class="col"><code>word_id <em>String</em></code><small><span class="k k-fk">FK</span> → words · Cascade</small></div>
+          <div class="col"><code>eng_sentence <em>String</em></code><small>جملهٔ انگلیسی</small></div>
+          <div class="col"><code>per_translation <em>String</em></code><small>ترجمهٔ فارسی</small></div>
+          <div class="col"><code>order <em>Int</em></code><small>ترتیب نمایش</small></div>
+        </div>
+      </article>
+
+      <article class="card" style="--dom: var(--teal)">
+        <div class="card-head"><span class="tname">word_phrases</span><span class="tfa">الگوها / عبارت‌ها</span></div>
+        <div class="cols">
+          <div class="col"><code>id <em>String</em></code><small><span class="k k-pk">PK</span></small></div>
+          <div class="col"><code>word_id <em>String</em></code><small><span class="k k-fk">FK</span> → words · Cascade</small></div>
+          <div class="col"><code>pattern_eng <em>String</em></code><small>الگوی انگلیسی</small></div>
+          <div class="col"><code>pattern_per <em>String</em></code><small>معادل فارسی</small></div>
+          <div class="col"><code>order <em>Int</em></code><small>—</small></div>
+        </div>
+      </article>
+
+      <article class="card" style="--dom: var(--teal)">
+        <div class="card-head"><span class="tname">word_phrase_examples</span><span class="tfa">مثال‌های عبارت</span></div>
+        <p>سطح سوم تودرتو: واژه ← عبارت ← مثال.</p>
+        <div class="cols">
+          <div class="col"><code>id <em>String</em></code><small><span class="k k-pk">PK</span></small></div>
+          <div class="col"><code>phrase_id <em>String</em></code><small><span class="k k-fk">FK</span> → word_phrases · Cascade</small></div>
+          <div class="col"><code>eng_sentence <em>String</em></code><small>—</small></div>
+          <div class="col"><code>per_translation <em>String</em></code><small>—</small></div>
+          <div class="col"><code>order <em>Int</em></code><small>—</small></div>
+        </div>
+      </article>
+
+      <article class="card" style="--dom: var(--teal)">
+        <div class="card-head"><span class="tname">learning_modules</span><span class="tfa">مسیرهای یادگیری</span></div>
+        <p>سه مسیر برنامه: واژه، phrasal verb، collocation.</p>
+        <div class="cols">
+          <div class="col"><code>id <em>String</em></code><small><span class="k k-pk">PK</span></small></div>
+          <div class="col"><code>name <em>String</em></code><small><span class="k k-u">UNIQUE</span></small></div>
+          <div class="col"><code>slug <em>String</em></code><small><span class="k k-u">UNIQUE</span></small></div>
+          <div class="col"><code>description <em>String?</em></code><small>—</small></div>
+          <div class="col"><code>is_active <em>Boolean</em></code><small>پیش‌فرض true</small></div>
+          <div class="col"><code>order <em>Int</em></code><small>ترتیب نمایش</small></div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ══ یادگیری ══ -->
+  <section>
+    <div class="sec-head">
+      <h2>۳. یادگیری و پیشرفت</h2>
+      <p>جایی که کاربر به محتوا وصل می‌شود: زمان‌بندی SM-2، برنامهٔ روزانه، و آمار جلسه‌ها.</p>
+    </div>
+    <div class="grid">
+
+      <article class="card" style="--dom: var(--gold)">
+        <div class="card-head"><span class="tname">user_word_progress</span><span class="tfa">پیشرفت کاربر روی واژه</span></div>
+        <p>
+          یکتا روی <code class="i">(user_id, word_id, review_mode)</code> — یعنی هر واژه برای هر کاربر
+          <b>دو ردیف جدا</b> دارد: یکی برای انگلیسی‌به‌فارسی و یکی برعکس.
+        </p>
+        <div class="cols">
+          <div class="col"><code>id <em>String</em></code><small><span class="k k-pk">PK</span></small></div>
+          <div class="col"><code>user_id <em>String</em></code><small><span class="k k-fk">FK</span> → users · Cascade</small></div>
+          <div class="col"><code>word_id <em>String</em></code><small><span class="k k-fk">FK</span> → words · Cascade</small></div>
+          <div class="col"><code>review_mode <em>ReviewMode</em></code><small>جهت مرور</small></div>
+          <div class="col"><code>status <em>WordStatus</em></code><small>وضعیت در برنامهٔ روزانهٔ SM-2</small></div>
+          <div class="col"><code>manual_status <em>WordStatus</em></code><small>علامت‌گذاری دستی در صفحهٔ مرور آزاد</small></div>
+          <div class="col"><code>repetitions <em>Int</em></code><small>SM-2 · تعداد تکرار موفق پیاپی</small></div>
+          <div class="col"><code>interval_days <em>Int</em></code><small>SM-2 · فاصلهٔ مرور بعدی</small></div>
+          <div class="col"><code>ease_factor <em>Float</em></code><small>SM-2 · پیش‌فرض ۲.۵</small></div>
+          <div class="col"><code>review_count <em>Int</em></code><small>کل دفعات مرور</small></div>
+          <div class="col"><code>correct_count <em>Int</em></code><small>پاسخ درست</small></div>
+          <div class="col"><code>wrong_count <em>Int</em></code><small>پاسخ غلط</small></div>
+          <div class="col"><code>hard_count <em>Int</em></code><small>پاسخ «سخت» — مبنای آمار «لغات سخت»</small></div>
+          <div class="col"><code>last_reviewed_at <em>DateTime?</em></code><small>آخرین مرور</small></div>
+          <div class="col"><code>next_review_at <em>DateTime?</em></code><small>موعد بعدی · ایندکس‌شده</small></div>
+          <div class="col"><code>introduced_at <em>DateTime?</em></code><small>null یعنی هنوز واژهٔ «جدید» است</small></div>
+        </div>
+      </article>
+
+      <article class="card" style="--dom: var(--gold)">
+        <div class="card-head"><span class="tname">learning_plans</span><span class="tfa">برنامهٔ یادگیری</span></div>
+        <p>منبع حقیقتِ «لیست یادگیری من». یکتا روی <code class="i">(user_id, volume_id)</code> — برنامه در سطح <b>جلد</b> است، نه کتاب.</p>
+        <div class="cols">
+          <div class="col"><code>id <em>String</em></code><small><span class="k k-pk">PK</span></small></div>
+          <div class="col"><code>user_id <em>String</em></code><small><span class="k k-fk">FK</span> → users · Cascade</small></div>
+          <div class="col"><code>volume_id <em>String</em></code><small><span class="k k-fk">FK</span> → volumes · Cascade</small></div>
+          <div class="col"><code>daily_new_words <em>Int</em></code><small>سهمیهٔ واژهٔ جدید · پیش‌فرض ۱۰</small></div>
+          <div class="col"><code>daily_goal <em>Int</em></code><small>هدف روزانه · پیش‌فرض ۳۰</small></div>
+          <div class="col"><code>is_active <em>Boolean</em></code><small>فعال بودن برنامه</small></div>
+          <div class="col"><code>created_at / updated_at</code><small>—</small></div>
+        </div>
+      </article>
+
+      <article class="card" style="--dom: var(--gold)">
+        <div class="card-head"><span class="tname">study_sessions</span><span class="tfa">جلسه‌های مطالعه</span></div>
+        <p>هر ردیف = یک جلسهٔ تمام‌شده. مبنای streak، هیت‌مپ فعالیت و آمار دقت.</p>
+        <div class="cols">
+          <div class="col"><code>id <em>String</em></code><small><span class="k k-pk">PK</span></small></div>
+          <div class="col"><code>user_id <em>String</em></code><small><span class="k k-fk">FK</span> → users · Cascade</small></div>
+          <div class="col"><code>started_at <em>DateTime</em></code><small>ایندکس با user_id</small></div>
+          <div class="col"><code>ended_at <em>DateTime?</em></code><small>null = ناتمام</small></div>
+          <div class="col"><code>duration_sec <em>Int</em></code><small>مدت جلسه</small></div>
+          <div class="col"><code>reviewed_count <em>Int</em></code><small>تعداد مرورشده</small></div>
+          <div class="col"><code>correct_count <em>Int</em></code><small>—</small></div>
+          <div class="col"><code>wrong_count <em>Int</em></code><small>—</small></div>
+          <div class="col"><code>hard_count <em>Int</em></code><small>—</small></div>
+          <div class="col"><code>skipped_count <em>Int</em></code><small>ردشده</small></div>
+          <div class="col"><code>new_count <em>Int</em></code><small>واژهٔ جدید معرفی‌شده</small></div>
+        </div>
+      </article>
+
+      <article class="card" style="--dom: var(--rose)">
+        <div class="card-head"><span class="tname">watchlist_items</span><span class="tfa">لیست علاقه‌مندی</span></div>
+        <p>نشان‌کردن کتاب. یکتا روی <code class="i">(user_id, book_id)</code>. توجه: نقش «راه‌اندازِ برنامهٔ روزانه» از این جدول به <code class="i">learning_plans</code> منتقل شده.</p>
+        <div class="cols">
+          <div class="col"><code>id <em>String</em></code><small><span class="k k-pk">PK</span></small></div>
+          <div class="col"><code>user_id <em>String</em></code><small><span class="k k-fk">FK</span> → users · Cascade</small></div>
+          <div class="col"><code>book_id <em>String</em></code><small><span class="k k-fk">FK</span> → books · Cascade</small></div>
+          <div class="col"><code>created_at <em>DateTime</em></code><small>—</small></div>
+        </div>
+      </article>
+
+      <article class="card" style="--dom: var(--rose)">
+        <div class="card-head"><span class="tname">synonym_groups</span><span class="tfa">گروه‌های مترادف</span></div>
+        <p>بدون هیچ کلید خارجی یا رابطه‌ای — جدول جدا افتاده و فعلاً به بقیهٔ شما وصل نیست.</p>
+        <div class="cols">
+          <div class="col"><code>id <em>String</em></code><small><span class="k k-pk">PK</span></small></div>
+          <div class="col"><code>concept_name <em>String</em></code><small>نام مفهوم</small></div>
+          <div class="col"><code>created_at <em>DateTime</em></code><small>—</small></div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ══ enums ══ -->
+  <section>
+    <div class="sec-head">
+      <h2>Enumها</h2>
+      <p>چهار نوع شمارشی در سطح PostgreSQL.</p>
+    </div>
+    <div class="enums">
+      <div class="enum">
+        <span class="enum-name">Role</span>
+        <div class="vals"><code>USER</code><code>ADMIN</code></div>
+        <small>نقش کاربر · روی <code class="i">users.role</code></small>
+      </div>
+      <div class="enum">
+        <span class="enum-name">ReviewMode</span>
+        <div class="vals"><code>EN_TO_FA</code><code>FA_TO_EN</code></div>
+        <small>جهت مرور · روی <code class="i">user_word_progress</code> و <code class="i">user_settings</code></small>
+      </div>
+      <div class="enum">
+        <span class="enum-name">WordStatus</span>
+        <div class="vals"><code>NOT_READ</code><code>KNOWN</code><code>NOT_KNOWN</code></div>
+        <small>روی هر دو ستون <code class="i">status</code> و <code class="i">manual_status</code></small>
+      </div>
+      <div class="enum">
+        <span class="enum-name">CardOrder</span>
+        <div class="vals"><code>SEQUENTIAL</code><code>RANDOM</code></div>
+        <small>ترتیب کارت‌ها · روی <code class="i">user_settings</code></small>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ ایندکس‌ها ══ -->
+  <section>
+    <div class="sec-head">
+      <h2>ایندکس‌ها و قیدهای یکتا</h2>
+      <p>آنچه صریحاً در schema تعریف شده (جدا از ایندکس خودکار کلیدهای اصلی).</p>
+    </div>
+    <div class="tablebox">
+      <table>
+        <thead>
+          <tr><th>جدول</th><th>ستون‌ها</th><th>نوع</th><th>برای چه</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="m">users</td><td class="m">email</td><td>UNIQUE</td><td>ورود با ایمیل</td></tr>
+          <tr><td class="m">refresh_tokens</td><td class="m">token</td><td>UNIQUE</td><td>یافتن توکن</td></tr>
+          <tr><td class="m">learning_modules</td><td class="m">name · slug</td><td>UNIQUE</td><td>مسیریابی با slug</td></tr>
+          <tr><td class="m">volumes</td><td class="m">(book_id, volume_number)</td><td>UNIQUE</td><td>شماره‌گذاری بدون تکرار</td></tr>
+          <tr><td class="m">lessons</td><td class="m">(volume_id, lesson_number)</td><td>UNIQUE</td><td>همان</td></tr>
+          <tr><td class="m">watchlist_items</td><td class="m">(user_id, book_id)</td><td>UNIQUE</td><td>جلوگیری از نشان دوباره</td></tr>
+          <tr><td class="m">watchlist_items</td><td class="m">user_id</td><td>INDEX</td><td>لیست کاربر</td></tr>
+          <tr><td class="m">learning_plans</td><td class="m">(user_id, volume_id)</td><td>UNIQUE</td><td>یک برنامه به‌ازای هر جلد</td></tr>
+          <tr><td class="m">learning_plans</td><td class="m">user_id</td><td>INDEX</td><td>برنامه‌های کاربر</td></tr>
+          <tr><td class="m">user_word_progress</td><td class="m">(user_id, word_id, review_mode)</td><td>UNIQUE</td><td>یک ردیف در هر جهت مرور</td></tr>
+          <tr><td class="m">user_word_progress</td><td class="m">(user_id, review_mode)</td><td>INDEX</td><td>آمار کلی</td></tr>
+          <tr><td class="m">user_word_progress</td><td class="m">(user_id, review_mode, next_review_at)</td><td>INDEX</td><td>صف «مرور امروز»</td></tr>
+          <tr><td class="m">study_sessions</td><td class="m">(user_id, started_at)</td><td>INDEX</td><td>streak و هیت‌مپ</td></tr>
+          <tr><td class="m">words</td><td class="m">module_id · lesson_id · (chapter, unit)</td><td>INDEX</td><td>فیلترهای صفحهٔ واژه‌ها</td></tr>
+          <tr><td class="m">word_phrases</td><td class="m">word_id</td><td>INDEX</td><td>بارگذاری عبارت‌ها</td></tr>
+          <tr><td class="m">word_phrase_examples</td><td class="m">phrase_id</td><td>INDEX</td><td>بارگذاری مثال‌ها</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══ نکته‌ها ══ -->
+  <section>
+    <div class="sec-head">
+      <h2>نکته‌های مهم شما</h2>
+      <p>چیزهایی که از خواندن صرفِ نام ستون‌ها معلوم نمی‌شود.</p>
+    </div>
+    <div class="notes">
+
+      <div class="note" style="--nc: var(--gold)">
+        <b>دو مسیر یادگیری کاملاً جدا</b>
+        <p>
+          <code class="i">status</code> فقط توسط برنامهٔ روزانهٔ SM-2 نوشته می‌شود و
+          <code class="i">manual_status</code> فقط توسط صفحهٔ مرور آزاد
+          (<code class="i">/vocabulary/review</code>). این دو هیچ‌وقت همدیگر را تغییر نمی‌دهند —
+          پس برای هر آماری باید بدانی کدام مسیر را می‌شماری.
+        </p>
+      </div>
+
+      <div class="note" style="--nc: var(--indigo)">
+        <b>ضرب‌شدن ردیف‌ها در جهت مرور</b>
+        <p>
+          چون <code class="i">review_mode</code> جزو کلید یکتای پیشرفت است، شمارش خام ردیف‌های
+          <code class="i">user_word_progress</code> عملاً دو برابر تعداد واقعی واژه‌هاست. هر کوئری آماری
+          باید روی <code class="i">review_mode</code> فیلتر شود.
+        </p>
+      </div>
+
+      <div class="note" style="--nc: var(--teal)">
+        <b>واژهٔ بی‌درس ممکن است</b>
+        <p>
+          <code class="i">words.lesson_id</code> nullable است و رابطه‌اش Cascade ندارد، ولی
+          <code class="i">module_id</code> اجباری است. یعنی هر واژه حتماً یک مسیر یادگیری دارد،
+          اما ممکن است به هیچ کتاب/جلد/درسی وصل نباشد — چنین واژه‌ای در پیمایش کتابخانه دیده نمی‌شود.
+        </p>
+      </div>
+
+      <div class="note" style="--nc: var(--rose)">
+        <b>watchlist دیگر موتور برنامهٔ روزانه نیست</b>
+        <p>
+          <code class="i">watchlist_items</code> در سطح کتاب است و صرفاً نشان‌کردن است.
+          راه‌اندازِ معرفی واژهٔ جدید و زمان‌بندی مرور، <code class="i">learning_plans</code> است که
+          در سطح جلد کار می‌کند.
+        </p>
+      </div>
+
+      <div class="note" style="--nc: var(--muted)">
+        <b>‏<code class="i">synonym_groups</code> جدا افتاده</b>
+        <p>
+          نه کلید خارجی دارد نه رابطه‌ای در Prisma. یا بازمانده‌ای از طرح قبلی است یا نیمه‌کاره —
+          مترادف‌ها فعلاً به‌صورت آرایهٔ متنی داخل خودِ <code class="i">words.synonyms</code> ذخیره می‌شوند.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ══ آفلاین ══ -->
+  <section>
+    <div class="sec-head">
+      <h2>نسخهٔ آفلاین (SQLite روی اندروید)</h2>
+      <p>فایل <code class="i">frontend/src/offline/db.ts</code> — آینه‌ای ساده‌شده از همین شما برای APK آفلاین.</p>
+    </div>
+    <div class="tablebox">
+      <table>
+        <thead>
+          <tr><th>تفاوت</th><th>در PostgreSQL</th><th>در SQLite آفلاین</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>مفهوم کاربر</td>
+            <td class="m">users · refresh_tokens</td>
+            <td>حذف شده — تک‌کاربرِ محلی، پس هیچ ستون <code class="i">user_id</code> وجود ندارد</td>
+          </tr>
+          <tr>
+            <td>کلید پیشرفت</td>
+            <td class="m">(user_id, word_id, review_mode)</td>
+            <td class="m">PRIMARY KEY (word_id, review_mode)</td>
+          </tr>
+          <tr>
+            <td>نام جدول پیشرفت</td>
+            <td class="m">user_word_progress</td>
+            <td class="m">progress</td>
+          </tr>
+          <tr>
+            <td>ستون ترتیب</td>
+            <td class="m">order</td>
+            <td class="m">ord <span style="color:var(--muted)">(order کلمهٔ رزرو SQL است)</span></td>
+          </tr>
+          <tr>
+            <td>مترادف / متضاد</td>
+            <td class="m">String[]</td>
+            <td>یک ستون <code class="i">TEXT</code> با محتوای JSON</td>
+          </tr>
+          <tr>
+            <td>مسیر یادگیری</td>
+            <td class="m">learning_modules + module_id</td>
+            <td>حذف شده</td>
+          </tr>
+          <tr>
+            <td>watchlist</td>
+            <td class="m">(user_id, book_id)</td>
+            <td class="m">watchlist(book_id PK)</td>
+          </tr>
+          <tr>
+            <td>تنظیمات</td>
+            <td class="m">user_settings(user_id PK)</td>
+            <td>یک ردیفِ تکی + ستون‌های اعلان: <code class="i">daily_reminder_enabled</code>، <code class="i">daily_reminder_time</code>، <code class="i">notify_daily_study</code>، <code class="i">notify_overdue</code>، <code class="i">notify_streak</code></td>
+          </tr>
+          <tr>
+            <td>جدول اضافه</td>
+            <td>—</td>
+            <td class="m">meta(key, value) <span style="color:var(--muted)">— نسخهٔ شما و وضعیت sync</span></td>
+          </tr>
+          <tr>
+            <td>مهاجرت شما</td>
+            <td>پوشهٔ <code class="i">prisma/migrations</code></td>
+            <td>تابع <code class="i">migrateSchema()</code> با <code class="i">ALTER TABLE ADD COLUMN</code> برای نصب‌های قدیمی</td>
+          </tr>
+          <tr>
+            <td>synonym_groups</td>
+            <td class="m">هست</td>
+            <td>حذف شده</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <p>منابع: <code class="i">backend/prisma/schema.prisma</code> · <code class="i">backend/prisma/migrations/</code> (۹ مهاجرت، آخری <code class="i">20260721201724_add_hard_count_to_progress</code>) · <code class="i">frontend/src/offline/db.ts</code></p>
+    <p>نام ستون‌ها در این صفحه نام واقعی جدول در دیتابیس است (snake_case)، نه نام فیلد در Prisma Client (camelCase).</p>
+  </footer>
+
+</div>
+</div>
+</body>
+</html>

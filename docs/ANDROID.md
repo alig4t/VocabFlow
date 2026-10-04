@@ -2,6 +2,10 @@
 
 راهنمای معماری، تکنولوژی‌ها و ساخت/اجرای نسخه‌ی اندرویدِ **کاملاً آفلاین** اپلیکیشن VocabFlow.
 
+> **وضعیت:** با کد تطبیق داده شد در 2026-10-04. مستندات مرتبط: [`FRONTEND.md`](FRONTEND.md) (سوییچ سرویس‌ها)،
+> [`NOTIFICATIONS.md`](NOTIFICATIONS.md) (یادآورها)، [`SECURITY-REVIEW.md`](SECURITY-REVIEW.md) (رمزگذاری)، و مهارت
+> `.claude/skills/android-build` (روال بیلد).
+
 > این پروژه **یک کدبیس** دارد که هم نسخه‌ی وب (سروری، با لاگین) و هم نسخه‌ی اندروید (آفلاین، بدون سرور) را می‌سازد. تفاوت دو نسخه فقط در **لایه‌ی داده** است که در زمان اجرا سوییچ می‌شود.
 
 ---
@@ -33,7 +37,10 @@
 - **Capacitor 6.2.1** (`@capacitor/core`, `@capacitor/cli`, `@capacitor/android`) — بسته‌بندی وب‌اپ داخل APK
 - **`@capacitor-community/sqlite` 6.0.2** — پایگاه‌داده‌ی SQLite نیتیو
 - **`@capacitor-community/text-to-speech` 5.1.0** — تلفظ نیتیو (نسخه‌ی سازگار با Capacitor 6)
-- `@capacitor/app` 6.0.3
+- `@capacitor/app` 6.0.3 (دکمه‌ی back، `appStateChange`)
+- `@capacitor/local-notifications` 6.1.3 — یادآورهای محلی (→ `NOTIFICATIONS.md`)
+- `@capacitor/status-bar` 6.0.3 — نوار وضعیت overlay (`StatusBarSync.tsx`)
+- پلاگین بومی داخلی `SafeAreaPlugin` (`android/app/src/main/java/ir/vocabflow/app/`) — insetهای system bar/cutout برای edge-to-edge (ثبت در `MainActivity`)
 
 **تولچین اندروید**
 - JDK **17** (برای Android Gradle Plugin 8.2.1)
@@ -69,8 +76,10 @@ getWords(filters) {
 }
 ```
 
-سرویس‌های شاخه‌دار: `vocabulary`, `progress`, `book` (سلکتورهای ساده + `getVolumes`)، `dashboard`, `synonym`, `study` (مطالعه امروز/پاسخ/ثبت سشن)، `plan` (برنامه‌های یادگیری)، `settings`.
-**صفحات و کامپوننت‌های React دست‌نخورده‌اند** — فقط لایه‌ی سرویس عوض می‌شود.
+سرویس‌های شاخه‌دار: `vocabulary`, `progress`, `book` (فقط `getBooksSimple`/`getVolumes`/`getVolumesSimple`/`getLessonsSimple`)، `dashboard` (شامل `getStats` → `getLearningStats`)، `synonym`, `study` (امروز/لغات امروز/پاسخ/ثبت سشن)، `plan`، `settings`.
+**بدون شاخه (فقط وب):** `auth.service`، `user.service`، و CRUD کتاب/جلد/درس در `book.service` — روی نیتیو به `/api` وب‌ویو می‌خورند و کار نمی‌کنند؛ UIشان روی نیتیو مخفی است.
+صفحات React در اغلب موارد مشترک‌اند — فقط لایه‌ی سرویس عوض می‌شود؛ تفاوت‌های UI در بخش ۳.۵.
+> ⚠ فقط `repo.ts` با import پویا جدا می‌شود؛ `App.tsx` به‌صورت ایستا `offline/bootstrap` (→ `seed` → `db` و `seed-crypto`) را import می‌کند، پس SQLite و `VITE_SEED_SECRET` در باندل **وب** هم هستند.
 
 ### ۳.۲. لایه‌ی داده‌ی آفلاین (`src/offline/`)
 
@@ -83,15 +92,24 @@ getWords(filters) {
 | `srs.ts` | آینه‌ی نیتیو موتور SM-2 (مثل `backend/src/modules/study/srs.ts`) — تابع `schedule` و هلپرهای روز |
 | `bootstrap.ts` | `prepareNative()` — باز کردن DB و seed در اولین اجرا |
 
-جداول SQLite: `books, volumes, lessons, words, word_examples, word_phrases, word_phrase_examples, progress, watchlist, learning_plans, study_sessions, user_settings, meta`.
+جداول SQLite (۱۴): `books, volumes, lessons, words, word_examples, word_phrases, word_phrase_examples, progress, watchlist, learning_plans, study_sessions, review_events, user_settings, meta`.
 
-جدول `progress` (کلید `word_id, review_mode`) اکنون دو مسیرِ مستقل را نگه می‌دارد:
-- `status` — وضعیت برنامه‌ی SM-2 (به‌همراه ستون‌های `manual_status` هم دارد، `repetitions, interval_days, ease_factor, review_count, correct_count, wrong_count, last_reviewed_at, next_review_at, introduced_at`).
+جدول `progress` (کلید `word_id, review_mode`) دو مسیرِ مستقل را نگه می‌دارد:
+- `status` + SM-2 (`repetitions, interval_days, ease_factor, review_count, correct_count, wrong_count, hard_count, last_reviewed_at, next_review_at, introduced_at`) — برنامه‌ی روزانه.
 - `manual_status` — علامت دستیِ «مرور آزاد» (بلدم/بلد نیستم/نخوانده)، جدا از SM-2.
 
-جدول‌های تازه: `learning_plans` (برنامه‌ی هر جلد: `daily_new_words, daily_goal, is_active`)، `study_sessions` (یک ردیف برای هر سشنِ کامل‌شده؛ برای استریک/هیت‌مپ/دقت)، `user_settings` (تنظیماتِ تک‌ردیفی کاربر محلی).
+سایر جدول‌ها: `learning_plans` (`daily_new_words, daily_goal, is_active`)، `study_sessions`، `review_events` (لاگ پاسخ‌ها؛ `answerStudy` در `repo.ts` آن را می‌نویسد، SKIP ثبت نمی‌شود)، `user_settings` (تک‌ردیفی `id='local'`، به‌علاوه‌ی ۵ ستون یادآور که در Postgres نیستند)، `meta` (فقط کلید `seed_version`).
 
-> **مهاجرت اسکیمای نصب‌های قدیمی:** چون `CREATE TABLE IF NOT EXISTS` هرگز جدول موجود را تغییر نمی‌دهد، تابع `migrateSchema()` با `ALTER TABLE ... ADD COLUMN` ستون‌های `manual_status` و SM-2 را به `progress` قدیمی اضافه می‌کند (و علامت‌های دستیِ قبلی را از `status` به `manual_status` کپی می‌کند). ایندکس `idx_progress_due` **بعد از** این ADD COLUMN داخل همین تابع ساخته می‌شود.
+**تفاوت‌های عمدی/موجود با Postgres** (هنگام پورت کوئری مهم‌اند):
+- بدون `users`/`refresh_tokens`/`learning_modules`/`synonym_groups` و بدون `user_id` در هیچ جدولی (تک‌کاربره). `module_id` با ثابت `MODULE_ID = "offline-vocabulary"` جعل می‌شود.
+- `order` → `ord` (کلمه‌ی رزرو)؛ آرایه‌ها → JSON در `TEXT`؛ تاریخ‌ها ISO-8601 UTC به‌صورت رشته (مقایسه‌ی لغوی `<=` درست است).
+- **هیچ foreign key یا cascade وجود ندارد.** `repo.deleteWord` دستی cascade می‌کند ولی `review_events` آن لغت را پاک نمی‌کند (در Postgres پاک می‌شود).
+- unique constraintهای `volumes`/`lessons` و ستون‌های `created_at`/`updated_at` اکثر جدول‌ها وجود ندارند؛ برخی ستون‌ها nullable‌ترند.
+- `srs.ts` از نظر منطق با بک‌اند یکی است (ثابت‌ها، فرمول‌ها، `DAY_START_HOUR = 6`) ولی byte-identical نیست (سبک کد/تایپ‌ها).
+
+> **مهاجرت اسکیمای نصب‌های قدیمی:** چون `CREATE TABLE IF NOT EXISTS` هرگز جدول موجود را تغییر نمی‌دهد، `migrateSchema()` با `PRAGMA table_info` ستون‌های غایب را از آرایه‌های `PROGRESS_ADDED_COLUMNS`، `WORDS_ADDED_COLUMNS`، `USER_SETTINGS_ADDED_COLUMNS` با `ALTER TABLE ... ADD COLUMN` اضافه می‌کند (و اگر `manual_status` تازه اضافه شد، `status` را در آن کپی می‌کند). ایندکس `idx_progress_due` **بعد از** این ADD COLUMNها داخل همین تابع ساخته می‌شود. هیچ شماره‌ی نسخه‌ی اسکیما وجود ندارد (`DB_VERSION = 1` استفاده نمی‌شود).
+>
+> **چک‌لیست ستون جدید:** (۱) DDL در `CREATE TABLE`، (۲) ورودی در آرایه‌ی `*_ADDED_COLUMNS` مربوطه — با `DEFAULT` اگر `NOT NULL` است، (۳) ایندکس روی ستون جدید فقط داخل `migrateSchema()`، (۴) اگر seed آن را پر می‌کند، لیست ستون‌های `bulkInsert` در `seed.ts`. جدول کاملاً جدید فقط DDL لازم دارد.
 
 ### ۳.۳. seed اولیه
 
@@ -107,7 +125,8 @@ getWords(filters) {
 - منبعِ خامِ کتاب‌ها در `frontend/seed-src/*.json` + `manifest.json` است؛ نسخه‌ی رمزشده در `frontend/public/seed-enc/*.enc` (+ `manifest.json` که plaintext می‌ماند، چون فقط لیست نام فایل‌هاست).
 - هنگام `cap sync` فقط `seed-enc` (رمزشده) داخل assets اپ بسته‌بندی می‌شود.
 - در **اولین اجرا** `App.tsx` صفحه‌ی `SeedLoader` (نوار پیشرفت) را نشان می‌دهد و `seedIfNeeded()` همه‌ی JSONها را می‌خواند و ~۱۷هزار واژه را در SQLite درج می‌کند (در یک transaction). بعد از آن اپ کاملاً آفلاین است.
-- idempotent با فلگ `meta.seed_version`؛ با بالا رفتن `SEED_VERSION` جدول‌های داده پاک و دوباره seed می‌شوند (تنظیمات/برنامه‌ها دست‌نخورده می‌مانند).
+- idempotent با فلگ `meta.seed_version` (مقدار فعلی `SEED_VERSION = "5"` در `seed.ts`).
+- ⚠️ **بالا بردن `SEED_VERSION` پیشرفت کاربر را پاک می‌کند.** در یک transaction روی همه‌ی جدول‌های `WIPE_TABLES` دستور `DELETE` اجرا می‌شود: `word_phrase_examples, word_phrases, word_examples, words, lessons, volumes, books, progress, watchlist`. همه‌ی idها با `uid()` تازه ساخته می‌شوند، پس `learning_plans`، `review_events` و `study_sessions` (که پاک نمی‌شوند) به جلد/لغت‌هایی اشاره می‌کنند که دیگر وجود ندارند، و ویرایش‌های محلی لغات هم از بین می‌روند. فقط وقتی bump کن که محتوای کتاب‌ها واقعاً عوض شده و این هزینه پذیرفته شده — و این را صریحاً به کاربر بگو.
 
 ### ۳.۴. بدون لاگین
 
@@ -126,16 +145,24 @@ if (isNative()) {
 - **کاور کتاب‌ها:** از `public/books/` با نگاشت `COVER_BY_TITLE` در `repo.getDiscovery`.
 - **کاور جلدها:** در دیالوگ برنامه‌ی یادگیری، `repo.getVolumes` کاورِ هر جلد را از `public/books/` با نگاشت `VOLUME_COVER_BY_TITLE` می‌سازد (`4000-v1..v6.webp` و `oxford-word-skills-basic/intermediate/advanced.webp`)؛ جلدهای تک‌جلدی به کاور کتاب برمی‌گردند.
 - **فونتیک (IPA):** متن آوانگاری با کلاس `.font-ipa` رندر می‌شود (استک sans با Roboto/Noto Sans که گلیف‌های IPA را پوشش می‌دهند)، نه `font-mono`؛ چون Roboto Mono در وب‌ویو اندروید گلیف IPA ندارد و کاراکترها به‌صورت مربع خالی (▯) دیده می‌شدند. (`src/index.css`)
-- **تلفظ:** روی نیتیو `TextToSpeech.speak` نیتیو، روی وب `speechSynthesis` مرورگر (`src/lib/pronounce.ts`).
+- **تلفظ:** روی نیتیو `TextToSpeech.speak` نیتیو با `lang: 'en'` (نه `en-US` — بسیاری از موتورها رد می‌کنند) و چند تلاش در پنجره‌ی init موتور؛ `speechSynthesis` وب‌ویو روی اندروید voice ندارد. روی وب easy-speech (`src/lib/pronounce.ts`).
+- **مسیر `/`:** تا وقتی onboarding تمام نشده → `/onboarding`، بعد → `/dashboard`.
+- **یادآورها:** کارت «یادآورها» در `/settings` فقط روی نیتیو (→ `NOTIFICATIONS.md`).
+- **Safe area / نوار وضعیت:** با targetSdk 35 اپ edge-to-edge است و `env(safe-area-inset-*)` وب‌ویو ناقص است؛ `SafeAreaPlugin` + `lib/safeArea.ts` + `StatusBarSync.tsx` این را جبران می‌کنند.
 
 ---
 
-## ۴. پیش‌نیازهای ساخت (روی همین سیستم لینوکس)
+## ۴. پیش‌نیازهای ساخت
 
-- **Node.js** ۱۸+ و npm
-- **JDK 17** — مسیر: `/usr/lib/jvm/java-17-openjdk`
-- **Android SDK** — متغیر `ANDROID_HOME` (مثلاً `~/Android/Sdk`) با پلتفرم `android-35` و build-tools 35
-- Gradle نیازی به نصب دستی ندارد؛ wrapper نسخه‌ی 8.10.2 را از کش برمی‌دارد.
+> طبق سابقه‌ی پروژه، APK روی **سیستم لینوکس** ساخته می‌شده است. مسیرهای لینوکسی زیر مال همان سیستم‌اند؛ روی
+> سیستم ویندوزی (`D:\project\VocabFlow`) از `gradlew.bat` و یک `JAVA_HOME` ویندوزی استفاده کن. روی ویندوز
+> تاکنون بیلدی ثبت نشده و آنجا JDK پیش‌فرض نسخه‌ی 21 است (`C:\Program Files\Java\jdk-21`) — JDK 17 همانی است که
+> پروژه با آن تست شده (`capacitor.build.gradle` روی Java 17 تنظیم است).
+
+- **Node.js** 20 و npm
+- **JDK 17** — لینوکس: `/usr/lib/jvm/java-17-openjdk` (java پیش‌فرض PATH آنجا 11 است)
+- **Android SDK** با پلتفرم `android-35` و build-tools 35 — از طریق `ANDROID_HOME` یا `android/local.properties` (`sdk.dir`؛ این فایل در repo نیست)
+- Gradle نیازی به نصب دستی ندارد؛ wrapper پین‌شده روی 8.10.2 است (روی سیستم لینوکس فقط همین نسخه کش کامل دارد).
 
 ---
 
@@ -160,8 +187,11 @@ npx cap sync android
 
 # ۴) ساخت APK دیباگ (با JDK 17)
 cd android
-JAVA_HOME=/usr/lib/jvm/java-17-openjdk ./gradlew assembleDebug
+JAVA_HOME=/usr/lib/jvm/java-17-openjdk ./gradlew assembleDebug     # لینوکس
+# ویندوز (cmd):  set JAVA_HOME=<مسیر JDK 17> && gradlew.bat assembleDebug
 ```
+
+> `public/seed-enc/` در git ثبت شده، پس مرحله‌ی ۱.۵ فقط وقتی لازم است که `seed-src/` عوض شده باشد.
 
 خروجی:
 ```
@@ -169,12 +199,12 @@ frontend/android/app/build/outputs/apk/debug/app-debug.apk
 ```
 (در روت پروژه هم کپی شده: `VocabFlow-offline-debug.apk`)
 
-> **چرا `npx vite build` و نه `npm run build`؟** اسکریپت `build` اول `tsc` را اجرا می‌کند و چند خطای تایپیِ قدیمیِ نسخه‌ی وب باعث توقف می‌شود. `vite build` (esbuild) این‌ها را نادیده می‌گیرد و APK را می‌سازد.
+> **چرا `npx vite build` و نه `npm run build`؟** اسکریپت `build` اول `tsc` را اجرا می‌کند و قبلاً چند خطای تایپیِ قدیمی باعث توقف می‌شد. در 2026-10-04 `npx tsc --noEmit` بدون خطا بود، پس هر دو کار می‌کنند؛ `vite build` مستقیم همچنان مسیر مستند است چون به وضعیت تایپ‌ها وابسته نیست. قبل از بیلد، `npx tsc --noEmit` را جداگانه اجرا کن.
 
 ### نصب روی گوشی
 فایل APK را به گوشی منتقل کن → «نصب از منابع ناشناس» را برای فایل‌منیجر/مرورگر فعال کن → نصب. (APK دیباگ با کلید دیباگِ خودکار امضا می‌شود و برای سایدلود کافی است.)
 
-### چرخه‌ی رفرش بعد از تغییر کد
+### چرخه‌ی رفرش بعد از تغییر کد (لینوکس)
 ```bash
 cd frontend && npx vite build && npx cap sync android \
   && cd android && JAVA_HOME=/usr/lib/jvm/java-17-openjdk ./gradlew assembleDebug
@@ -203,7 +233,7 @@ cd frontend && npx vite build && npx cap sync android \
 |------|--------|
 | Gradle می‌خواهد دانلود کند و شبکه ندارد | مطمئن شو `distributionUrl` روی `gradle-8.10.2-all.zip` است (کش کامل دارد؛ `8.2.1` کشِ ناقص دارد). |
 | خطای «SDK/platform not found» | `compileSdk` باید ۳۵ باشد (فقط `android-35` نصب است). |
-| بیلد با JDK پیش‌فرض شکست می‌خورد | حتماً `JAVA_HOME=/usr/lib/jvm/java-17-openjdk` را ست کن (java پیش‌فرض PATH نسخه‌ی ۱۱ است). |
+| بیلد با JDK پیش‌فرض شکست می‌خورد | `JAVA_HOME` را روی JDK 17 بگذار (لینوکس: `/usr/lib/jvm/java-17-openjdk`؛ java پیش‌فرض PATH آنجا ۱۱ است). |
 | تلفظ بی‌صداست | موتور TTS گوشی را در تنظیمات → «خروجی متن‌به‌گفتار» فعال کن (مثلاً Google TTS). عنصر `<queries>` باید در manifest باشد. |
 | seed اولیه طول می‌کشد | طبیعی است (اولین اجرا ~۱۷هزار واژه را درج می‌کند)؛ فقط یک‌بار اتفاق می‌افتد. |
 | برای شروع دوباره‌ی seed | داده‌ی اپ را از تنظیمات گوشی پاک کن (فلگ `meta.seed_version` ریست می‌شود). |
@@ -213,7 +243,8 @@ cd frontend && npx vite build && npx cap sync android \
 
 ---
 
-## ۸. نکات انتقال به سیستم دوم
+## ۸. نکات انتقال بین دو سیستم
+پروژه روی دو سیستم (لینوکس و ویندوزِ `192.168.2.115`) نگهداری می‌شود — جزئیات در `MEMORY.md` ریشه.
 فقط **سورس و پیکربندی** منتقل می‌شود، نه کش/بیلد اندروید. موارد نادیده‌گرفته‌شده هنگام sync:
-`android/.gradle`, `android/build`, `android/app/build`, `android/app/src/main/assets/public` (تولیدی)، `node_modules`.
-APK همیشه روی همین سیستم لینوکس ساخته می‌شود.
+`android/.gradle`, `android/build`, `android/app/build`, `android/app/src/main/assets/public` (تولیدی، در git هم ignore است)، `node_modules`.
+`frontend/.env` (`VITE_SEED_SECRET`) باید روی هر دو سیستم **یکسان** باشد، وگرنه `.enc`های ساخته‌شده روی یکی روی دیگری رمزگشایی نمی‌شوند.
