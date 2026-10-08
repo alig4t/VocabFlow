@@ -323,7 +323,10 @@ async function loadPhrases(
       order: number;
     }[]
   >();
-  if (phraseIds.length > 0) {
+  // A bounded word page can still contain more phrases than SQLite's older
+  // bind-variable limit. Keep every phrase's examples together in one batch.
+  for (let offset = 0; offset < phraseIds.length; offset += 500) {
+    const batch = phraseIds.slice(offset, offset + 500);
     const exs = await query<{
       id: string;
       phrase_id: string;
@@ -331,8 +334,8 @@ async function loadPhrases(
       per_translation: string;
       ord: number;
     }>(
-      `SELECT * FROM word_phrase_examples WHERE phrase_id IN (${phraseIds.map(() => "?").join(",")}) ORDER BY ord ASC`,
-      phraseIds,
+      `SELECT * FROM word_phrase_examples WHERE phrase_id IN (${batch.map(() => "?").join(",")}) ORDER BY ord ASC`,
+      batch,
     );
     for (const e of exs) {
       const l = exByPhrase.get(e.phrase_id) ?? [];
@@ -844,71 +847,47 @@ export async function getDashboard(): Promise<DashboardData> {
 
   const plans = await activePlanRows();
 
-  // Per-volume watchlist rows.
+  // Count all active volumes in one pass. The mode belongs in the LEFT JOIN
+  // so untouched words still contribute to total_words, exactly once.
+  const volumeStats = plans.length
+    ? await query<{
+        volume_id: string;
+        total_words: number;
+        known_words: number;
+        unknown_words: number;
+        hard_words: number;
+        introduced_words: number;
+        stable_words: number;
+        reviewed_today: number;
+        due_count: number;
+        last_studied_at: string | null;
+      }>(
+        `SELECT l.volume_id, COUNT(*) AS total_words,
+           SUM(CASE WHEN pr.status='KNOWN' THEN 1 ELSE 0 END) AS known_words,
+           SUM(CASE WHEN pr.status='NOT_KNOWN' THEN 1 ELSE 0 END) AS unknown_words,
+           SUM(CASE WHEN pr.status='KNOWN' AND pr.hard_count>0 THEN 1 ELSE 0 END) AS hard_words,
+           SUM(CASE WHEN pr.introduced_at IS NOT NULL THEN 1 ELSE 0 END) AS introduced_words,
+           SUM(CASE WHEN pr.introduced_at IS NOT NULL AND pr.interval_days>=? THEN 1 ELSE 0 END) AS stable_words,
+           SUM(CASE WHEN pr.last_reviewed_at>=? AND pr.last_reviewed_at<=? THEN 1 ELSE 0 END) AS reviewed_today,
+           SUM(CASE WHEN pr.introduced_at IS NOT NULL AND pr.next_review_at<=? THEN 1 ELSE 0 END) AS due_count,
+           MAX(pr.last_reviewed_at) AS last_studied_at
+         FROM learning_plans lp JOIN lessons l ON l.volume_id=lp.volume_id
+         JOIN words w ON w.lesson_id=l.id
+         LEFT JOIN progress pr ON pr.word_id=w.id AND pr.review_mode=?
+         WHERE lp.is_active=1 GROUP BY l.volume_id`,
+        [STABLE_INTERVAL_DAYS, dayStartIso, dayEndIso, dayEndIso, mode],
+      )
+    : [];
+  const statsByVolume = new Map(volumeStats.map((s) => [s.volume_id, s]));
+
   const watchlist: WatchlistBook[] = [];
   for (const p of plans) {
-    const inVolume = "l.volume_id = ?";
-    const [
-      totalRow,
-      knownRow,
-      notKnownRow,
-      hardRow,
-      introRow,
-      stableRow,
-      reviewedRow,
-      dueRow,
-      lastRow,
-    ] = await Promise.all([
-      query<{ c: number }>(
-        `SELECT COUNT(*) AS c FROM words w JOIN lessons l ON w.lesson_id=l.id WHERE ${inVolume}`,
-        [p.volume_id],
-      ),
-      query<{ c: number }>(
-        `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
-           WHERE pr.review_mode=? AND pr.status='KNOWN' AND ${inVolume}`,
-        [mode, p.volume_id],
-      ),
-      query<{ c: number }>(
-        `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
-           WHERE pr.review_mode=? AND pr.status='NOT_KNOWN' AND ${inVolume}`,
-        [mode, p.volume_id],
-      ),
-      query<{ c: number }>(
-        `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
-           WHERE pr.review_mode=? AND pr.status='KNOWN' AND pr.hard_count>0 AND ${inVolume}`,
-        [mode, p.volume_id],
-      ),
-      query<{ c: number }>(
-        `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
-           WHERE pr.review_mode=? AND pr.introduced_at IS NOT NULL AND ${inVolume}`,
-        [mode, p.volume_id],
-      ),
-      query<{ c: number }>(
-        `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
-           WHERE pr.review_mode=? AND pr.introduced_at IS NOT NULL AND pr.interval_days>=? AND ${inVolume}`,
-        [mode, STABLE_INTERVAL_DAYS, p.volume_id],
-      ),
-      query<{ c: number }>(
-        `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
-           WHERE pr.review_mode=? AND pr.last_reviewed_at>=? AND pr.last_reviewed_at<=? AND ${inVolume}`,
-        [mode, dayStartIso, dayEndIso, p.volume_id],
-      ),
-      query<{ c: number }>(
-        `SELECT COUNT(*) AS c FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
-           WHERE pr.review_mode=? AND pr.introduced_at IS NOT NULL AND pr.next_review_at IS NOT NULL AND pr.next_review_at<=? AND ${inVolume}`,
-        [mode, dayEndIso, p.volume_id],
-      ),
-      query<{ t: string | null }>(
-        `SELECT MAX(pr.last_reviewed_at) AS t FROM progress pr JOIN words w ON pr.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
-           WHERE pr.review_mode=? AND ${inVolume}`,
-        [mode, p.volume_id],
-      ),
-    ]);
-    const total = totalRow[0]?.c ?? 0;
-    const known = knownRow[0]?.c ?? 0;
-    const notKnown = notKnownRow[0]?.c ?? 0;
-    const hard = hardRow[0]?.c ?? 0;
-    const introduced = introRow[0]?.c ?? 0;
+    const s = statsByVolume.get(p.volume_id);
+    const total = s?.total_words ?? 0;
+    const known = s?.known_words ?? 0;
+    const notKnown = s?.unknown_words ?? 0;
+    const hard = s?.hard_words ?? 0;
+    const introduced = s?.introduced_words ?? 0;
     const notRead = Math.max(0, total - introduced);
     const remainingNew = notRead;
     watchlist.push({
@@ -921,10 +900,10 @@ export async function getDashboard(): Promise<DashboardData> {
       unknownWords: notKnown,
       hardWords: hard,
       notReadWords: notRead,
-      stableWords: stableRow[0]?.c ?? 0,
-      reviewedToday: reviewedRow[0]?.c ?? 0,
-      lastStudiedAt: lastRow[0]?.t ?? null,
-      dueCount: dueRow[0]?.c ?? 0,
+      stableWords: s?.stable_words ?? 0,
+      reviewedToday: s?.reviewed_today ?? 0,
+      lastStudiedAt: s?.last_studied_at ?? null,
+      dueCount: s?.due_count ?? 0,
       estimatedDays:
         p.daily_new_words > 0 ? Math.ceil(remainingNew / p.daily_new_words) : 0,
     });
@@ -1484,6 +1463,15 @@ async function activePlanRows(): Promise<PlanRow[]> {
 /** Load full Word objects for a list of ids, preserving the given order. */
 async function wordsByIds(ids: string[]): Promise<Word[]> {
   if (ids.length === 0) return [];
+  // Several capped plans can still produce a large combined queue. Bound the
+  // native payload and bind count without truncating or changing its order.
+  if (ids.length > 500) {
+    const words: Word[] = [];
+    for (let offset = 0; offset < ids.length; offset += 500) {
+      words.push(...(await wordsByIds(ids.slice(offset, offset + 500))));
+    }
+    return words;
+  }
   const rows = await query<WordRow>(
     `${WORD_SELECT} WHERE w.id IN (${ids.map(() => "?").join(",")})`,
     ids,
@@ -1531,7 +1519,7 @@ export async function getStudyToday(now = new Date()): Promise<StudyToday> {
   // Due reviews, capped per volume by that plan's own dailyGoal (oldest-due
   // first, so a cap only ever defers the least-urgent words) — mirrors the
   // backend's per-plan cap in study.service.ts.
-  let due: Word[] = [];
+  const dueIds: string[] = [];
   for (const p of plans) {
     const dueRows = await query<{ word_id: string }>(
       `SELECT p.word_id FROM progress p
@@ -1543,11 +1531,12 @@ export async function getStudyToday(now = new Date()): Promise<StudyToday> {
        LIMIT ?`,
       [mode, dayEndIso, p.volume_id, p.daily_goal],
     );
-    due.push(...(await wordsByIds(dueRows.map((r) => r.word_id))));
+    dueIds.push(...dueRows.map((r) => r.word_id));
   }
 
   // New words per plan.
-  const newWords: Word[] = [];
+  const newIds: string[] = [];
+  const newIdsByPlan = new Map<string, string[]>();
   const planMeta: StudyPlanMeta[] = [];
   let introducedTodayTotal = 0;
   for (const p of plans) {
@@ -1574,8 +1563,9 @@ export async function getStudyToday(now = new Date()): Promise<StudyToday> {
       [p.volume_id, mode, Math.max(capacity, 1)],
     );
     const todays = capacity > 0 ? preview.slice(0, capacity) : [];
-    const todaysWords = await wordsByIds(todays.map((r) => r.id));
-    newWords.push(...todaysWords);
+    const todaysIds = todays.map((r) => r.id);
+    newIds.push(...todaysIds);
+    newIdsByPlan.set(p.id, todaysIds);
 
     const next = preview[0];
     const currentLesson = next?.l_number ?? null;
@@ -1597,9 +1587,27 @@ export async function getStudyToday(now = new Date()): Promise<StudyToday> {
       dailyNewWords: p.daily_new_words,
       dailyGoal: p.daily_goal,
       currentLesson,
-      newToday: todaysWords.length,
+      newToday: 0,
       continueLesson,
     });
+  }
+
+  // Hydrate the selected cards once across plans instead of repeating the
+  // words/examples/phrases/progress reads for every due and new group.
+  const byId = new Map(
+    (await wordsByIds([...dueIds, ...newIds])).map((w) => [w.id, w]),
+  );
+  const loadedWords = (ids: string[]) =>
+    ids.flatMap((id) => {
+      const word = byId.get(id);
+      return word ? [word] : [];
+    });
+  const due = loadedWords(dueIds);
+  const newWords = loadedWords(newIds);
+  for (const p of planMeta) {
+    p.newToday = (newIdsByPlan.get(p.planId) ?? []).filter((id) =>
+      byId.has(id),
+    ).length;
   }
 
   // Shuffle within each group when RANDOM — review-before-new always holds,
@@ -1662,8 +1670,8 @@ async function hardTodayWordIds(
      JOIN learning_plans lp ON lp.volume_id=l.volume_id AND lp.is_active=1
      WHERE EXISTS (SELECT 1 FROM progress p
        WHERE p.word_id=w.id AND p.review_mode=? AND p.introduced_at IS NOT NULL)
-       AND EXISTS (SELECT 1 FROM review_events e
-         WHERE e.word_id=w.id AND e.review_mode=? AND e.reviewed_at>=? AND e.reviewed_at<=?
+       AND w.id IN (SELECT e.word_id FROM review_events e
+         WHERE e.review_mode=? AND e.reviewed_at>=? AND e.reviewed_at<=?
            AND (e.answer='HARD' OR (e.answer='AGAIN' AND e.is_first=0)))
      ORDER BY l.lesson_number ASC, w.chapter ASC, w.created_at ASC, w.id ASC`,
     [mode, mode, dayStart, dayEnd],
