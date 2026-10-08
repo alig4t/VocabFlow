@@ -88,9 +88,8 @@ alone do not validate native behavior. Documentation changes also require checki
    SQLite reads/inserts, seed transactions, lazy loading and queue limits. Do not invent performance budgets.
 3. Validate as above, update the existing home for any changed facts, and review `git diff` for unrelated edits.
    Record a new lesson in MEMORY.md only if it is durable; avoid duplicating architecture or instructions there.
-4. Do not build an APK, change toolchain/dependencies, commit, or bump seed version unless authorized. Read the
-   two-machine notes in MEMORY.md before mirroring under the standing request; verify host and destination rather
-   than assuming historical paths apply to this checkout. Never print or commit `.env` values.
+4. Do not build an APK, change toolchain/dependencies, commit, or bump seed version unless authorized.
+   Never print or commit `.env` values.
 
 Do not hand-edit generated `node_modules/`, `dist/`, Android `.gradle/` or `build/` directories,
 or copied assets/configs under `frontend/android/` (`app/src/main/assets/public/`, generated Capacitor asset configs,

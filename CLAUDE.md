@@ -28,8 +28,7 @@ unimplemented plan.
 5. **Keep to existing patterns.** Copy the neighboring module or component. No architectural rewrites, dependency
    upgrades (Prisma is pinned at 5.22) or "cleanup" of the known defects listed in `MEMORY.md` unless asked.
 6. **Validate and report honestly** (see Checks). There is no application test suite, so never claim tests passed.
-7. **Don't** build the APK, bump `SEED_VERSION` or commit unless the user asks. (Syncing to the other machine is a
-   standing request; see "Two machines".)
+7. **Don't** build the APK, bump `SEED_VERSION` or commit unless the user asks.
 
 ## Layout
 
@@ -174,11 +173,3 @@ strings, **no foreign keys** (cascade by hand), plus a `meta` table and reminder
 
 Logo colors are navy `#18243C` + gold `#E4A824`, expressed as HSL tokens (gold `--primary`) in all three themes. Semantic
 greens (KNOWN) and destructive reds stay as they are; the admin sidebar accent is slate.
-
-## Two machines
-
-The repo is edited on a Linux machine and on a Windows machine (`D:\project\VocabFlow`, `192.168.2.115`, cmd.exe over
-SSH). The user wants changed files mirrored to the *other* machine at the end of each task. **First check which machine
-you are on (`hostname`)**, because older notes were written from the Linux side and "scp to 192.168.2.115" targets the
-Windows machine itself. Method and caveats are in `MEMORY.md`. If the other machine's address isn't known, say so
-rather than guessing. Never write credentials into the repo.

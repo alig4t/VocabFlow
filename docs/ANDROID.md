@@ -100,7 +100,7 @@ getWords(filters) {
 
 سایر جدول‌ها: `learning_plans` (`daily_new_words, daily_goal, is_active`)، `study_sessions`، `review_events` (لاگ پاسخ‌ها؛ `answerStudy` در `repo.ts` آن را می‌نویسد، SKIP ثبت نمی‌شود)، `user_settings` (تک‌ردیفی `id='local'`، به‌علاوه‌ی ۵ ستون یادآور که در Postgres نیستند)، `meta` (فقط کلید `seed_version`).
 
-تمرین واژه‌های سخت امروز (2026-10-08) با `getTodayHardWords` و `meta.hardTodayCount` در `repo.ts` کاملاً آفلاین اجرا می‌شود. انتخاب با `IN` روی شناسه‌های واجد شرایطِ `review_events`، جهت مطالعه و برنامه‌های فعال انجام می‌شود تا هر واژه فقط یک کارت داشته باشد؛ واژه‌ی حذف‌شده یا پیشرفت ریست‌شده وارد فهرست نمی‌شود. شرط تکمیل صف و قواعد پاسخ/مرز روز دقیقاً مطابق [`BACKEND.md`](BACKEND.md) است. این قابلیت فقط خواندنی است و به تغییر اسکیما، مهاجرت یا افزایش `SEED_VERSION` نیاز ندارد؛ رابط تمرین و حالت قفل در [`FRONTEND.md`](FRONTEND.md) شرح داده شده‌اند.
+تمرین واژه‌های سخت امروز (2026-10-08) با `getTodayHardWords` و `meta.hardTodayCount` در `repo.ts` کاملاً آفلاین اجرا می‌شود. انتخاب با `IN` روی شناسه‌های واجد شرایطِ `review_events`، جهت مطالعه و برنامه‌های فعال انجام می‌شود تا هر واژه فقط یک کارت داشته باشد؛ واژه‌ی حذف‌شده یا پیشرفت ریست‌شده وارد فهرست نمی‌شود. شرط تکمیل صف و قواعد پاسخ/مرز روز دقیقاً مطابق [`BACKEND.md`](BACKEND.md) است. تهیه‌ی این فهرست فقط خواندنی است و به تغییر اسکیما، مهاجرت یا افزایش `SEED_VERSION` نیاز ندارد؛ رابط تمرین، علامت‌گذاری دستی و حالت قفل در [`FRONTEND.md`](FRONTEND.md) شرح داده شده‌اند.
 
 **تفاوت‌های عمدی/موجود با Postgres** (هنگام پورت کوئری مهم‌اند):
 - بدون `users`/`refresh_tokens`/`learning_modules`/`synonym_groups` و بدون `user_id` در هیچ جدولی (تک‌کاربره). `module_id` با ثابت `MODULE_ID = "offline-vocabulary"` جعل می‌شود.
@@ -247,11 +247,3 @@ cd frontend && npx vite build && npx cap sync android \
 | کرش داشبورد با «no such column: next_review_at» روی نصب قدیمی | برطرف شده: ایندکس `idx_progress_due` حالا **داخل** `migrateSchema()` و **بعد از** افزوده‌شدنِ ستون `next_review_at` ساخته می‌شود. با اجرای بعدیِ اپ خودبه‌خود درست می‌شود (self-healing). |
 | باز کردن دیالوگ برنامه‌ی یادگیریِ کتاب با خطای `t.map is not a function` | برطرف شده: `bookService.getVolumes()` شاخه‌ی `isNative()` نداشت و به API وب می‌خورد (که `index.html` برمی‌گرداند)؛ حالا `getVolumes` آفلاین در `repo.ts` اضافه شده. |
 | فونتیک به‌صورت مربع خالی (▯) دیده می‌شود | برطرف شده: آوانگاری با کلاس `.font-ipa` رندر می‌شود، نه `font-mono` (Roboto Mono در وب‌ویو گلیف IPA ندارد). |
-
----
-
-## ۸. نکات انتقال بین دو سیستم
-پروژه روی دو سیستم (لینوکس و ویندوزِ `192.168.2.115`) نگهداری می‌شود — جزئیات در `MEMORY.md` ریشه.
-فقط **سورس و پیکربندی** منتقل می‌شود، نه کش/بیلد اندروید. موارد نادیده‌گرفته‌شده هنگام sync:
-`android/.gradle`, `android/build`, `android/app/build`, `android/app/src/main/assets/public` (تولیدی، در git هم ignore است)، `node_modules`.
-`frontend/.env` (`VITE_SEED_SECRET`) باید روی هر دو سیستم **یکسان** باشد، وگرنه `.enc`های ساخته‌شده روی یکی روی دیگری رمزگشایی نمی‌شوند.

@@ -20,7 +20,7 @@ was reconciled against the code on **2026-10-04** unless its status says otherwi
 
 Other knowledge files:
 
-- [`../MEMORY.md`](../MEMORY.md) — decisions and rationale, open questions, the two-machine workflow. It is an ordinary
+- [`../MEMORY.md`](../MEMORY.md) — decisions and rationale, open questions, and lessons. It is an ordinary
   repo file, *not* Claude Code's auto-memory.
 - [`../.claude/skills/`](../.claude/skills/) — step-by-step procedures: `schema-change`, `add-book-content`,
   `android-build`. Codex reads these explicitly through AGENTS.md references; this location does not register

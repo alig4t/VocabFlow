@@ -1,6 +1,13 @@
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { Dumbbell, Lock, ArrowLeft, ShieldCheck, Brain } from "lucide-react";
+import {
+  Dumbbell,
+  Lock,
+  ArrowLeft,
+  ShieldCheck,
+  Brain,
+  GalleryVerticalEnd,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useStudyToday } from "@/hooks/useStudy";
 import { cn } from "@/lib/utils";
@@ -61,11 +68,29 @@ function PracticeSection({ children }: { children: ReactNode }) {
   return <section className="mt-10 sm:mt-14">{children}</section>;
 }
 
+function PracticeTitle({ title }: { title: string }) {
+  if (title === "مرور واژه‌های سخت امروز") {
+    return (
+      <>
+        مرور واژه‌های <span className="text-destructive">سخت</span> امروز
+      </>
+    );
+  }
+  if (title === "مرور مجدد واژگان جدید امروز") {
+    return (
+      <>
+        مرور مجدد واژگان <span className="text-success">جدید</span> امروز
+      </>
+    );
+  }
+  return title;
+}
+
 /**
  * "تمرین: مرور مجدد واژگان جدید امروز" — the reward section on Home.
  *
- * Both practice choices use the hero's queue metadata. The new-word teaser can
- * be locked; difficult-word practice only appears after the whole queue is empty.
+ * Both practice choices use the hero's queue metadata and stay locked until
+ * the whole queue is empty.
  */
 export function TodayPracticeCard() {
   const navigate = useNavigate();
@@ -77,13 +102,28 @@ export function TodayPracticeCard() {
     data.meta;
   const remaining = dueCount + newCount;
 
-  // Nothing to practise: no plans, or a day with no new words on either side.
+  // No practice without plans, or after an empty day with no practice words.
   if (!hasPlans) return null;
-  if (newCount === 0 && introducedToday === 0 && !hardTodayCount) return null;
 
   const unlocked = remaining === 0;
+  if (unlocked && introducedToday === 0 && !hardTodayCount) return null;
 
   if (!unlocked) {
+    const lockedChoices = [
+      ...(newCount > 0 || introducedToday > 0
+        ? [
+            {
+              title: "مرور مجدد واژگان جدید امروز",
+              description:
+                introducedToday > 0
+                  ? `${faNum(introducedToday)} واژه تا اینجا خوانده‌اید. `
+                  : "",
+            },
+          ]
+        : []),
+      { title: "مرور واژه‌های سخت امروز", description: "" },
+    ];
+
     return (
       <PracticeSection>
         <PracticeHeading
@@ -94,18 +134,26 @@ export function TodayPracticeCard() {
         />
 
         <div
-          aria-disabled="true"
-          className="surface rounded-3xl border border-dashed border-border p-4 sm:p-5"
+          className={cn(
+            "grid gap-4",
+            lockedChoices.length > 1 && "lg:grid-cols-2",
+          )}
         >
-          <p className="text-sm font-medium text-muted-foreground">
-            مرور مجدد واژگان جدید امروز
-          </p>
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground/80">
-            {introducedToday > 0
-              ? `${faNum(introducedToday)} واژه تا اینجا خوانده‌اید. `
-              : ""}
-            با تمام‌کردن مطالعه امروز باز می‌شود.
-          </p>
+          {lockedChoices.map(({ title, description }) => (
+            <div
+              key={title}
+              aria-disabled="true"
+              className="surface rounded-3xl border border-dashed border-border p-4 sm:p-5"
+            >
+              <p className="text-sm font-medium text-muted-foreground">
+                <PracticeTitle title={title} />
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground/80">
+                {description}
+                با تمام‌کردن مطالعه امروز باز می‌شود.
+              </p>
+            </div>
+          ))}
         </div>
       </PracticeSection>
     );
@@ -120,7 +168,7 @@ export function TodayPracticeCard() {
             count: introducedToday,
             path: "/review-today",
             action: "شروع تمرین",
-            icon: Dumbbell,
+            icon: GalleryVerticalEnd,
           },
         ]
       : []),
@@ -185,7 +233,7 @@ export function TodayPracticeCard() {
 
                   <div className="min-w-0 space-y-1.5">
                     <p className="text-base font-bold text-foreground">
-                      {title}
+                      <PracticeTitle title={title} />
                     </p>
                     <p className="text-xs leading-relaxed text-muted-foreground">
                       {description}
