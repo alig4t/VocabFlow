@@ -51,6 +51,7 @@ export const API_ENDPOINTS = {
   study: {
     today: "/study/today",
     todayNew: "/study/today-new",
+    todayHard: "/study/today-hard",
     answer: "/study/answer",
     session: "/study/session",
   },

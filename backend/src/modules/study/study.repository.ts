@@ -137,6 +137,59 @@ export class StudyRepository {
     return rows.map((r) => r.word)
   }
 
+  /** Today's actual difficult recalls, scoped to the active learning plans. */
+  private hardTodayWhere(
+    userId: string,
+    mode: ReviewMode,
+    volumeIds: string[],
+    dayStart: Date,
+    dayEnd: Date,
+  ): Prisma.WordWhereInput {
+    return {
+      lesson: { volumeId: { in: volumeIds } },
+      progress: { some: { userId, reviewMode: mode, introducedAt: { not: null } } },
+      reviewEvents: {
+        some: {
+          userId,
+          reviewMode: mode,
+          reviewedAt: { gte: dayStart, lte: dayEnd },
+          // The first AGAIN is "خواندم", not a failed recall.
+          OR: [
+            { answer: ReviewAnswer.HARD },
+            { answer: ReviewAnswer.AGAIN, isFirst: false },
+          ],
+        },
+      },
+    }
+  }
+
+  async countHardTodayWords(
+    userId: string,
+    mode: ReviewMode,
+    volumeIds: string[],
+    dayStart: Date,
+    dayEnd: Date,
+  ) {
+    return prisma.word.count({
+      where: this.hardTodayWhere(userId, mode, volumeIds, dayStart, dayEnd),
+    })
+  }
+
+  async getHardTodayWords(
+    userId: string,
+    mode: ReviewMode,
+    volumeIds: string[],
+    dayStart: Date,
+    dayEnd: Date,
+  ) {
+    // Query words rather than events so repeated HARD/AGAIN answers yield one card.
+    return prisma.word.findMany({
+      where: this.hardTodayWhere(userId, mode, volumeIds, dayStart, dayEnd),
+      orderBy: NEW_WORD_ORDER,
+      include: wordInclude(userId, mode),
+    })
+  }
+
   /** Remaining not-introduced words in a volume (for progress/ETA). */
   async countRemainingNew(userId: string, mode: ReviewMode, volumeId: string) {
     return prisma.word.count({

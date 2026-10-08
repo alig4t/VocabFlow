@@ -341,6 +341,8 @@ export function StudySessionPage() {
   const [saving, setSaving] = useState(false);
 
   const startedAtRef = useRef<Date>(new Date());
+  // Completion/practice metadata must be fetched after the last answer is saved.
+  const pendingAnswers = useRef(new Set<Promise<unknown>>());
 
   // While a session is live, pending study reminders are cancelled (the user
   // is already studying — a "you haven't reviewed today" ping mid-session is
@@ -590,7 +592,7 @@ export function StudySessionPage() {
   useEffect(() => {
     return () => {
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      queryClient.invalidateQueries({ queryKey: ["study", "today"] });
+      queryClient.invalidateQueries({ queryKey: ["study"] });
     };
   }, [queryClient]);
 
@@ -628,24 +630,26 @@ export function StudySessionPage() {
     // Only record a session if the user actually did something.
     if (stats.reviewedCount + stats.skippedCount + stats.newCount > 0) {
       setSaving(true);
-      studyService
-        .recordSession({
-          startedAt: startedAtRef.current.toISOString(),
-          endedAt: endedAt.toISOString(),
-          durationSec: stats.durationSec,
-          reviewedCount: stats.reviewedCount,
-          correctCount: stats.correctCount,
-          wrongCount: stats.wrongCount,
-          hardCount: stats.hardCount,
-          skippedCount: stats.skippedCount,
-          newCount: stats.newCount,
-        })
+      Promise.all([...pendingAnswers.current])
+        .then(() =>
+          studyService.recordSession({
+            startedAt: startedAtRef.current.toISOString(),
+            endedAt: endedAt.toISOString(),
+            durationSec: stats.durationSec,
+            reviewedCount: stats.reviewedCount,
+            correctCount: stats.correctCount,
+            wrongCount: stats.wrongCount,
+            hardCount: stats.hardCount,
+            skippedCount: stats.skippedCount,
+            newCount: stats.newCount,
+          }),
+        )
         .then((res) => setSummary(res.today))
         .catch((e) => console.error("recordSession failed", e))
         .finally(() => {
           setSaving(false);
           queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-          queryClient.invalidateQueries({ queryKey: ["study", "today"] });
+          queryClient.invalidateQueries({ queryKey: ["study"] });
           // Studied today → drop tonight's reminder (and refresh the horizon).
           rescheduleNotifications();
         });
@@ -660,9 +664,11 @@ export function StudySessionPage() {
 
       // Persist (fire-and-forget; SKIP is a no-op server-side).
       if (a !== "SKIP") {
-        void studyService
+        const pending = studyService
           .answer(cur.word.id, a)
           .catch((e) => console.error("answer failed", e));
+        pendingAnswers.current.add(pending);
+        void pending.finally(() => pendingAnswers.current.delete(pending));
       }
 
       // Recomputed here (not read off the render-scoped `isFirstExposure`) so the
@@ -810,6 +816,10 @@ export function StudySessionPage() {
         saving={saving}
         onHome={() => navigate("/dashboard")}
         onAgain={restart}
+        hardPracticeCount={
+          !isFetching && !isError ? today?.meta.hardTodayCount : 0
+        }
+        onPracticeHard={() => navigate("/review-hard-today")}
       />
     );
   }

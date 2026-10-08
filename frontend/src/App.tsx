@@ -75,6 +75,11 @@ const ReviewTodayPage = lazy(() =>
     default: m.ReviewTodayPage,
   })),
 );
+const ReviewHardTodayPage = lazy(() =>
+  import("./pages/study/ReviewTodayPage").then((m) => ({
+    default: m.ReviewHardTodayPage,
+  })),
+);
 const SettingsPage = lazy(() =>
   import("./pages/settings/SettingsPage").then((m) => ({
     default: m.SettingsPage,
@@ -358,6 +363,16 @@ export default function App() {
                 <ProtectedRoute>
                   <Layout>
                     <ReviewTodayPage />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/review-hard-today"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ReviewHardTodayPage />
                   </Layout>
                 </ProtectedRoute>
               }

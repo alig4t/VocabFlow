@@ -39,6 +39,8 @@ export interface StudyToday {
     reviewedToday: number
     /** New words already met today — the size of the "practice" pool on Home. */
     introducedToday: number
+    /** Distinct difficult words today; exposed only when the daily queue is empty. */
+    hardTodayCount: number
     hasPlans: boolean
     direction: ReviewMode
     plans: StudyPlanMeta[]
@@ -50,6 +52,11 @@ export interface TodayNewWords {
   words: unknown[]
   count: number
   direction: ReviewMode
+}
+
+export interface TodayHardWords extends TodayNewWords {
+  /** False until all active plans' due and new words have been completed. */
+  available: boolean
 }
 
 export class StudyService {
@@ -129,6 +136,13 @@ export class StudyService {
     const orderedDue = cardOrder === CardOrder.RANDOM ? shuffle(dueWords) : dueWords
     const orderedNew = cardOrder === CardOrder.RANDOM ? shuffle(newWords) : newWords
 
+    const hardTodayCount =
+      plans.length > 0 && dueWords.length === 0 && newWords.length === 0
+        ? await this.repo.countHardTodayWords(
+          userId, mode, plans.map((p) => p.volume.id), dayStart, dayEnd,
+        )
+        : 0
+
     return {
       due: orderedDue,
       new: orderedNew,
@@ -138,6 +152,7 @@ export class StudyService {
         dailyGoal: plans.reduce((s, p) => s + p.dailyGoal, 0),
         reviewedToday: todayTotals.reviewedCount,
         introducedToday: introducedTodayTotal,
+        hardTodayCount,
         hasPlans: plans.length > 0,
         direction: mode,
         plans: planMeta,
@@ -153,6 +168,22 @@ export class StudyService {
     const { mode } = await this.resolveSettings(userId)
     const words = await this.repo.getIntroducedTodayWords(userId, mode, startOfDay(now))
     return { words, count: words.length, direction: mode }
+  }
+
+  /** Read-only practice; enforce completion even when opening the route directly. */
+  async getTodayHardWords(userId: string, now = new Date()): Promise<TodayHardWords> {
+    const { meta } = await this.getToday(userId, now)
+    const available = meta.hasPlans && meta.dueCount === 0 && meta.newCount === 0
+    const words = available && meta.hardTodayCount > 0
+      ? await this.repo.getHardTodayWords(
+        userId,
+        meta.direction,
+        meta.plans.map((p) => p.volumeId),
+        startOfDay(now),
+        endOfDay(now),
+      )
+      : []
+    return { words, count: words.length, direction: meta.direction, available }
   }
 
   /** Apply an answer to a word and return the new schedule (or a skip marker). */

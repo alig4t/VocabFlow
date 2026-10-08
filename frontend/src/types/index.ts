@@ -412,6 +412,8 @@ export interface StudyToday {
     reviewedToday: number;
     /** New words already met today — the size of today's practice pool. */
     introducedToday: number;
+    /** Distinct difficult words today; zero until the daily queue is empty. */
+    hardTodayCount: number;
     hasPlans: boolean;
     direction: ReviewMode;
     plans: StudyPlanMeta[];
@@ -426,6 +428,11 @@ export interface TodayNewWords {
   words: Word[];
   count: number;
   direction: ReviewMode;
+}
+
+/** Today's HARD/AGAIN recalls, excluding a new word's first "خواندم". */
+export interface TodayHardWords extends TodayNewWords {
+  available: boolean;
 }
 
 /** Result of applying an answer to a word. */

@@ -43,3 +43,5 @@ words-new.sql
 #scraper
 /scrap/output
 /scrap/book-scraper.js
+
+/docs/

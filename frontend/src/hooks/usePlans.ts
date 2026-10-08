@@ -26,6 +26,7 @@ function useInvalidatePlanViews() {
     // source (today's watchlist-scoped words), so it needs the same
     // invalidation or ReviewTodayPage keeps serving a pre-change cached list.
     qc.invalidateQueries({ queryKey: ["study", "today-new"] });
+    qc.invalidateQueries({ queryKey: ["study", "today-hard"] });
   };
 }
 

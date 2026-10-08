@@ -42,6 +42,11 @@ export class StudyController {
     res.json({ success: true, data })
   }
 
+  getTodayHard = async (req: Request, res: Response): Promise<void> => {
+    const data = await this.service.getTodayHardWords(req.user!.sub)
+    res.json({ success: true, data })
+  }
+
   answer = async (req: Request, res: Response): Promise<void> => {
     const { wordId, answer } = parseOrThrow(answerSchema, req.body)
     const result = await this.service.answer(req.user!.sub, wordId, answer)

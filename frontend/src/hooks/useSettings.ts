@@ -20,7 +20,7 @@ export function useUpdateSettings() {
     onSuccess: (data) => {
       qc.setQueryData(["settings"], data);
       // Direction change alters the whole daily queue.
-      qc.invalidateQueries({ queryKey: ["study", "today"] });
+      qc.invalidateQueries({ queryKey: ["study"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });

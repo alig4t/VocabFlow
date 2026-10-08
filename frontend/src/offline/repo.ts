@@ -30,6 +30,7 @@ import type {
   StatRecords,
   StudyToday,
   TodayNewWords,
+  TodayHardWords,
   StudyAnswer,
   StudyAnswerResult,
   StudyPlanMeta,
@@ -1519,8 +1520,7 @@ function shuffle<T>(items: T[]): T[] {
   return out;
 }
 
-export async function getStudyToday(): Promise<StudyToday> {
-  const now = new Date();
+export async function getStudyToday(now = new Date()): Promise<StudyToday> {
   const dayEndIso = endOfDay(now).toISOString();
   const dayStartIso = startOfDay(now).toISOString();
 
@@ -1609,6 +1609,10 @@ export async function getStudyToday(): Promise<StudyToday> {
     settings.cardOrder === "RANDOM" ? shuffle(newWords) : newWords;
 
   const todayTotals = await sessionTotalsBetween(dayStartIso, dayEndIso);
+  const hardTodayCount =
+    plans.length > 0 && due.length === 0 && newWords.length === 0
+      ? (await hardTodayWordIds(mode, dayStartIso, dayEndIso)).length
+      : 0;
 
   return {
     due: orderedDue,
@@ -1619,6 +1623,7 @@ export async function getStudyToday(): Promise<StudyToday> {
       dailyGoal: plans.reduce((s, p) => s + p.daily_goal, 0),
       reviewedToday: todayTotals.reviewedCount,
       introducedToday: introducedTodayTotal,
+      hardTodayCount,
       hasPlans: plans.length > 0,
       direction: mode,
       plans: planMeta,
@@ -1643,6 +1648,52 @@ export async function getTodayNewWords(): Promise<TodayNewWords> {
   );
   const words = await wordsByIds(rows.map((r) => r.word_id));
   return { words, count: words.length, direction: mode };
+}
+
+/** One card per difficult word; ignore first reads, other modes and inactive plans. */
+async function hardTodayWordIds(
+  mode: ReviewMode,
+  dayStart: string,
+  dayEnd: string,
+) {
+  return query<{ word_id: string }>(
+    `SELECT w.id AS word_id FROM words w
+     JOIN lessons l ON w.lesson_id=l.id
+     JOIN learning_plans lp ON lp.volume_id=l.volume_id AND lp.is_active=1
+     WHERE EXISTS (SELECT 1 FROM progress p
+       WHERE p.word_id=w.id AND p.review_mode=? AND p.introduced_at IS NOT NULL)
+       AND EXISTS (SELECT 1 FROM review_events e
+         WHERE e.word_id=w.id AND e.review_mode=? AND e.reviewed_at>=? AND e.reviewed_at<=?
+           AND (e.answer='HARD' OR (e.answer='AGAIN' AND e.is_first=0)))
+     ORDER BY l.lesson_number ASC, w.chapter ASC, w.created_at ASC, w.id ASC`,
+    [mode, mode, dayStart, dayEnd],
+  );
+}
+
+export async function getTodayHardWords(
+  now = new Date(),
+): Promise<TodayHardWords> {
+  const { meta } = await getStudyToday(now);
+  const available = meta.hasPlans && meta.dueCount === 0 && meta.newCount === 0;
+  const rows =
+    available && meta.hardTodayCount > 0
+      ? await hardTodayWordIds(
+          meta.direction,
+          startOfDay(now).toISOString(),
+          endOfDay(now).toISOString(),
+        )
+      : [];
+  // Several volumes can contribute reviews; keep each IN query below older
+  // Android SQLite's bind-variable limit without truncating the practice pool.
+  const words: Word[] = [];
+  for (let offset = 0; offset < rows.length; offset += 500) {
+    words.push(
+      ...(await wordsByIds(
+        rows.slice(offset, offset + 500).map((r) => r.word_id),
+      )),
+    );
+  }
+  return { words, count: words.length, direction: meta.direction, available };
 }
 
 export async function answerStudy(
