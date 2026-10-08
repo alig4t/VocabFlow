@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { studyService } from "@/services/study.service";
-import type { StudyToday, TodayNewWords } from "@/types";
+import type { StudyToday, TodayNewWords, TodayHardWords } from "@/types";
 
 /** Today's study queue (due reviews + new words) and daily metadata. */
 export function useStudyToday(enabled = true) {
@@ -24,6 +24,16 @@ export function useTodayNewWords(enabled = true) {
   return useQuery<TodayNewWords, Error>({
     queryKey: ["study", "today-new"],
     queryFn: () => studyService.getTodayNew(),
+    enabled,
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
+}
+
+export function useTodayHardWords(enabled = true) {
+  return useQuery<TodayHardWords, Error>({
+    queryKey: ["study", "today-hard"],
+    queryFn: () => studyService.getTodayHard(),
     enabled,
     staleTime: 0,
     refetchOnMount: "always",

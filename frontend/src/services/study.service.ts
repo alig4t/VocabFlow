@@ -8,6 +8,7 @@ import type {
   SessionSummary,
   DailyStudyTotals,
   TodayNewWords,
+  TodayHardWords,
 } from "@/types";
 
 const off = () => import("@/offline/repo");
@@ -26,6 +27,14 @@ export const studyService = {
     if (isNative()) return off().then((o) => o.getTodayNewWords());
     return api
       .get<TodayNewWords>(API_ENDPOINTS.study.todayNew)
+      .then((r) => r.data);
+  },
+
+  /** Read-only difficult-word practice, unlocked after completing today's queue. */
+  getTodayHard(): Promise<TodayHardWords> {
+    if (isNative()) return off().then((o) => o.getTodayHardWords());
+    return api
+      .get<TodayHardWords>(API_ENDPOINTS.study.todayHard)
       .then((r) => r.data);
   },
 

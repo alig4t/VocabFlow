@@ -136,8 +136,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         open ? "translate-x-0" : "translate-x-full",
       )}
     >
-      {/* Header */}
-      <div className="flex h-16 shrink-0 items-center justify-between px-4">
+      {/* Header — padded below the edge-to-edge status bar on mobile (the
+          sidebar is fixed to the top of the screen, unlike the page Navbar
+          which already carries --safe-top itself). Zero on desktop/web. */}
+      <div className="flex h-[calc(4rem+var(--safe-top))] shrink-0 items-center justify-between pt-[var(--safe-top)] px-4">
         <Link to={"/"}>
           <div className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-white ring-1 ring-border">

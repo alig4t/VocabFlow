@@ -14,7 +14,9 @@ const ToastViewport = React.forwardRef<
   <ToastPrimitive.Viewport
     ref={ref}
     className={cn(
-      "fixed top-0 z-[100] flex max-h-screen w-full flex-col-reverse gap-2 p-4 sm:bottom-0 sm:left-0 sm:right-auto sm:top-auto sm:flex-col md:max-w-[400px]",
+      // pt clears the edge-to-edge status bar on mobile native (toasts slide
+      // in from the top there); sm+ moves to the bottom where p-4 resumes.
+      "fixed top-0 z-[100] flex max-h-screen w-full flex-col-reverse gap-2 p-4 pt-[max(1rem,var(--safe-top))] sm:bottom-0 sm:left-0 sm:right-auto sm:top-auto sm:flex-col sm:p-4 md:max-w-[400px]",
       className,
     )}
     {...props}

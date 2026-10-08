@@ -8,8 +8,12 @@
  * values and exposes them as --safe-top-px / --safe-bottom-px; index.css
  * folds them into --safe-top / --safe-bottom (max() with env() so iOS and
  * the web build keep working). No-op on the web.
+ *
+ * The plugin reports how far each bar overlaps the WebView (0 for the
+ * navigation bar on Android ≤ 14, where the WebView ends above it), and pushes
+ * an "insetsChange" event whenever that changes after startup.
  */
-import { Capacitor } from "@capacitor/core";
+import { Capacitor, type PluginListenerHandle } from "@capacitor/core";
 
 interface SafeAreaInsets {
   top?: number;
@@ -20,21 +24,34 @@ interface SafeAreaInsets {
 
 interface SafeAreaPlugin {
   getInsets(): Promise<SafeAreaInsets>;
+  addListener(
+    eventName: "insetsChange",
+    listener: (insets: SafeAreaInsets) => void,
+  ): Promise<PluginListenerHandle>;
 }
 
 const SafeArea = Capacitor.registerPlugin<SafeAreaPlugin>("SafeArea");
 
+function applyInsets(insets: SafeAreaInsets) {
+  const root = document.documentElement.style;
+  if (typeof insets.top === "number") {
+    root.setProperty("--safe-top-px", `${insets.top}px`);
+  }
+  if (typeof insets.bottom === "number") {
+    root.setProperty("--safe-bottom-px", `${insets.bottom}px`);
+  }
+}
+
+let listening = false;
+
 export async function syncSafeAreaVars(): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;
   try {
-    const insets = await SafeArea.getInsets();
-    const root = document.documentElement.style;
-    if (typeof insets.top === "number") {
-      root.setProperty("--safe-top-px", `${insets.top}px`);
+    if (!listening) {
+      listening = true;
+      await SafeArea.addListener("insetsChange", applyInsets);
     }
-    if (typeof insets.bottom === "number") {
-      root.setProperty("--safe-bottom-px", `${insets.bottom}px`);
-    }
+    applyInsets(await SafeArea.getInsets());
   } catch {
     // Plugin missing (stale native build) — the env() fallback stays in charge.
   }

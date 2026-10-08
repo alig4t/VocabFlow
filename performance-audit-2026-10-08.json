@@ -1,0 +1,1640 @@
+{
+  "auditDate": "2026-10-08",
+  "baselineGitCommit": "c21a8b0eb02a2d7e10577a4c7a3019fec0d2f0ee",
+  "environment": {
+    "platform": "Windows",
+    "device": "Android emulator sdk_gphone64_x86_64",
+    "android": 16,
+    "memoryTotalKiB": 2018804,
+    "webView": "133.0.6943.137",
+    "sqlite": "3.39.4",
+    "app": "ir.vocabflow.app",
+    "apkType": "Existing debug APK, older web assets than checkout; no APK built or installed"
+  },
+  "method": {
+    "pairedQueries": "Before/after checkout repository readers bundled into the same debug WebView and native SQLCipher connection. Seven interleaved pairs; first pair excluded from medians. Times include bridge and mapping.",
+    "fixtures": "Isolated databases with current full seed and synthetic progress, plans, and history; ten scenarios and three readers; exact JSON equality. Timings are single samples.",
+    "startup": "Current before/after production Vite assets temporarily served by the installed native shell. WebView reloads with four-second delay of external Google Fonts CSS. DOM readiness polled at 250ms. Not cold-process startup or reportFullyDrawn.",
+    "seed": "Isolated SQLCipher databases; sampled JS heap includes harness. All inserts and wipe in one transaction. Seed timing highly variable under emulator load.",
+    "frames": "requestAnimationFrame intervals, not GPU presentation or Perfetto frame timeline.",
+    "tts": "Silent native speak tests; first onRangeStart is onset proxy, not measured sound output. First sample ran under heavy load.",
+    "persistence": "Synthetic queues made from real seeded word objects, temporary localStorage key; no real session overwritten.",
+    "limitations": [
+      "No release APK or physical low-end phone tested",
+      "No sustained battery/thermal test or definitive leak measurement",
+      "Backend query review was source-only; no PostgreSQL runtime plans or API tests"
+    ]
+  },
+  "pairedQueries": {
+    "dashboard": {
+      "equal": true,
+      "samples": {
+        "Before": [
+          {
+            "ms": 80.70000000298023,
+            "queries": 28,
+            "returnedRows": 81
+          },
+          {
+            "ms": 48.400000005960464,
+            "queries": 28,
+            "returnedRows": 81
+          },
+          {
+            "ms": 65.1000000089407,
+            "queries": 28,
+            "returnedRows": 81
+          },
+          {
+            "ms": 55.599999994039536,
+            "queries": 28,
+            "returnedRows": 81
+          },
+          {
+            "ms": 57.69999998807907,
+            "queries": 28,
+            "returnedRows": 81
+          },
+          {
+            "ms": 57.5,
+            "queries": 28,
+            "returnedRows": 81
+          },
+          {
+            "ms": 61.29999999701977,
+            "queries": 28,
+            "returnedRows": 81
+          }
+        ],
+        "After": [
+          {
+            "ms": 36.20000000298023,
+            "queries": 11,
+            "returnedRows": 65
+          },
+          {
+            "ms": 26.299999997019768,
+            "queries": 11,
+            "returnedRows": 65
+          },
+          {
+            "ms": 28.599999994039536,
+            "queries": 11,
+            "returnedRows": 65
+          },
+          {
+            "ms": 27.599999994039536,
+            "queries": 11,
+            "returnedRows": 65
+          },
+          {
+            "ms": 29.700000002980232,
+            "queries": 11,
+            "returnedRows": 65
+          },
+          {
+            "ms": 35.20000000298023,
+            "queries": 11,
+            "returnedRows": 65
+          },
+          {
+            "ms": 35.900000005960464,
+            "queries": 11,
+            "returnedRows": 65
+          }
+        ]
+      },
+      "summary": {
+        "Before": {
+          "medianMs": 57.599999994039536,
+          "queries": 28,
+          "returnedRows": 81
+        },
+        "After": {
+          "medianMs": 29.149999998509884,
+          "queries": 11,
+          "returnedRows": 65
+        }
+      }
+    },
+    "study": {
+      "equal": true,
+      "samples": {
+        "Before": [
+          {
+            "ms": 141.30000001192093,
+            "queries": 12,
+            "returnedRows": 31
+          },
+          {
+            "ms": 149.69999998807907,
+            "queries": 12,
+            "returnedRows": 31
+          },
+          {
+            "ms": 140.79999999701977,
+            "queries": 12,
+            "returnedRows": 31
+          },
+          {
+            "ms": 144.6000000089407,
+            "queries": 12,
+            "returnedRows": 31
+          },
+          {
+            "ms": 136.29999999701977,
+            "queries": 12,
+            "returnedRows": 31
+          },
+          {
+            "ms": 127,
+            "queries": 12,
+            "returnedRows": 31
+          },
+          {
+            "ms": 142.19999998807907,
+            "queries": 12,
+            "returnedRows": 31
+          }
+        ],
+        "After": [
+          {
+            "ms": 57.8999999910593,
+            "queries": 12,
+            "returnedRows": 31
+          },
+          {
+            "ms": 46.5,
+            "queries": 12,
+            "returnedRows": 31
+          },
+          {
+            "ms": 56.599999994039536,
+            "queries": 12,
+            "returnedRows": 31
+          },
+          {
+            "ms": 40,
+            "queries": 12,
+            "returnedRows": 31
+          },
+          {
+            "ms": 49.30000001192093,
+            "queries": 12,
+            "returnedRows": 31
+          },
+          {
+            "ms": 54.900000005960464,
+            "queries": 12,
+            "returnedRows": 31
+          },
+          {
+            "ms": 48.6000000089407,
+            "queries": 12,
+            "returnedRows": 31
+          }
+        ]
+      },
+      "summary": {
+        "Before": {
+          "medianMs": 141.49999999254942,
+          "queries": 12,
+          "returnedRows": 31
+        },
+        "After": {
+          "medianMs": 48.95000001043081,
+          "queries": 12,
+          "returnedRows": 31
+        }
+      }
+    },
+    "notification": {
+      "equal": true,
+      "samples": {
+        "Before": [
+          {
+            "ms": 131.09999999403954,
+            "queries": 14,
+            "returnedRows": 95
+          },
+          {
+            "ms": 151.40000000596046,
+            "queries": 14,
+            "returnedRows": 95
+          },
+          {
+            "ms": 143.09999999403954,
+            "queries": 14,
+            "returnedRows": 95
+          },
+          {
+            "ms": 133,
+            "queries": 14,
+            "returnedRows": 95
+          },
+          {
+            "ms": 139,
+            "queries": 14,
+            "returnedRows": 95
+          },
+          {
+            "ms": 139.29999999701977,
+            "queries": 14,
+            "returnedRows": 95
+          },
+          {
+            "ms": 162.29999999701977,
+            "queries": 14,
+            "returnedRows": 95
+          }
+        ],
+        "After": [
+          {
+            "ms": 63.400000005960464,
+            "queries": 14,
+            "returnedRows": 95
+          },
+          {
+            "ms": 45.599999994039536,
+            "queries": 14,
+            "returnedRows": 95
+          },
+          {
+            "ms": 60.29999999701977,
+            "queries": 14,
+            "returnedRows": 95
+          },
+          {
+            "ms": 51.20000000298023,
+            "queries": 14,
+            "returnedRows": 95
+          },
+          {
+            "ms": 59.8999999910593,
+            "queries": 14,
+            "returnedRows": 95
+          },
+          {
+            "ms": 49.400000005960464,
+            "queries": 14,
+            "returnedRows": 95
+          },
+          {
+            "ms": 56,
+            "queries": 14,
+            "returnedRows": 95
+          }
+        ]
+      },
+      "summary": {
+        "Before": {
+          "medianMs": 141.19999999552965,
+          "queries": 14,
+          "returnedRows": 95
+        },
+        "After": {
+          "medianMs": 53.600000001490116,
+          "queries": 14,
+          "returnedRows": 95
+        }
+      }
+    },
+    "words20": {
+      "equal": true,
+      "samples": {
+        "Before": [
+          {
+            "ms": 139.20000000298023,
+            "queries": 6,
+            "returnedRows": 30
+          },
+          {
+            "ms": 152.3999999910593,
+            "queries": 6,
+            "returnedRows": 30
+          },
+          {
+            "ms": 141.20000000298023,
+            "queries": 6,
+            "returnedRows": 30
+          },
+          {
+            "ms": 143.09999999403954,
+            "queries": 6,
+            "returnedRows": 30
+          },
+          {
+            "ms": 152.5,
+            "queries": 6,
+            "returnedRows": 30
+          },
+          {
+            "ms": 140.69999998807907,
+            "queries": 6,
+            "returnedRows": 30
+          },
+          {
+            "ms": 134.20000000298023,
+            "queries": 6,
+            "returnedRows": 30
+          }
+        ],
+        "After": [
+          {
+            "ms": 136.20000000298023,
+            "queries": 6,
+            "returnedRows": 30
+          },
+          {
+            "ms": 150.19999998807907,
+            "queries": 6,
+            "returnedRows": 30
+          },
+          {
+            "ms": 143.90000000596046,
+            "queries": 6,
+            "returnedRows": 30
+          },
+          {
+            "ms": 137.5,
+            "queries": 6,
+            "returnedRows": 30
+          },
+          {
+            "ms": 146.5,
+            "queries": 6,
+            "returnedRows": 30
+          },
+          {
+            "ms": 136.8999999910593,
+            "queries": 6,
+            "returnedRows": 30
+          },
+          {
+            "ms": 135.59999999403954,
+            "queries": 6,
+            "returnedRows": 30
+          }
+        ]
+      },
+      "summary": {
+        "Before": {
+          "medianMs": 142.14999999850988,
+          "queries": 6,
+          "returnedRows": 30
+        },
+        "After": {
+          "medianMs": 140.70000000298023,
+          "queries": 6,
+          "returnedRows": 30
+        }
+      }
+    },
+    "words500": {
+      "equal": true,
+      "samples": {
+        "Before": [
+          {
+            "ms": 229.6000000089407,
+            "queries": 6,
+            "returnedRows": 1253
+          },
+          {
+            "ms": 236.1000000089407,
+            "queries": 6,
+            "returnedRows": 1253
+          },
+          {
+            "ms": 224.90000000596046,
+            "queries": 6,
+            "returnedRows": 1253
+          },
+          {
+            "ms": 223.90000000596046,
+            "queries": 6,
+            "returnedRows": 1253
+          },
+          {
+            "ms": 224.5,
+            "queries": 6,
+            "returnedRows": 1253
+          },
+          {
+            "ms": 233.40000000596046,
+            "queries": 6,
+            "returnedRows": 1253
+          },
+          {
+            "ms": 234.29999999701977,
+            "queries": 6,
+            "returnedRows": 1253
+          }
+        ],
+        "After": [
+          {
+            "ms": 228.70000000298023,
+            "queries": 6,
+            "returnedRows": 1253
+          },
+          {
+            "ms": 231.3999999910593,
+            "queries": 6,
+            "returnedRows": 1253
+          },
+          {
+            "ms": 224.3999999910593,
+            "queries": 6,
+            "returnedRows": 1253
+          },
+          {
+            "ms": 235.90000000596046,
+            "queries": 6,
+            "returnedRows": 1253
+          },
+          {
+            "ms": 245.90000000596046,
+            "queries": 6,
+            "returnedRows": 1253
+          },
+          {
+            "ms": 234.09999999403954,
+            "queries": 6,
+            "returnedRows": 1253
+          },
+          {
+            "ms": 261.8999999910593,
+            "queries": 6,
+            "returnedRows": 1253
+          }
+        ]
+      },
+      "summary": {
+        "Before": {
+          "medianMs": 229.15000000596046,
+          "queries": 6,
+          "returnedRows": 1253
+        },
+        "After": {
+          "medianMs": 235,
+          "queries": 6,
+          "returnedRows": 1253
+        }
+      }
+    },
+    "todayNew": {
+      "equal": true,
+      "samples": {
+        "Before": [
+          {
+            "ms": 37.599999994039536,
+            "queries": 7,
+            "returnedRows": 122
+          },
+          {
+            "ms": 24.799999997019768,
+            "queries": 7,
+            "returnedRows": 122
+          },
+          {
+            "ms": 25.899999991059303,
+            "queries": 7,
+            "returnedRows": 122
+          },
+          {
+            "ms": 25.299999997019768,
+            "queries": 7,
+            "returnedRows": 122
+          },
+          {
+            "ms": 21.5,
+            "queries": 7,
+            "returnedRows": 122
+          },
+          {
+            "ms": 24.400000005960464,
+            "queries": 7,
+            "returnedRows": 122
+          },
+          {
+            "ms": 21.30000001192093,
+            "queries": 7,
+            "returnedRows": 122
+          }
+        ],
+        "After": [
+          {
+            "ms": 24.30000001192093,
+            "queries": 7,
+            "returnedRows": 122
+          },
+          {
+            "ms": 24,
+            "queries": 7,
+            "returnedRows": 122
+          },
+          {
+            "ms": 24.599999994039536,
+            "queries": 7,
+            "returnedRows": 122
+          },
+          {
+            "ms": 30.700000002980232,
+            "queries": 7,
+            "returnedRows": 122
+          },
+          {
+            "ms": 23,
+            "queries": 7,
+            "returnedRows": 122
+          },
+          {
+            "ms": 37.70000000298023,
+            "queries": 7,
+            "returnedRows": 122
+          },
+          {
+            "ms": 21.799999997019768,
+            "queries": 7,
+            "returnedRows": 122
+          }
+        ]
+      },
+      "summary": {
+        "Before": {
+          "medianMs": 24.600000001490116,
+          "queries": 7,
+          "returnedRows": 122
+        },
+        "After": {
+          "medianMs": 24.299999997019768,
+          "queries": 7,
+          "returnedRows": 122
+        }
+      }
+    },
+    "todayHard": {
+      "equal": true,
+      "samples": {
+        "Before": [
+          {
+            "ms": 260.59999999403954,
+            "queries": 18,
+            "returnedRows": 181
+          },
+          {
+            "ms": 241.70000000298023,
+            "queries": 18,
+            "returnedRows": 181
+          },
+          {
+            "ms": 304.59999999403954,
+            "queries": 18,
+            "returnedRows": 181
+          },
+          {
+            "ms": 269.70000000298023,
+            "queries": 18,
+            "returnedRows": 181
+          },
+          {
+            "ms": 251.5,
+            "queries": 18,
+            "returnedRows": 181
+          },
+          {
+            "ms": 251.40000000596046,
+            "queries": 18,
+            "returnedRows": 181
+          },
+          {
+            "ms": 279.79999999701977,
+            "queries": 18,
+            "returnedRows": 181
+          }
+        ],
+        "After": [
+          {
+            "ms": 82,
+            "queries": 18,
+            "returnedRows": 181
+          },
+          {
+            "ms": 65.09999999403954,
+            "queries": 18,
+            "returnedRows": 181
+          },
+          {
+            "ms": 76.20000000298023,
+            "queries": 18,
+            "returnedRows": 181
+          },
+          {
+            "ms": 95.6000000089407,
+            "queries": 18,
+            "returnedRows": 181
+          },
+          {
+            "ms": 72.40000000596046,
+            "queries": 18,
+            "returnedRows": 181
+          },
+          {
+            "ms": 61.69999998807907,
+            "queries": 18,
+            "returnedRows": 181
+          },
+          {
+            "ms": 69.79999999701977,
+            "queries": 18,
+            "returnedRows": 181
+          }
+        ]
+      },
+      "summary": {
+        "Before": {
+          "medianMs": 260.6000000014901,
+          "queries": 18,
+          "returnedRows": 181
+        },
+        "After": {
+          "medianMs": 71.10000000149012,
+          "queries": 18,
+          "returnedRows": 181
+        }
+      }
+    },
+    "stats": {
+      "equal": true,
+      "samples": {
+        "Before": [
+          {
+            "ms": 22.100000008940697,
+            "queries": 7,
+            "returnedRows": 191
+          },
+          {
+            "ms": 15.700000002980232,
+            "queries": 7,
+            "returnedRows": 191
+          },
+          {
+            "ms": 12.099999994039536,
+            "queries": 7,
+            "returnedRows": 191
+          },
+          {
+            "ms": 12.200000002980232,
+            "queries": 7,
+            "returnedRows": 191
+          },
+          {
+            "ms": 17.100000008940697,
+            "queries": 7,
+            "returnedRows": 191
+          },
+          {
+            "ms": 14.700000002980232,
+            "queries": 7,
+            "returnedRows": 191
+          },
+          {
+            "ms": 13.5,
+            "queries": 7,
+            "returnedRows": 191
+          }
+        ],
+        "After": [
+          {
+            "ms": 12.699999988079071,
+            "queries": 7,
+            "returnedRows": 191
+          },
+          {
+            "ms": 21.399999991059303,
+            "queries": 7,
+            "returnedRows": 191
+          },
+          {
+            "ms": 14.100000008940697,
+            "queries": 7,
+            "returnedRows": 191
+          },
+          {
+            "ms": 15.400000005960464,
+            "queries": 7,
+            "returnedRows": 191
+          },
+          {
+            "ms": 18.200000002980232,
+            "queries": 7,
+            "returnedRows": 191
+          },
+          {
+            "ms": 25.799999997019768,
+            "queries": 7,
+            "returnedRows": 191
+          },
+          {
+            "ms": 17.400000005960464,
+            "queries": 7,
+            "returnedRows": 191
+          }
+        ]
+      },
+      "summary": {
+        "Before": {
+          "medianMs": 14.100000001490116,
+          "queries": 7,
+          "returnedRows": 191
+        },
+        "After": {
+          "medianMs": 17.80000000447035,
+          "queries": 7,
+          "returnedRows": 191
+        }
+      }
+    }
+  },
+  "fixtures": {
+    "comparisons": 30,
+    "allEqual": true,
+    "scenarios": [
+      {
+        "label": "no plans",
+        "getDashboard": {
+          "equal": true,
+          "beforeMs": 26.30000001192093,
+          "afterMs": 24.5,
+          "beforeQ": 10,
+          "afterQ": 10,
+          "counts": null
+        },
+        "getStudyToday": {
+          "equal": true,
+          "beforeMs": 10.299999997019768,
+          "afterMs": 9.399999991059303,
+          "beforeQ": 3,
+          "afterQ": 3,
+          "counts": {
+            "due": 0,
+            "new": 0
+          }
+        },
+        "getTodayHardWords": {
+          "equal": true,
+          "beforeMs": 8.5,
+          "afterMs": 12.700000002980232,
+          "beforeQ": 3,
+          "afterQ": 3,
+          "counts": null
+        }
+      },
+      {
+        "label": "two plans, new cards",
+        "getDashboard": {
+          "equal": true,
+          "beforeMs": 50.5,
+          "afterMs": 36.20000000298023,
+          "beforeQ": 28,
+          "afterQ": 11,
+          "counts": null
+        },
+        "getStudyToday": {
+          "equal": true,
+          "beforeMs": 96.3999999910593,
+          "afterMs": 56.5,
+          "beforeQ": 21,
+          "afterQ": 16,
+          "counts": {
+            "due": 0,
+            "new": 20
+          }
+        },
+        "getTodayHardWords": {
+          "equal": true,
+          "beforeMs": 74.69999998807907,
+          "afterMs": 53.80000001192093,
+          "beforeQ": 21,
+          "afterQ": 16,
+          "counts": null
+        }
+      },
+      {
+        "label": "twenty plans, new cards",
+        "getDashboard": {
+          "equal": true,
+          "beforeMs": 311.20000000298023,
+          "afterMs": 73.20000000298023,
+          "beforeQ": 190,
+          "afterQ": 11,
+          "counts": null
+        },
+        "getStudyToday": {
+          "equal": true,
+          "beforeMs": 785.7000000029802,
+          "afterMs": 397.5,
+          "beforeQ": 177,
+          "afterQ": 88,
+          "counts": {
+            "due": 0,
+            "new": 200
+          }
+        },
+        "getTodayHardWords": {
+          "equal": true,
+          "beforeMs": 587.4000000059605,
+          "afterMs": 391.70000000298023,
+          "beforeQ": 177,
+          "afterQ": 88,
+          "counts": null
+        }
+      },
+      {
+        "label": "twenty plans, due + new",
+        "getDashboard": {
+          "equal": true,
+          "beforeMs": 10088.79999999702,
+          "afterMs": 271.29999999701977,
+          "beforeQ": 190,
+          "afterQ": 11,
+          "counts": null
+        },
+        "getStudyToday": {
+          "equal": true,
+          "beforeMs": 3267.5,
+          "afterMs": 2596.3999999910593,
+          "beforeQ": 274,
+          "afterQ": 93,
+          "counts": {
+            "due": 600,
+            "new": 200
+          }
+        },
+        "getTodayHardWords": {
+          "equal": true,
+          "beforeMs": 3768.3999999910593,
+          "afterMs": 3215.5999999940395,
+          "beforeQ": 274,
+          "afterQ": 93,
+          "counts": null
+        }
+      },
+      {
+        "label": "two plans, 500 review cap",
+        "getDashboard": {
+          "equal": true,
+          "beforeMs": 1384.7999999970198,
+          "afterMs": 173.6000000089407,
+          "beforeQ": 28,
+          "afterQ": 11,
+          "counts": null
+        },
+        "getStudyToday": {
+          "equal": true,
+          "beforeMs": 690.8999999910593,
+          "afterMs": 679.2000000029802,
+          "beforeQ": 31,
+          "afterQ": 21,
+          "counts": {
+            "due": 799,
+            "new": 20
+          }
+        },
+        "getTodayHardWords": {
+          "equal": true,
+          "beforeMs": 770.7000000029802,
+          "afterMs": 722.2999999970198,
+          "beforeQ": 31,
+          "afterQ": 21,
+          "counts": null
+        }
+      },
+      {
+        "label": "reverse direction",
+        "getDashboard": {
+          "equal": true,
+          "beforeMs": 1280.7999999970198,
+          "afterMs": 89.79999999701977,
+          "beforeQ": 28,
+          "afterQ": 11,
+          "counts": null
+        },
+        "getStudyToday": {
+          "equal": true,
+          "beforeMs": 367.70000000298023,
+          "afterMs": 338.5,
+          "beforeQ": 21,
+          "afterQ": 16,
+          "counts": {
+            "due": 0,
+            "new": 20
+          }
+        },
+        "getTodayHardWords": {
+          "equal": true,
+          "beforeMs": 366.79999999701977,
+          "afterMs": 342.29999999701977,
+          "beforeQ": 21,
+          "afterQ": 16,
+          "counts": null
+        }
+      },
+      {
+        "label": "before 06:00 Tehran boundary",
+        "getDashboard": {
+          "equal": true,
+          "beforeMs": 1837.1000000089407,
+          "afterMs": 219.70000000298023,
+          "beforeQ": 28,
+          "afterQ": 11,
+          "counts": null
+        },
+        "getStudyToday": {
+          "equal": true,
+          "beforeMs": 375.5,
+          "afterMs": 404.59999999403954,
+          "beforeQ": 21,
+          "afterQ": 16,
+          "counts": {
+            "due": 0,
+            "new": 20
+          }
+        },
+        "getTodayHardWords": {
+          "equal": true,
+          "beforeMs": 405.5,
+          "afterMs": 334.90000000596046,
+          "beforeQ": 21,
+          "afterQ": 16,
+          "counts": null
+        }
+      },
+      {
+        "label": "at 06:00 Tehran boundary",
+        "getDashboard": {
+          "equal": true,
+          "beforeMs": 1932.1000000089407,
+          "afterMs": 218.70000000298023,
+          "beforeQ": 28,
+          "afterQ": 11,
+          "counts": null
+        },
+        "getStudyToday": {
+          "equal": true,
+          "beforeMs": 813.2000000029802,
+          "afterMs": 788.0999999940395,
+          "beforeQ": 31,
+          "afterQ": 21,
+          "counts": {
+            "due": 799,
+            "new": 20
+          }
+        },
+        "getTodayHardWords": {
+          "equal": true,
+          "beforeMs": 810.0999999940395,
+          "afterMs": 762.1000000089407,
+          "beforeQ": 31,
+          "afterQ": 21,
+          "counts": null
+        }
+      },
+      {
+        "label": "completed day, difficult practice",
+        "getDashboard": {
+          "equal": true,
+          "beforeMs": 1584.9000000059605,
+          "afterMs": 151.8999999910593,
+          "beforeQ": 28,
+          "afterQ": 11,
+          "counts": null
+        },
+        "getStudyToday": {
+          "equal": true,
+          "beforeMs": 921,
+          "afterMs": 598.2999999970198,
+          "beforeQ": 12,
+          "afterQ": 12,
+          "counts": {
+            "due": 0,
+            "new": 0
+          }
+        },
+        "getTodayHardWords": {
+          "equal": true,
+          "beforeMs": 962.2000000029802,
+          "afterMs": 612.4000000059605,
+          "beforeQ": 12,
+          "afterQ": 12,
+          "counts": null
+        }
+      },
+      {
+        "label": "inactive plans",
+        "getDashboard": {
+          "equal": true,
+          "beforeMs": 143.29999999701977,
+          "afterMs": 142.5,
+          "beforeQ": 10,
+          "afterQ": 10,
+          "counts": null
+        },
+        "getStudyToday": {
+          "equal": true,
+          "beforeMs": 24.200000002980232,
+          "afterMs": 10.5,
+          "beforeQ": 3,
+          "afterQ": 3,
+          "counts": {
+            "due": 0,
+            "new": 0
+          }
+        },
+        "getTodayHardWords": {
+          "equal": true,
+          "beforeMs": 11,
+          "afterMs": 9.5,
+          "beforeQ": 3,
+          "afterQ": 3,
+          "counts": null
+        }
+      }
+    ]
+  },
+  "hardTodayStress": {
+    "events": 13533,
+    "plans": {
+      "before": [
+        {
+          "id": 7,
+          "parent": 0,
+          "notused": 0,
+          "detail": "SCAN w"
+        },
+        {
+          "id": 10,
+          "parent": 0,
+          "notused": 0,
+          "detail": "CORRELATED SCALAR SUBQUERY 1"
+        },
+        {
+          "id": 15,
+          "parent": 10,
+          "notused": 0,
+          "detail": "SEARCH p USING INDEX sqlite_autoindex_progress_1 (word_id=? AND review_mode=?)"
+        },
+        {
+          "id": 30,
+          "parent": 0,
+          "notused": 0,
+          "detail": "CORRELATED SCALAR SUBQUERY 2"
+        },
+        {
+          "id": 35,
+          "parent": 30,
+          "notused": 0,
+          "detail": "SEARCH e USING INDEX idx_events_reviewed (review_mode=? AND reviewed_at>? AND reviewed_at<?)"
+        },
+        {
+          "id": 61,
+          "parent": 0,
+          "notused": 0,
+          "detail": "SEARCH l USING INDEX sqlite_autoindex_lessons_1 (id=?)"
+        },
+        {
+          "id": 67,
+          "parent": 0,
+          "notused": 0,
+          "detail": "SEARCH lp USING INDEX sqlite_autoindex_learning_plans_2 (volume_id=?)"
+        },
+        {
+          "id": 81,
+          "parent": 0,
+          "notused": 0,
+          "detail": "USE TEMP B-TREE FOR ORDER BY"
+        }
+      ],
+      "after": [
+        {
+          "id": 8,
+          "parent": 0,
+          "notused": 0,
+          "detail": "SEARCH w USING INDEX sqlite_autoindex_words_1 (id=?)"
+        },
+        {
+          "id": 12,
+          "parent": 0,
+          "notused": 0,
+          "detail": "LIST SUBQUERY 2"
+        },
+        {
+          "id": 15,
+          "parent": 12,
+          "notused": 0,
+          "detail": "SEARCH e USING INDEX idx_events_reviewed (review_mode=? AND reviewed_at>? AND reviewed_at<?)"
+        },
+        {
+          "id": 45,
+          "parent": 0,
+          "notused": 0,
+          "detail": "CORRELATED SCALAR SUBQUERY 1"
+        },
+        {
+          "id": 50,
+          "parent": 45,
+          "notused": 0,
+          "detail": "SEARCH p USING INDEX sqlite_autoindex_progress_1 (word_id=? AND review_mode=?)"
+        },
+        {
+          "id": 64,
+          "parent": 0,
+          "notused": 0,
+          "detail": "SEARCH l USING INDEX sqlite_autoindex_lessons_1 (id=?)"
+        },
+        {
+          "id": 70,
+          "parent": 0,
+          "notused": 0,
+          "detail": "SEARCH lp USING INDEX sqlite_autoindex_learning_plans_2 (volume_id=?)"
+        },
+        {
+          "id": 85,
+          "parent": 0,
+          "notused": 0,
+          "detail": "USE TEMP B-TREE FOR ORDER BY"
+        }
+      ]
+    },
+    "ms": 2040.5,
+    "matched": 894,
+    "queueMs": 1228.8999999910593,
+    "hardCount": 894,
+    "queries": 12,
+    "beforeCompleted": false,
+    "beforeObservation": "Native CPU saturated one core; query interrupted after several minutes. No finite before timing or speedup ratio."
+  },
+  "seed": {
+    "versionUnchanged": "5",
+    "initialBaseline": {
+      "ms": 9164.300000011921,
+      "peakRows": 102692,
+      "runs": 527,
+      "counts": {
+        "books": 14,
+        "volumes": 26,
+        "lessons": 1198,
+        "words": 32175,
+        "word_examples": 16418,
+        "word_phrases": 25449,
+        "word_phrase_examples": 27412,
+        "progress": 0,
+        "watchlist": 0
+      },
+      "heapBefore": 4522636,
+      "peakHeap": 47773108,
+      "heapSamples": 59
+    },
+    "interleavedFinalRuns": [
+      {
+        "name": "After",
+        "ms": 16055.300000011921,
+        "runs": 527,
+        "peakRows": 15692,
+        "heapBefore": 6243092,
+        "peakHeap": 25904132
+      },
+      {
+        "name": "Before",
+        "ms": 37937.29999999702,
+        "runs": 527,
+        "peakRows": 102692,
+        "heapBefore": 11252328,
+        "peakHeap": 50376592
+      },
+      {
+        "name": "After",
+        "ms": 38694.5,
+        "runs": 527,
+        "peakRows": 15692,
+        "heapBefore": 10789672,
+        "peakHeap": 25990152
+      },
+      {
+        "name": "Before",
+        "ms": 40702.09999999404,
+        "runs": 527,
+        "peakRows": 102692,
+        "heapBefore": 11313932,
+        "peakHeap": 51758872
+      }
+    ],
+    "verification": {
+      "contents": {
+        "books": {
+          "vf_perf_before": {
+            "rows": 14,
+            "hash": "43b201485e98d4e982c80044bf09f70581afd6b0561e66c7b6b0470394722af9"
+          },
+          "vf_perf_after": {
+            "rows": 14,
+            "hash": "43b201485e98d4e982c80044bf09f70581afd6b0561e66c7b6b0470394722af9"
+          },
+          "equal": true
+        },
+        "volumes": {
+          "vf_perf_before": {
+            "rows": 26,
+            "hash": "31c2f7977eb30679ba5a9fa045bf5b84a604e863c22120f9534486510aa7e9f6"
+          },
+          "vf_perf_after": {
+            "rows": 26,
+            "hash": "31c2f7977eb30679ba5a9fa045bf5b84a604e863c22120f9534486510aa7e9f6"
+          },
+          "equal": true
+        },
+        "lessons": {
+          "vf_perf_before": {
+            "rows": 1198,
+            "hash": "e9d0150248007a28be5d81a08ddecc1881303ac16e4f31211a2cde9085e9c0ad"
+          },
+          "vf_perf_after": {
+            "rows": 1198,
+            "hash": "e9d0150248007a28be5d81a08ddecc1881303ac16e4f31211a2cde9085e9c0ad"
+          },
+          "equal": true
+        },
+        "words": {
+          "vf_perf_before": {
+            "rows": 32175,
+            "hash": "a59d4662512feaa9d0e3361895623fbb40b366c2d0e10efd51daf629c5a74d63"
+          },
+          "vf_perf_after": {
+            "rows": 32175,
+            "hash": "a59d4662512feaa9d0e3361895623fbb40b366c2d0e10efd51daf629c5a74d63"
+          },
+          "equal": true
+        },
+        "examples": {
+          "vf_perf_before": {
+            "rows": 16418,
+            "hash": "0062d1168e9b3213afa36e83bccf6d408ace6d26d5d4209ffc02f06771badad9"
+          },
+          "vf_perf_after": {
+            "rows": 16418,
+            "hash": "0062d1168e9b3213afa36e83bccf6d408ace6d26d5d4209ffc02f06771badad9"
+          },
+          "equal": true
+        },
+        "phrases": {
+          "vf_perf_before": {
+            "rows": 25449,
+            "hash": "8a78ac242147ced252ac41bae4da4958bc98c16234f2a537fd9c00d20657879f"
+          },
+          "vf_perf_after": {
+            "rows": 25449,
+            "hash": "8a78ac242147ced252ac41bae4da4958bc98c16234f2a537fd9c00d20657879f"
+          },
+          "equal": true
+        },
+        "phraseExamples": {
+          "vf_perf_before": {
+            "rows": 27412,
+            "hash": "bef68e71197e9e22a01b4e0ced13ae08eda52b039172fd5d0941728c07e4aab1"
+          },
+          "vf_perf_after": {
+            "rows": 27412,
+            "hash": "bef68e71197e9e22a01b4e0ced13ae08eda52b039172fd5d0941728c07e4aab1"
+          },
+          "equal": true
+        }
+      },
+      "rolledBack": true,
+      "idempotentMs": 4.5
+    },
+    "hashMethod": "Semantic content plus parent relations/order, excluding generated UUIDs and timestamps."
+  },
+  "startup": {
+    "installedDebugApk": {
+      "coldTotalTimeMs": [
+        2829,
+        1935,
+        2006
+      ],
+      "coldMedianMs": 2006,
+      "warmTotalTimeMs": 342,
+      "warmWaitTimeMs": 344,
+      "hotWaitTimeMs": 130,
+      "notes": "Cold: force-stop and am start -W. Warm: finish Activity without killing process, relaunch reported WARM. Hot: HOME then foreground; no new TotalTime. These refer to pre-existing APK, not changed checkout."
+    },
+    "controlledWebViewReloads": [
+      {
+        "name": "Before",
+        "delay": 4000,
+        "ready": true,
+        "observedAt": 4960.5,
+        "paints": [
+          {
+            "name": "first-paint",
+            "ms": 4104
+          },
+          {
+            "name": "first-contentful-paint",
+            "ms": 4104
+          }
+        ],
+        "scripts": [
+          "https://localhost/assets/index-Bn2mKvYu.js"
+        ],
+        "fontRequests": [
+          4030.4000000059605
+        ]
+      },
+      {
+        "name": "After",
+        "delay": 4000,
+        "ready": true,
+        "observedAt": 829.4000000059605,
+        "paints": [
+          {
+            "name": "first-paint",
+            "ms": 140
+          },
+          {
+            "name": "first-contentful-paint",
+            "ms": 140
+          }
+        ],
+        "scripts": [
+          "https://localhost/assets/index-7tqDHekd.js"
+        ],
+        "fontRequests": []
+      },
+      {
+        "name": "Before",
+        "delay": 4000,
+        "ready": true,
+        "observedAt": 4741.899999991059,
+        "paints": [
+          {
+            "name": "first-contentful-paint",
+            "ms": 4124
+          },
+          {
+            "name": "first-paint",
+            "ms": 4124
+          }
+        ],
+        "scripts": [
+          "https://localhost/assets/index-Bn2mKvYu.js"
+        ],
+        "fontRequests": [
+          4044.7000000029802
+        ]
+      },
+      {
+        "name": "After",
+        "delay": 4000,
+        "ready": true,
+        "observedAt": 821.6000000089407,
+        "paints": [
+          {
+            "name": "first-paint",
+            "ms": 192
+          },
+          {
+            "name": "first-contentful-paint",
+            "ms": 192
+          }
+        ],
+        "scripts": [
+          "https://localhost/assets/index-7tqDHekd.js"
+        ],
+        "fontRequests": []
+      }
+    ]
+  },
+  "bundle": {
+    "Before": {
+      "mainBytes": 369541,
+      "mainGzip": 116748,
+      "totalJs": 995726,
+      "chunks": 89
+    },
+    "After": {
+      "mainBytes": 369544,
+      "mainGzip": 116754,
+      "totalJs": 995299,
+      "chunks": 89
+    }
+  },
+  "assets": {
+    "books": {
+      "files": 33,
+      "bytes": 3893674,
+      "largestFileBytes": 702919
+    },
+    "fonts": {
+      "files": 6,
+      "bytes": 221452
+    },
+    "seedEncrypted": {
+      "filesIncludingManifest": 27,
+      "bytes": 37296342
+    },
+    "imageFetchAndDecode": [
+      {
+        "src": "/books/Pakage-4000.png",
+        "width": 586,
+        "height": 550,
+        "fetchAndDecodeMs": 53.3999999910593,
+        "decodedBytesEstimate": 1289200
+      },
+      {
+        "src": "/books/1000-collocation.png",
+        "width": 535,
+        "height": 759,
+        "fetchAndDecodeMs": 30.700000002980232,
+        "decodedBytesEstimate": 1624260
+      },
+      {
+        "src": "/books/Oxford-Word-Skills-Book-Series.png",
+        "width": 499,
+        "height": 501,
+        "fetchAndDecodeMs": 31.700000002980232,
+        "decodedBytesEstimate": 999996
+      },
+      {
+        "src": "/books/4000-v1.webp",
+        "width": 381,
+        "height": 534,
+        "fetchAndDecodeMs": 22.599999994039536,
+        "decodedBytesEstimate": 813816
+      }
+    ]
+  },
+  "ui": [
+    {
+      "path": "/library",
+      "nodes": 579,
+      "error": false,
+      "queries": 4,
+      "observedAfterMs": 1250,
+      "heap": 5632024
+    },
+    {
+      "path": "/vocabulary",
+      "nodes": 1064,
+      "error": false,
+      "queries": 13,
+      "observedAfterMs": 1234,
+      "heap": 5676364
+    },
+    {
+      "path": "/vocabulary/review",
+      "nodes": 266,
+      "error": false,
+      "queries": 20,
+      "observedAfterMs": 1240,
+      "heap": 8828336
+    },
+    {
+      "label": "review scroll rAF",
+      "frames": 181,
+      "p50": 16.69999999999709,
+      "p95": 16.799999999995634,
+      "over33ms": 0
+    },
+    {
+      "label": "card flip rAF",
+      "available": true,
+      "frames": 48,
+      "p50": 16.69999999999709,
+      "p95": 16.799999999995634,
+      "over33ms": 0
+    }
+  ],
+  "memoryAndCpu": {
+    "webViewIdle": {
+      "idleSeconds": 3.0208870000060415,
+      "jsMainThreadTaskMs": 0.311,
+      "scriptMs": 0,
+      "layoutMs": 0,
+      "heapUsed": 10055876,
+      "heapTotal": 17465344,
+      "nodes": 1713
+    },
+    "androidPssKiB": {
+      "app": 150427,
+      "renderer": 129388,
+      "notes": "Single fresh cold-launch snapshot of original debug APK; not before/after comparison or leak test."
+    },
+    "idleNativeCpuObservation": "App and renderer top snapshot: 0% each"
+  },
+  "tts": {
+    "languageCount": 81,
+    "samples": [
+      {
+        "rangeStartMs": 3827.4000000059605,
+        "completionOrTimeoutMs": 4002.4000000059605,
+        "error": null
+      },
+      {
+        "rangeStartMs": 284.5,
+        "completionOrTimeoutMs": 931.7999999970198,
+        "error": null
+      },
+      {
+        "rangeStartMs": 102.29999999701977,
+        "completionOrTimeoutMs": 821.5,
+        "error": null
+      },
+      {
+        "rangeStartMs": 119.5,
+        "completionOrTimeoutMs": 839.9000000059605,
+        "error": null
+      }
+    ],
+    "cancelledSpeechSettledWithin1800ms": false
+  },
+  "queuePersistence": [
+    {
+      "count": 500,
+      "stringifyMs": 4.5999999940395355,
+      "bytes": 645168,
+      "writeMs": 8,
+      "error": null
+    },
+    {
+      "count": 800,
+      "stringifyMs": 6.799999997019768,
+      "bytes": 1003071,
+      "writeMs": 13.799999997019768,
+      "error": null
+    },
+    {
+      "count": 10200,
+      "stringifyMs": 81.5,
+      "bytes": 13131009,
+      "writeMs": null,
+      "error": "QuotaExceededError"
+    }
+  ],
+  "storage": {
+    "counts": {
+      "words": 32175,
+      "progress": 59,
+      "learning_plans": 2,
+      "study_sessions": 5,
+      "review_events": 172
+    },
+    "dbSize": 38113280,
+    "sessionBytes": 0,
+    "pageSize": 4096,
+    "pageCount": 9305,
+    "freelistCount": 0,
+    "notes": "Main database restored; counts and file size unchanged. Temporary audit databases and WebView asset overrides removed."
+  },
+  "existingDueQueryPlan": [
+    {
+      "id": 11,
+      "parent": 0,
+      "notused": 0,
+      "detail": "SEARCH p USING INDEX idx_progress_due (review_mode=? AND next_review_at>? AND next_review_at<?)"
+    },
+    {
+      "id": 24,
+      "parent": 0,
+      "notused": 0,
+      "detail": "SEARCH w USING INDEX sqlite_autoindex_words_1 (id=?)"
+    },
+    {
+      "id": 29,
+      "parent": 0,
+      "notused": 0,
+      "detail": "SEARCH l USING INDEX sqlite_autoindex_lessons_1 (id=?)"
+    }
+  ],
+  "validations": {
+    "frontendTypecheck": "passed",
+    "backendTypecheck": "passed",
+    "frontendBuild": "passed; existing missing unused Vazirmatn font warnings",
+    "changedOfflineFilesPrettier": "passed",
+    "profileScriptSyntax": "passed",
+    "profileScriptNativeRun": "passed; seven read-only samples per reader",
+    "fixtureEquality": "30 of 30 passed",
+    "seedSemanticHashes": "7 of 7 matched",
+    "seedReadFailureRollback": "passed",
+    "formatCheck": "failed on 20 unchanged source files",
+    "gitDiffCheck": "Scoped changed-file check passed; full check reports pre-existing .gitignore blank line at EOF",
+    "apkBuild": "not run",
+    "backendApiTests": "not run",
+    "markdownLinks": "All relative links in report and updated reference docs resolve",
+    "newArtifactWhitespace": "passed"
+  },
+  "reproductionTool": "frontend/scripts/profile-offline.mjs",
+  "cleanup": {
+    "android": "Original WebView asset path restored; temporary databases and device copies removed; original database counts and file size unchanged",
+    "adbForward": "Audit tcp:9223 forwarding removed; diagnostic tool removes its own ephemeral forward",
+    "hostTemporaryFiles": "Retained at Windows TEMP/vocabflow-perf-20261008; recursive and explicitly named file removal rejected by automatic tool policy: blocked by policy"
+  }
+}

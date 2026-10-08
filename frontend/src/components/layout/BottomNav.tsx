@@ -27,15 +27,23 @@ interface NavItem {
   to: string;
   icon: React.ReactNode;
   label: string;
+  /** One-line purpose hint, shown under the label in the "more" sheet. */
+  description?: string;
 }
 
 // آیتم‌های شیت «بیشتر» — همان صفحاتی که در سایدبار هستند ولی در نوار پایین جا نشدند
 const moreItems: NavItem[] = [
-  { to: "/vocabulary", icon: <Book className="h-5 w-5" />, label: "واژگان" },
+  {
+    to: "/vocabulary",
+    icon: <Book className="h-5 w-5" />,
+    label: "واژگان",
+    description: "جستجو و مشاهده‌ی همه‌ی واژه‌ها، مثل یک دیکشنری",
+  },
   {
     to: "/vocabulary/review",
     icon: <Play className="h-5 w-5" />,
     label: "مرور آزاد",
+    description: "مرور دلخواه واژه‌ها، جدا از برنامه‌ی روزانه",
   },
 ];
 
@@ -86,7 +94,14 @@ function MoreLink({
       }
     >
       {item.icon}
-      {item.label}
+      <span className="flex min-w-0 flex-col">
+        <span>{item.label}</span>
+        {item.description && (
+          <span className="truncate text-[11px] font-normal text-muted-foreground/80">
+            {item.description}
+          </span>
+        )}
+      </span>
     </NavLink>
   );
 }
@@ -132,10 +147,13 @@ export function BottomNav() {
     <>
       <nav
         dir="rtl"
-        className="font-persian fixed inset-x-0 bottom-0 z-20 grid h-16 grid-cols-5 border-t border-border bg-card/95 shadow-[0_-4px_16px_-6px_hsl(var(--foreground)/0.15)] backdrop-blur-md lg:hidden"
+        className="font-persian fixed inset-x-0 bottom-0 z-20 grid h-[calc(4rem+var(--safe-bottom))] grid-cols-5 overflow-visible lg:hidden"
         style={{ paddingBottom: "var(--safe-bottom)" }}
         aria-label="ناوبری اصلی موبایل"
       >
+        {/* سطح نوار با فرورفتگی منحنی برای دکمه مطالعه (index.css → .nav-cradle) */}
+        <span aria-hidden className="nav-cradle" />
+
         <NavLink
           to="/dashboard"
           end
@@ -162,23 +180,26 @@ export function BottomNav() {
           )}
         </NavLink>
 
-        {/* دکمه برجسته مطالعه امروز */}
+        {/* دکمه شناور مطالعه امروز، نشسته در فرورفتگی نوار */}
         <NavLink
           to="/study"
           end
-          className="relative flex items-end justify-center pb-1.5"
+          className={({ isActive }) => cn(tabClass(isActive), "relative")}
           aria-label="مطالعه امروز"
         >
-          <span
-            className={cn(
-              "flex h-14 w-14 -translate-y-5 items-center justify-center rounded-full bg-primary text-primary-foreground ring-4 ring-card transition-all duration-200",
-              "shadow-[0_6px_16px_-4px_hsl(var(--primary)/0.55)] active:scale-90 active:shadow-[0_2px_8px_-2px_hsl(var(--primary)/0.45)]",
-              pathname === "/study" &&
-                "-translate-y-6 shadow-[0_8px_20px_-4px_hsl(var(--primary)/0.7)]",
-            )}
-          >
-            <GraduationCap className="h-6 w-6" strokeWidth={2.2} />
-          </span>
+          {({ isActive }) => (
+            <>
+              <span
+                data-active={isActive}
+                className="place-cap absolute left-1/2 top-0 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-primary-foreground transition-[transform,box-shadow] duration-200 active:scale-95"
+              >
+                <GraduationCap className="h-6 w-6" strokeWidth={2.2} />
+              </span>
+              {/* جای خالی هم‌قد آیکون تا برچسب هم‌خط بقیه تب‌ها بنشیند */}
+              <span aria-hidden className="h-8" />
+              مطالعه
+            </>
+          )}
         </NavLink>
 
         <NavLink to="/library" className={({ isActive }) => tabClass(isActive)}>

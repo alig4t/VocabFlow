@@ -145,7 +145,7 @@ export function WordCard({ word, mode }: WordCardProps) {
 
               {/* Location badge */}
               {locationBadge && (
-                <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full whitespace-nowrap">
+                <span className="max-w-full truncate text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full whitespace-nowrap">
                   {locationBadge}
                 </span>
               )}
@@ -241,7 +241,7 @@ export function WordCard({ word, mode }: WordCardProps) {
         <div
           className={cn(
             "overflow-hidden transition-all duration-300 ease-in-out",
-            synonymsOpen ? "max-h-64 mt-3" : "max-h-0",
+            synonymsOpen ? "max-h-64 mt-3 overflow-y-auto" : "max-h-0",
           )}
         >
           {synonymsOpen && (
@@ -285,7 +285,7 @@ export function WordCard({ word, mode }: WordCardProps) {
         <div
           className={cn(
             "overflow-hidden transition-all duration-300 ease-in-out",
-            expanded ? "max-h-[600px] mt-3" : "max-h-0",
+            expanded ? "max-h-[70vh] mt-3 overflow-y-auto" : "max-h-0",
           )}
         >
           {expanded && (

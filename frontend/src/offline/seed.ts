@@ -109,16 +109,21 @@ async function bulkInsert(
   table: string,
   cols: string[],
   rows: unknown[][],
+  flush: boolean,
 ): Promise<void> {
   if (rows.length === 0) return;
   const CHUNK = 200;
+  // Carry a partial batch into the next file, keeping the bridge-call count
+  // equal to seeding the whole library at once. Flush the remainder at the end.
+  const count = flush ? rows.length : Math.floor(rows.length / CHUNK) * CHUNK;
   const placeholder = `(${cols.map(() => "?").join(",")})`;
-  for (let i = 0; i < rows.length; i += CHUNK) {
-    const slice = rows.slice(i, i + CHUNK);
+  for (let i = 0; i < count; i += CHUNK) {
+    const slice = rows.slice(i, Math.min(i + CHUNK, count));
     const sql = `INSERT INTO ${table} (${cols.join(",")}) VALUES ${slice.map(() => placeholder).join(",")}`;
     const values = slice.flat();
     await db.run(sql, values as never[], false);
   }
+  rows.splice(0, count);
 }
 
 interface Rows {
@@ -289,6 +294,7 @@ export async function seedIfNeeded(
   const manifestRes = await fetch(`${base}seed-enc/manifest.json`);
   const files: string[] = await manifestRes.json();
 
+  const bookIdByTitle = new Map<string, string>();
   const rows: Rows = {
     books: [],
     volumes: [],
@@ -298,19 +304,6 @@ export async function seedIfNeeded(
     phrases: [],
     phraseExamples: [],
   };
-  const bookIdByTitle = new Map<string, string>();
-
-  for (let i = 0; i < files.length; i++) {
-    onProgress?.(i / (files.length + 1), `در حال خواندن ${files[i]}`);
-    const res = await fetch(`${base}seed-enc/${files[i]}.enc`);
-    const data = (await decryptSeedJson(await res.arrayBuffer())) as BookFile;
-    collectFile(files[i], data, bookIdByTitle, rows);
-  }
-
-  onProgress?.(
-    files.length / (files.length + 1),
-    "در حال ذخیره در پایگاه‌داده…",
-  );
 
   const db = await getDb();
   await db.beginTransaction();
@@ -319,67 +312,84 @@ export async function seedIfNeeded(
     for (const t of WIPE_TABLES) {
       await db.run(`DELETE FROM ${t}`, [], false);
     }
-    await bulkInsert(
-      db,
-      "books",
-      ["id", "title", "description", "cover_image"],
-      rows.books,
-    );
-    await bulkInsert(
-      db,
-      "volumes",
-      ["id", "book_id", "volume_number", "title"],
-      rows.volumes,
-    );
-    await bulkInsert(
-      db,
-      "lessons",
-      ["id", "volume_id", "lesson_number", "title"],
-      rows.lessons,
-    );
-    await bulkInsert(
-      db,
-      "words",
-      [
-        "id",
-        "eng",
-        "per",
-        "description",
-        "description_per",
-        "pronunciation",
-        "part_of_speech",
-        "word_forms",
-        "synonyms",
-        "antonyms",
-        "primary_example",
-        "primary_example_trs",
-        "pronunciation_audio",
-        "chapter",
-        "unit",
-        "lesson_id",
-        "created_at",
-        "updated_at",
-      ],
-      rows.words,
-    );
-    await bulkInsert(
-      db,
-      "word_examples",
-      ["id", "word_id", "eng_sentence", "per_translation", "ord"],
-      rows.examples,
-    );
-    await bulkInsert(
-      db,
-      "word_phrases",
-      ["id", "word_id", "pattern_eng", "pattern_per", "ord"],
-      rows.phrases,
-    );
-    await bulkInsert(
-      db,
-      "word_phrase_examples",
-      ["id", "phrase_id", "eng_sentence", "per_translation", "ord"],
-      rows.phraseExamples,
-    );
+    // Retain one book file's rows plus partial batches, instead of the library.
+    // All files still share the same transaction: a read/decrypt/insert failure
+    // rolls the entire seed back, including the initial wipe.
+    for (let i = 0; i < files.length; i++) {
+      onProgress?.(i / files.length, `در حال آماده‌سازی ${files[i]}`);
+      const res = await fetch(`${base}seed-enc/${files[i]}.enc`);
+      const data = (await decryptSeedJson(await res.arrayBuffer())) as BookFile;
+      collectFile(files[i], data, bookIdByTitle, rows);
+      const flush = i === files.length - 1;
+      await bulkInsert(
+        db,
+        "books",
+        ["id", "title", "description", "cover_image"],
+        rows.books,
+        flush,
+      );
+      await bulkInsert(
+        db,
+        "volumes",
+        ["id", "book_id", "volume_number", "title"],
+        rows.volumes,
+        flush,
+      );
+      await bulkInsert(
+        db,
+        "lessons",
+        ["id", "volume_id", "lesson_number", "title"],
+        rows.lessons,
+        flush,
+      );
+      await bulkInsert(
+        db,
+        "words",
+        [
+          "id",
+          "eng",
+          "per",
+          "description",
+          "description_per",
+          "pronunciation",
+          "part_of_speech",
+          "word_forms",
+          "synonyms",
+          "antonyms",
+          "primary_example",
+          "primary_example_trs",
+          "pronunciation_audio",
+          "chapter",
+          "unit",
+          "lesson_id",
+          "created_at",
+          "updated_at",
+        ],
+        rows.words,
+        flush,
+      );
+      await bulkInsert(
+        db,
+        "word_examples",
+        ["id", "word_id", "eng_sentence", "per_translation", "ord"],
+        rows.examples,
+        flush,
+      );
+      await bulkInsert(
+        db,
+        "word_phrases",
+        ["id", "word_id", "pattern_eng", "pattern_per", "ord"],
+        rows.phrases,
+        flush,
+      );
+      await bulkInsert(
+        db,
+        "word_phrase_examples",
+        ["id", "phrase_id", "eng_sentence", "per_translation", "ord"],
+        rows.phraseExamples,
+        flush,
+      );
+    }
     await db.commitTransaction();
   } catch (e) {
     await db.rollbackTransaction();

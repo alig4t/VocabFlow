@@ -1,5 +1,12 @@
 # Migration Guide: MySQL to PostgreSQL
 
+> **Historical (audit 2026-10-04).** This describes the one-time move from the original single-table MySQL
+> database and reflects the schema *as it was then* (7 tables). The current schema has 17 tables — see
+> `backend/prisma/schema.prisma` and [`DATABASE_SCHEMA.html`](DATABASE_SCHEMA.html). The automated version of this
+> import is `npm run db:migrate-mysql` (`backend/prisma/migrate-mysql.ts`, reads the git-ignored `words-new.sql` at the
+> repo root). Normal content now comes from `books/` via `npm run db:seed-all-datas` (see
+> [`CONTENT_PIPELINE.md`](CONTENT_PIPELINE.md)). Nothing here is needed for day-to-day work.
+
 This document describes how to migrate the original MySQL database (containing a flat `words` table) to the new PostgreSQL schema used by the English Learning Platform.
 
 ---
@@ -186,7 +193,7 @@ ON CONFLICT (slug) DO NOTHING;
 Or use the Prisma seed script which does the same idempotently:
 
 ```bash
-npx prisma db seed
+npm run db:seed
 ```
 
 ---
@@ -301,7 +308,7 @@ ON CONFLICT (user_id, word_id, review_mode) DO NOTHING;
 | `npx prisma migrate deploy` | Apply pending migrations in production (no schema changes, no prompts) |
 | `npx prisma migrate reset` | Drop the database and reapply all migrations from scratch (development only) |
 | `npx prisma migrate status` | Show which migrations have been applied vs. pending |
-| `npx prisma db seed` | Run `prisma/seed.ts` to populate default data |
+| `npm run db:seed` | Run `prisma/seed.ts` via the configured npm script (no Prisma seed hook is configured) |
 | `npx prisma generate` | Regenerate the Prisma Client after schema changes |
 | `npx prisma studio` | Open the Prisma Studio GUI to inspect data |
 | `npx prisma db pull` | Introspect an existing database and update `schema.prisma` |

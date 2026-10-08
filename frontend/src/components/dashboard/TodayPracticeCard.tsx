@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { Dumbbell, Lock, ArrowLeft, ShieldCheck } from "lucide-react";
+import { Dumbbell, Lock, ArrowLeft, ShieldCheck, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useStudyToday } from "@/hooks/useStudy";
 import { cn } from "@/lib/utils";
@@ -64,27 +64,24 @@ function PracticeSection({ children }: { children: ReactNode }) {
 /**
  * "تمرین: مرور مجدد واژگان جدید امروز" — the reward section on Home.
  *
- * Three states, decided entirely from data `StudyTodayHero` already fetched (so
- * this costs no extra request):
- *  - hidden   → no plans, or today involves no new words at all (nothing to practise);
- *  - locked   → today's session isn't finished yet; shown as a teaser so the
- *               user can see what's waiting;
- *  - unlocked → today's queue is empty and new words were introduced today.
+ * Both practice choices use the hero's queue metadata. The new-word teaser can
+ * be locked; difficult-word practice only appears after the whole queue is empty.
  */
 export function TodayPracticeCard() {
   const navigate = useNavigate();
-  const { data, isLoading } = useStudyToday();
+  const { data, isLoading, isFetching, isError } = useStudyToday();
 
-  if (isLoading || !data) return null;
+  if (isLoading || isFetching || isError || !data) return null;
 
-  const { dueCount, newCount, introducedToday, hasPlans } = data.meta;
+  const { dueCount, newCount, introducedToday, hardTodayCount, hasPlans } =
+    data.meta;
   const remaining = dueCount + newCount;
 
   // Nothing to practise: no plans, or a day with no new words on either side.
   if (!hasPlans) return null;
-  if (newCount === 0 && introducedToday === 0) return null;
+  if (newCount === 0 && introducedToday === 0 && !hardTodayCount) return null;
 
-  const unlocked = remaining === 0 && introducedToday > 0;
+  const unlocked = remaining === 0;
 
   if (!unlocked) {
     return (
@@ -114,6 +111,33 @@ export function TodayPracticeCard() {
     );
   }
 
+  const choices = [
+    ...(introducedToday > 0
+      ? [
+          {
+            title: "مرور مجدد واژگان جدید امروز",
+            description: "واژه‌هایی که امروز برای اولین بار خواندید",
+            count: introducedToday,
+            path: "/review-today",
+            action: "شروع تمرین",
+            icon: Dumbbell,
+          },
+        ]
+      : []),
+    ...(hardTodayCount > 0
+      ? [
+          {
+            title: "مرور واژه‌های سخت امروز",
+            description: "واژه‌هایی که «سخت» یا «بلد نیستم» پاسخ دادید",
+            count: hardTodayCount,
+            path: "/review-hard-today",
+            action: "تمرین واژه‌های سخت",
+            icon: Brain,
+          },
+        ]
+      : []),
+  ];
+
   return (
     <PracticeSection>
       <PracticeHeading
@@ -123,53 +147,75 @@ export function TodayPracticeCard() {
         badgeClassName="bg-primary/15 text-accent-foreground"
       />
 
-      <div className="surface relative overflow-hidden rounded-3xl p-5 sm:p-6">
-        {/* Soft glow — decorative only */}
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute -left-10 -top-14 h-40 w-40 rounded-full bg-primary/15 blur-3xl"
-        />
+      <div className={cn("grid gap-4", choices.length > 1 && "lg:grid-cols-2")}>
+        {choices.map(
+          ({ title, description, count, path, action, icon: Icon }) => (
+            <div
+              key={path}
+              className="surface relative overflow-hidden rounded-3xl p-5 sm:p-6"
+            >
+              {/* Soft glow — decorative only */}
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute -left-10 -top-14 h-40 w-40 rounded-full bg-primary/15 blur-3xl"
+              />
 
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-4">
-            {/*
+              <div
+                className={cn(
+                  "relative flex h-full flex-col gap-4",
+                  choices.length === 1 &&
+                    "sm:flex-row sm:items-center sm:justify-between",
+                )}
+              >
+                <div className="flex min-w-0 items-center gap-4">
+                  {/*
               The count leads. This is the second action on the page and it was
               reading as another paragraph of card copy; the numeral gives it
               something to be seen by from across the screen.
             */}
-            <span
-              className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl bg-accent text-accent-foreground"
-              aria-hidden="true"
-            >
-              <span className="text-2xl font-black leading-none tabular-nums">
-                {faNum(introducedToday)}
-              </span>
-              <span className="mt-1 text-[10px] font-medium">واژه</span>
-            </span>
+                  <span
+                    className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl bg-accent text-accent-foreground"
+                    aria-hidden="true"
+                  >
+                    <span className="text-2xl font-black leading-none tabular-nums">
+                      {faNum(count)}
+                    </span>
+                    <span className="mt-1 text-[10px] font-medium">واژه</span>
+                  </span>
 
-            <div className="min-w-0 space-y-1.5">
-              <p className="text-base font-bold text-foreground">
-                مرور مجدد واژگان جدید امروز
-              </p>
-              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <ShieldCheck
-                  className="h-3.5 w-3.5 shrink-0"
-                  aria-hidden="true"
-                />
-                بدون اثر روی زمان‌بندی مرور
-              </p>
+                  <div className="min-w-0 space-y-1.5">
+                    <p className="text-base font-bold text-foreground">
+                      {title}
+                    </p>
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      {description}
+                    </p>
+                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <ShieldCheck
+                        className="h-3.5 w-3.5 shrink-0"
+                        aria-hidden="true"
+                      />
+                      بدون اثر روی زمان‌بندی مرور
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  size="lg"
+                  className={cn(
+                    "mt-auto w-full shrink-0 gap-2 text-base font-bold shadow-sm",
+                    choices.length === 1 && "sm:mt-0 sm:w-auto",
+                  )}
+                  onClick={() => navigate(path)}
+                >
+                  <Icon className="h-5 w-5" aria-hidden="true" />
+                  {action}
+                  <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+                </Button>
+              </div>
             </div>
-          </div>
-
-          <Button
-            size="lg"
-            className="w-full shrink-0 gap-2 text-base font-bold shadow-sm sm:w-auto"
-            onClick={() => navigate("/review-today")}
-          >
-            شروع تمرین
-            <ArrowLeft className="h-5 w-5" aria-hidden="true" />
-          </Button>
-        </div>
+          ),
+        )}
       </div>
     </PracticeSection>
   );

@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Volume2, VolumeX, BookOpen, RotateCcw } from "lucide-react";
+import {
+  Volume2,
+  VolumeX,
+  BookOpen,
+  RotateCcw,
+  ArrowRight,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/tooltip";
 import { ReviewCard } from "@/components/vocabulary/ReviewCard";
@@ -208,7 +214,7 @@ function computeSessionStats(
 /** Answer buttons — revealed only after the card is flipped (spec: view then rate). */
 function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
   const btn =
-    "w-full whitespace-nowrap rounded-lg border px-2 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2";
+    "w-full rounded-lg border px-2 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2";
   return (
     <div className="flex items-stretch gap-2">
       <Tooltip label="اصلاً یادم نیامد" className="flex-1">
@@ -217,11 +223,11 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
           className={cn(
             btn,
             "border-red-300 text-red-700 hover:bg-red-50 focus-visible:ring-red-400 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40",
-            `${isNative() ? "flex flex-col" : ""}`,
+            isNative() && "flex flex-col items-center justify-center text-center",
           )}
         >
           بلد نیستم
-          {isNative() && <span className="text-[7px]">(اصلاً یادم نیامد)</span>}
+          {isNative() && <span className="text-[7px] leading-tight">(اصلاً یادم نیامد)</span>}
         </button>
       </Tooltip>
       <Tooltip label="به سختی یادم آمد" className="flex-1">
@@ -230,11 +236,11 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
           className={cn(
             btn,
             "border-amber-300 text-amber-700 hover:bg-amber-50 focus-visible:ring-amber-400 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/40",
-            `${isNative() ? "flex flex-col" : ""}`,
+            isNative() && "flex flex-col items-center justify-center text-center",
           )}
         >
           سخت
-          {isNative() && <span className="text-[7px]">(به سختی یادم آمد)</span>}
+          {isNative() && <span className="text-[7px] leading-tight">(به سختی یادم آمد)</span>}
         </button>
       </Tooltip>
       <Tooltip label="به‌راحتی یادم آمد" className="flex-1">
@@ -243,12 +249,12 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
           className={cn(
             btn,
             "border-green-300 text-green-700 hover:bg-green-50 focus-visible:ring-green-400 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950/40",
-            `${isNative() ? "flex flex-col" : ""}`,
+            isNative() && "flex flex-col items-center justify-center text-center",
           )}
         >
           بلدم
           {isNative() && (
-            <span className="text-[7px]">(به‌راحتی یادم آمد)</span>
+            <span className="text-[7px] leading-tight">(به‌راحتی یادم آمد)</span>
           )}
         </button>
       </Tooltip>
@@ -258,11 +264,11 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
           className={cn(
             btn,
             "max-w-[4.5rem] border-dashed border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring",
-            `${isNative() ? "flex flex-col" : ""}`,
+            isNative() && "flex flex-col items-center justify-center text-center",
           )}
         >
           رد
-          {isNative() && <span className="text-[7px]">(فعلاً رد کن)</span>}
+          {isNative() && <span className="text-[7px] leading-tight">(فعلاً رد کن)</span>}
         </button>
       </Tooltip>
     </div>
@@ -277,7 +283,7 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
  */
 function ReadBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
   const btn =
-    "whitespace-nowrap rounded-lg border px-2 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2";
+    "rounded-lg border px-2 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2";
   return (
     <div className="flex items-stretch gap-2">
       <Tooltip label="این واژه جدید را خواندم" className="flex-1">
@@ -335,6 +341,8 @@ export function StudySessionPage() {
   const [saving, setSaving] = useState(false);
 
   const startedAtRef = useRef<Date>(new Date());
+  // Completion/practice metadata must be fetched after the last answer is saved.
+  const pendingAnswers = useRef(new Set<Promise<unknown>>());
 
   // While a session is live, pending study reminders are cancelled (the user
   // is already studying — a "you haven't reviewed today" ping mid-session is
@@ -584,7 +592,7 @@ export function StudySessionPage() {
   useEffect(() => {
     return () => {
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      queryClient.invalidateQueries({ queryKey: ["study", "today"] });
+      queryClient.invalidateQueries({ queryKey: ["study"] });
     };
   }, [queryClient]);
 
@@ -622,24 +630,26 @@ export function StudySessionPage() {
     // Only record a session if the user actually did something.
     if (stats.reviewedCount + stats.skippedCount + stats.newCount > 0) {
       setSaving(true);
-      studyService
-        .recordSession({
-          startedAt: startedAtRef.current.toISOString(),
-          endedAt: endedAt.toISOString(),
-          durationSec: stats.durationSec,
-          reviewedCount: stats.reviewedCount,
-          correctCount: stats.correctCount,
-          wrongCount: stats.wrongCount,
-          hardCount: stats.hardCount,
-          skippedCount: stats.skippedCount,
-          newCount: stats.newCount,
-        })
+      Promise.all([...pendingAnswers.current])
+        .then(() =>
+          studyService.recordSession({
+            startedAt: startedAtRef.current.toISOString(),
+            endedAt: endedAt.toISOString(),
+            durationSec: stats.durationSec,
+            reviewedCount: stats.reviewedCount,
+            correctCount: stats.correctCount,
+            wrongCount: stats.wrongCount,
+            hardCount: stats.hardCount,
+            skippedCount: stats.skippedCount,
+            newCount: stats.newCount,
+          }),
+        )
         .then((res) => setSummary(res.today))
         .catch((e) => console.error("recordSession failed", e))
         .finally(() => {
           setSaving(false);
           queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-          queryClient.invalidateQueries({ queryKey: ["study", "today"] });
+          queryClient.invalidateQueries({ queryKey: ["study"] });
           // Studied today → drop tonight's reminder (and refresh the horizon).
           rescheduleNotifications();
         });
@@ -654,9 +664,11 @@ export function StudySessionPage() {
 
       // Persist (fire-and-forget; SKIP is a no-op server-side).
       if (a !== "SKIP") {
-        void studyService
+        const pending = studyService
           .answer(cur.word.id, a)
           .catch((e) => console.error("answer failed", e));
+        pendingAnswers.current.add(pending);
+        void pending.finally(() => pendingAnswers.current.delete(pending));
       }
 
       // Recomputed here (not read off the render-scoped `isFirstExposure`) so the
@@ -804,6 +816,10 @@ export function StudySessionPage() {
         saving={saving}
         onHome={() => navigate("/dashboard")}
         onAgain={restart}
+        hardPracticeCount={
+          !isFetching && !isError ? today?.meta.hardTodayCount : 0
+        }
+        onPracticeHard={() => navigate("/review-hard-today")}
       />
     );
   }
@@ -881,7 +897,7 @@ export function StudySessionPage() {
   return (
     <div
       dir="rtl"
-      className="font-persian mx-auto max-w-3xl space-y-4 px-2 py-4 sm:px-4 sm:py-6"
+      className="font-persian mx-auto max-w-3xl space-y-4 px-2 py-4 pt-2 sm:px-4 sm:py-6"
     >
       {/* Toolbar */}
       <div className="flex items-center gap-2">
@@ -892,7 +908,7 @@ export function StudySessionPage() {
           className="h-8 w-8 flex-shrink-0"
           title="بازگشت"
         >
-          <ArrowLeft className="h-5 w-5" />
+          <ArrowRight className="h-5 w-5" />
         </Button>
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-sm font-bold text-foreground">

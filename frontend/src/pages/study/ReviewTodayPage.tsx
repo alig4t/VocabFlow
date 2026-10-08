@@ -10,11 +10,13 @@ import {
   Trophy,
   Sparkles,
   RotateCcw,
+  Brain,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ReviewCard } from "@/components/vocabulary/ReviewCard";
 import { ReviewActions } from "@/components/vocabulary/ReviewActions";
-import { useTodayNewWords } from "@/hooks/useStudy";
+import { useTodayNewWords, useTodayHardWords } from "@/hooks/useStudy";
 import { useSettings } from "@/hooks/useSettings";
 import { useUpdateWordStatus } from "@/hooks/useProgress";
 import { cn } from "@/lib/utils";
@@ -45,10 +47,16 @@ function loadMuted(): boolean {
  * like `/vocabulary/review`. **Nothing on this page touches SM-2** — no
  * `study/answer` call, no interval/ease/next-review change — so practising as
  * often as you like can never disturb tomorrow's queue.
+ * The hard-word variant shares the cards, with navigation only and no marks.
  */
-export function ReviewTodayPage() {
+export function ReviewTodayPage({ kind = "new" }: { kind?: "new" | "hard" }) {
   const navigate = useNavigate();
-  const { data, isLoading, isError, isFetching, refetch } = useTodayNewWords();
+  const hardPractice = kind === "hard";
+  const newQuery = useTodayNewWords(!hardPractice);
+  const hardQuery = useTodayHardWords(hardPractice);
+  const { data, isLoading, isError, isFetching, refetch } = hardPractice
+    ? hardQuery
+    : newQuery;
   const { data: settings } = useSettings();
   const { mutate: updateStatus } = useUpdateWordStatus();
 
@@ -116,7 +124,7 @@ export function ReviewTodayPage() {
 
   const markStatus = useCallback(
     (status: "KNOWN" | "NOT_KNOWN") => {
-      if (!currentWord) return;
+      if (hardPractice || !currentWord) return;
       const wordId = currentWord.id;
       setWords((list) =>
         (list ?? []).map((w) =>
@@ -149,7 +157,7 @@ export function ReviewTodayPage() {
       updateStatus({ wordId, reviewMode: activeMode, status });
       goNext();
     },
-    [currentWord, activeMode, updateStatus, goNext],
+    [hardPractice, currentWord, activeMode, updateStatus, goNext],
   );
 
   const handleKnown = useCallback(() => markStatus("KNOWN"), [markStatus]);
@@ -181,7 +189,8 @@ export function ReviewTodayPage() {
     return () => stopPronunciation();
   }, []);
 
-  // Keyboard: ← → navigate, Space flips, ↑ گرفتم, ↓ نگرفتم, P pronounce.
+  // Keyboard: arrows navigate, Space flips, P pronounces. Rating shortcuts
+  // apply only to the existing new-word practice.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (
@@ -192,19 +201,19 @@ export function ReviewTodayPage() {
         return;
       if (finished || !currentWord) return;
 
-      if (e.key === "ArrowRight") {
+      if (e.key === (hardPractice ? "ArrowLeft" : "ArrowRight")) {
         e.preventDefault();
         goNext();
-      } else if (e.key === "ArrowLeft") {
+      } else if (e.key === (hardPractice ? "ArrowRight" : "ArrowLeft")) {
         e.preventDefault();
         goPrev();
       } else if (e.key === " " || e.code === "Space") {
         e.preventDefault();
         toggleFlip();
-      } else if (e.key === "ArrowUp") {
+      } else if (!hardPractice && e.key === "ArrowUp") {
         e.preventDefault();
         handleKnown();
-      } else if (e.key === "ArrowDown") {
+      } else if (!hardPractice && e.key === "ArrowDown") {
         e.preventDefault();
         handleNotKnown();
       } else if (e.key === "p" || e.key === "P") {
@@ -223,6 +232,7 @@ export function ReviewTodayPage() {
     handleKnown,
     handleNotKnown,
     pronounce,
+    hardPractice,
   ]);
 
   const bookLabel = useMemo(() => {
@@ -235,7 +245,7 @@ export function ReviewTodayPage() {
 
   // ── Render states ──────────────────────────────────────────────────────────
 
-  if (isLoading || (data && words === null)) {
+  if (!isError && (isLoading || (data && words === null))) {
     return (
       <div className="mx-auto max-w-4xl px-4 py-6">
         <div className="h-[420px] animate-pulse rounded-2xl bg-muted" />
@@ -250,11 +260,32 @@ export function ReviewTodayPage() {
         className="font-persian mx-auto max-w-2xl px-4 py-16 text-center"
       >
         <p className="text-sm font-medium text-destructive">
-          خطا در بارگذاری واژه‌های امروز.
+          {hardPractice
+            ? "خطا در بارگذاری واژه‌های سخت امروز."
+            : "خطا در بارگذاری واژه‌های امروز."}
         </p>
         <Button variant="outline" className="mt-4" onClick={() => refetch()}>
           تلاش دوباره
         </Button>
+      </div>
+    );
+  }
+
+  if (hardPractice && hardQuery.data?.available === false) {
+    return (
+      <div
+        dir="rtl"
+        className="font-persian mx-auto max-w-xl space-y-4 px-4 py-12 text-center"
+      >
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+          <Lock className="h-8 w-8 text-muted-foreground" />
+        </div>
+        <h1 className="text-xl font-bold">اول مطالعه امروز را کامل کنید</h1>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          بعد از تمام‌کردن همه‌ی مرورها و واژه‌های جدید، تمرین واژه‌های سخت
+          امروز آماده می‌شود.
+        </p>
+        <Button onClick={() => navigate("/study")}>ادامه مطالعه امروز</Button>
       </div>
     );
   }
@@ -269,11 +300,14 @@ export function ReviewTodayPage() {
           <Dumbbell className="h-8 w-8 text-muted-foreground" />
         </div>
         <p className="text-lg font-semibold text-foreground">
-          امروز واژه‌ی جدیدی نخوانده‌اید
+          {hardPractice
+            ? "امروز واژه‌ی سختی برای تمرین ندارید"
+            : "امروز واژه‌ی جدیدی نخوانده‌اید"}
         </p>
         <p className="text-sm text-muted-foreground">
-          بعد از تمام‌کردن «مطالعه امروز»، واژه‌های تازه‌ی همان روز اینجا برای
-          تمرین آماده می‌شوند.
+          {hardPractice
+            ? "فقط واژه‌هایی که امروز «سخت» یا «بلد نیستم» پاسخ داده‌اید، اینجا نمایش داده می‌شوند."
+            : "بعد از تمام‌کردن «مطالعه امروز»، واژه‌های تازه‌ی همان روز اینجا برای تمرین آماده می‌شوند."}
         </p>
         <Button className="mt-2" onClick={() => navigate("/dashboard")}>
           بازگشت به خانه
@@ -293,27 +327,32 @@ export function ReviewTodayPage() {
         </div>
         <div className="space-y-1.5">
           <h1 className="text-2xl font-bold text-foreground">
-            تمرین امروز تمام شد! 💪
+            {hardPractice
+              ? "تمرین واژه‌های سخت تمام شد!"
+              : "تمرین امروز تمام شد! 💪"}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {total} واژه‌ی جدید امروز را دوباره مرور کردید.
+            {total} {hardPractice ? "واژه‌ی سخت امروز" : "واژه‌ی جدید امروز"} را
+            دوباره مرور کردید.
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-xl border border-border bg-card px-3 py-4">
-            <p className="text-2xl font-bold tabular-nums text-green-500">
-              {tally.known}
-            </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">گرفتم</p>
+        {!hardPractice && (
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl border border-border bg-card px-3 py-4">
+              <p className="text-2xl font-bold tabular-nums text-green-500">
+                {tally.known}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">گرفتم</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card px-3 py-4">
+              <p className="text-2xl font-bold tabular-nums text-red-500">
+                {tally.notKnown}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">نگرفتم</p>
+            </div>
           </div>
-          <div className="rounded-xl border border-border bg-card px-3 py-4">
-            <p className="text-2xl font-bold tabular-nums text-red-500">
-              {tally.notKnown}
-            </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">نگرفتم</p>
-          </div>
-        </div>
+        )}
 
         <p className="text-xs text-muted-foreground">
           این تمرین روی زمان‌بندی مرور فردا هیچ اثری نگذاشت.
@@ -347,15 +386,22 @@ export function ReviewTodayPage() {
       {/* Practice banner — gold identity, and an explicit "SM-2 untouched" promise. */}
       <div className="flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 p-3">
         <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
-          <Dumbbell className="h-5 w-5" />
+          {hardPractice ? (
+            <Brain className="h-5 w-5" />
+          ) : (
+            <Dumbbell className="h-5 w-5" />
+          )}
         </span>
         <div className="min-w-0 space-y-0.5">
           <p className="text-sm font-bold text-foreground">
-            تمرین — مرور مجدد واژگان جدید امروز
+            {hardPractice
+              ? "مرور واژه‌های سخت امروز"
+              : "تمرین — مرور مجدد واژگان جدید امروز"}
           </p>
           <p className="text-xs leading-relaxed text-muted-foreground">
-            واژه‌هایی که امروز برای اولین بار خواندید، یک‌بار دیگر. این تمرین
-            آزاد است و روی زمان‌بندی «مطالعه امروز» هیچ تأثیری ندارد.
+            {hardPractice
+              ? "واژه‌هایی که امروز سخت بودند یا به یاد نیاوردید؛ با خیال راحت و بدون امتیازدهی دوباره بخوانید."
+              : "واژه‌هایی که امروز برای اولین بار خواندید، یک‌بار دیگر. این تمرین آزاد است و روی زمان‌بندی «مطالعه امروز» هیچ تأثیری ندارد."}
           </p>
         </div>
       </div>
@@ -369,12 +415,17 @@ export function ReviewTodayPage() {
             onClick={() => navigate("/dashboard")}
             className="h-8 w-8 flex-shrink-0"
             title="بازگشت"
+            aria-label="بازگشت به خانه"
           >
-            <ArrowLeft className="h-5 w-5" />
+            {hardPractice ? (
+              <ChevronRight className="h-5 w-5" />
+            ) : (
+              <ArrowLeft className="h-5 w-5" />
+            )}
           </Button>
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-sm font-bold text-foreground">
-              تمرین امروز
+              {hardPractice ? "تمرین واژه‌های سخت" : "تمرین امروز"}
             </h1>
             {bookLabel && (
               <p className="truncate text-[11px] text-muted-foreground">
@@ -429,9 +480,9 @@ export function ReviewTodayPage() {
           <div className="flex items-center justify-between text-xs text-muted-foreground tabular-nums">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary">
               <Sparkles className="h-3 w-3" />
-              واژه‌های جدید امروز
+              {hardPractice ? "واژه‌های سخت امروز" : "واژه‌های جدید امروز"}
             </span>
-            <span>
+            <span dir="ltr" aria-live="polite">
               <span className="font-semibold text-foreground">
                 {Math.min(index + 1, total)}
               </span>
@@ -460,36 +511,55 @@ export function ReviewTodayPage() {
             showExamples={settings?.showExamples ?? true}
           />
 
-          <div className="flex items-center justify-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-10 w-10 flex-shrink-0 rounded-full"
-              disabled={index === 0}
-              onClick={goPrev}
-              title="قبلی (←)"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </Button>
+          {hardPractice ? (
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                variant="outline"
+                size="lg"
+                className="gap-2 rounded-xl"
+                disabled={index === 0}
+                onClick={goPrev}
+              >
+                <ChevronRight className="h-5 w-5" aria-hidden="true" />
+                قبلی
+              </Button>
+              <Button size="lg" className="gap-2 rounded-xl" onClick={goNext}>
+                بعدی
+                <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-10 w-10 flex-shrink-0 rounded-full"
+                disabled={index === 0}
+                onClick={goPrev}
+                title="قبلی (←)"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </Button>
 
-            <ReviewActions
-              word={currentWord}
-              mode={activeMode}
-              onKnown={handleKnown}
-              onNotKnown={handleNotKnown}
-              onSkip={goNext}
-            />
+              <ReviewActions
+                word={currentWord}
+                mode={activeMode}
+                onKnown={handleKnown}
+                onNotKnown={handleNotKnown}
+                onSkip={goNext}
+              />
 
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-10 w-10 flex-shrink-0 rounded-full"
-              onClick={goNext}
-              title="بعدی (→)"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-          </div>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-10 w-10 flex-shrink-0 rounded-full"
+                onClick={goNext}
+                title="بعدی (→)"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+            </div>
+          )}
 
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
             <button
@@ -504,14 +574,22 @@ export function ReviewTodayPage() {
 
           {!isNative() && (
             <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[11px] text-muted-foreground/80">
-              {[
-                { key: "→", label: "قبلی" },
-                { key: "←", label: "بعدی" },
-                { key: "Space", label: "برگرداندن" },
-                { key: "↑", label: "گرفتم" },
-                { key: "↓", label: "نگرفتم" },
-                { key: "P", label: "تلفظ" },
-              ].map((s) => (
+              {(hardPractice
+                ? [
+                    { key: "→", label: "قبلی" },
+                    { key: "←", label: "بعدی" },
+                    { key: "Space", label: "برگرداندن" },
+                    { key: "P", label: "تلفظ" },
+                  ]
+                : [
+                    { key: "→", label: "قبلی" },
+                    { key: "←", label: "بعدی" },
+                    { key: "Space", label: "برگرداندن" },
+                    { key: "↑", label: "گرفتم" },
+                    { key: "↓", label: "نگرفتم" },
+                    { key: "P", label: "تلفظ" },
+                  ]
+              ).map((s) => (
                 <span key={s.label} className="inline-flex items-center gap-1">
                   <kbd className="rounded border border-border px-1.5 py-0.5 font-mono text-[11px]">
                     {s.key}
@@ -525,4 +603,9 @@ export function ReviewTodayPage() {
       )}
     </div>
   );
+}
+
+/** Shares the existing practice cards; this variant never writes a rating. */
+export function ReviewHardTodayPage() {
+  return <ReviewTodayPage kind="hard" />;
 }

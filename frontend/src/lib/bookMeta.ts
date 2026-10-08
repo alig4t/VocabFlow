@@ -156,6 +156,25 @@ export const BOOK_META: Record<string, BookMeta> = {
   },
 };
 
+/**
+ * Curated starter recommendations shown at the top of the discovery page.
+ * Reason text answers "why this book?" in one short line for a first-time user.
+ */
+export const RECOMMENDED_TITLES: { title: string; reason: string }[] = [
+  {
+    title: "4000 Essential English Words",
+    reason: "شروعِ ایده‌آل: از پایه تا پیشرفته، با ۶ جلد مرحله‌به‌مرحله.",
+  },
+  {
+    title: "Vocabulary in Use",
+    reason: "درس‌های یک‌صفحه‌ای کمبریج؛ هر روز یک درس کوتاه و مؤثر.",
+  },
+  {
+    title: "Oxford Word Skills",
+    reason: "یادگیری واژه بر پایه‌ی موضوع، در سه سطح قابل انتخاب.",
+  },
+];
+
 const DEFAULT_META: BookMeta = {
   category: "words",
   author: "—",

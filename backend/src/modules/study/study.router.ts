@@ -14,5 +14,6 @@ studyRouter.use(authenticate)
 
 studyRouter.get('/today', studyController.getToday)
 studyRouter.get('/today-new', studyController.getTodayNew)
+studyRouter.get('/today-hard', studyController.getTodayHard)
 studyRouter.post('/answer', studyController.answer)
 studyRouter.post('/session', studyController.recordSession)
