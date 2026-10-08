@@ -5,7 +5,7 @@ This is an ordinary repository file maintained by hand. It is **not** Claude Cod
 knowledge that the code can't tell you: *why* things are the way they are, known defects, unanswered questions, and
 lessons from past investigations. For how to work in the repo see `CLAUDE.md`; for detailed references see `docs/`.
 
-Last reconciled with the code: **2026-10-04**. Remove entries when they stop being true.
+Last full reconciliation with the code: **2026-10-04**. Targeted follow-up checks are dated below. Remove entries when they stop being true.
 
 ---
 
@@ -64,8 +64,13 @@ These are documented, not fixed. Fixing any of them is a behavior change, so con
 - Web logout only clears local state, so the refresh token stays valid server-side. Password change doesn't revoke
   refresh tokens either. `config/index.ts` silently falls back to hard-coded JWT secrets if `.env` lacks them.
 - Offline `answerStudy` and backend `answer()` write progress and `review_events` without a transaction.
+- Potential reminder defect (static inspection, 2026-10-08): `App.tsx` reschedules on foreground even while the
+  study page is mounted; `rescheduleNotifications()` does not check `sessionDepth`. This can restore reminders
+  cancelled by `beginStudySession()`. Device behavior is unverified; no application fix was made.
 - `npm run lint` fails (ESLint not installed, no config). `npm run scrap` in `scrap/` points at a missing
   `scraper.js`.
+- Validation baseline (2026-10-08): both package type checks passed; frontend `npm run format:check` reported
+  pre-existing formatting issues in 23 files. This is not a clean formatting baseline; do not reformat unrelated files.
 - `books/` and `frontend/seed-src/` hold the same 26 books but several files differ by a few bytes. Six old-format
   `seed-src/4000-essential-english-words-{1..6}.json` are dead (not in the manifest).
 - `docs/DATABASE_SCHEMA.html` predates `review_events`.
@@ -77,8 +82,11 @@ These are documented, not fixed. Fixing any of them is a behavior change, so con
 - Which copy of the book JSON (`books/` or `seed-src/`) is canonical?
 - Has an APK ever been built on the Windows machine? All recorded builds were on the Linux machine.
 - Are the reminders (local notifications) verified on a real device? The implementation log said "not yet".
-- Are the 11 missing Oxford Word Skills Intermediate lessons still missing?
 - Are all migrations applied on each machine's Postgres? (`npx prisma migrate status` in `backend/`.)
+
+Resolved by file inspection (2026-10-08): both Oxford Word Skills Intermediate JSON copies now contain 80 nonempty
+lessons numbered 1–80 and 2,873 words. The earlier 11-lesson shortfall is absent; accuracy against the publisher's
+content remains unverified (see `docs/CONTENT_PIPELINE.md`).
 
 ---
 

@@ -9,7 +9,7 @@
 | ابزار | نسخه | کاربرد |
 |-------|------|--------|
 | React / React DOM | 18.3 | UI |
-| TypeScript | 5.6 (`strict`, `noUnusedLocals/Parameters`) | زبان |
+| TypeScript | 5.9.3 در lockfile؛ بازه‌ی manifest: `^5.6.3` (`strict`, `noUnusedLocals/Parameters`) | زبان |
 | Vite | 5.4 | dev server و build |
 | Tailwind CSS + shadcn/ui (Radix) | 3.4 | استایل و کامپوننت |
 | TanStack Query | 5.62 | state داده (devtools در همه‌ی buildها mount است) |

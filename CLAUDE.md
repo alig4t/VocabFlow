@@ -27,7 +27,7 @@ unimplemented plan.
    Use the `schema-change` skill.
 5. **Keep to existing patterns.** Copy the neighboring module or component. No architectural rewrites, dependency
    upgrades (Prisma is pinned at 5.22) or "cleanup" of the known defects listed in `MEMORY.md` unless asked.
-6. **Validate and report honestly** (see Checks). There are no tests, so never claim tests passed.
+6. **Validate and report honestly** (see Checks). There is no application test suite, so never claim tests passed.
 7. **Don't** build the APK, bump `SEED_VERSION` or commit unless the user asks. (Syncing to the other machine is a
    standing request; see "Two machines".)
 
@@ -62,7 +62,8 @@ npm run build                        # tsc → dist/
 cd frontend
 npm run dev                          # http://localhost:5173, proxies /api → :3000
 npm run build                        # tsc && vite build
-npm run format / format:check        # prettier (no config file → defaults)
+npm run format:check                 # read-only prettier check (no config file → defaults)
+npm run format                       # writes formatting; use only for intended source changes
 npm run seed:encrypt                 # seed-src (manifest.json list) → public/seed-enc; needs VITE_SEED_SECRET
 ```
 
@@ -74,8 +75,8 @@ skill, and only when asked.
 - `npx tsc --noEmit` in `backend/` and in `frontend/`: both passed with 0 errors on 2026-10-04. This is the main
   automated check, so run it after every change.
 - `npm run lint` is **broken**: ESLint isn't installed and has no config. Don't rely on it or "fix" it unasked.
-- No test suite, no CI. Backend behavior can be checked with `curl` against the running API (log in via
-  `POST /api/auth/login`). UI changes can only be verified by running the app. Native/SQLite behavior can only be
+- No application test suite or CI (Android has only template example tests). Backend behavior can be checked with
+  `curl` against the running API (log in via `POST /api/auth/login`). UI changes can only be verified by running the app. Native/SQLite behavior can only be
   verified on a device or emulator. Say what you did and did not verify.
 
 ## Environment
@@ -109,8 +110,8 @@ skill, and only when asked.
   `book.service` are web-only.
 - Components use `hooks/use*.ts`, not services. Existing exceptions: `StudySessionPage` (answer/recordSession),
   `WordFormPage` (addExample), `WordCard` (synonyms).
-- `store/authStore.ts` is Zustand that writes localStorage by hand (no persist middleware). `App.tsx` renders nothing
-  until `isReady`, and on native also waits for `dbReady` (the seed). All pages are `lazy()`.
+- `store/authStore.ts` is Zustand that writes localStorage by hand (no persist middleware). `App.tsx` shows PageLoader
+  until `isReady`, and on native SeedLoader until `dbReady` (the seed). All pages are `lazy()`.
 - UI: shadcn/ui in `components/ui/` + Tailwind. Theme tokens are HSL variables in `src/index.css` for `:root`
   (light), `.dark` and `.study` (sepia). RTL is applied **per element** (`dir="rtl"` / `.rtl`); `<html>` is `dir="ltr"`.
   Persian font is `font-persian` (Anjoman). IPA uses `.font-ipa`, never `font-mono` (it renders tofu on Android).

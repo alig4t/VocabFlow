@@ -64,7 +64,7 @@ export function isNative(): boolean {
 }
 ```
 
-هر سرویس بین HTTP (وب) و SQLite (اندروید) شاخه می‌زند. کد آفلاین با **import پویا** بارگذاری می‌شود تا در باندل وب نیاید:
+هر سرویس بین HTTP (وب) و SQLite (اندروید) شاخه می‌زند. `repo.ts` با **import پویا** در یک chunk جدا بارگذاری می‌شود؛ بقیه‌ی وابستگی‌های آفلاین لزوماً از باندل وب حذف نمی‌شوند (هشدار پایین):
 
 ```ts
 // نمونه: src/services/vocabulary.service.ts
@@ -107,7 +107,7 @@ getWords(filters) {
 - unique constraintهای `volumes`/`lessons` و ستون‌های `created_at`/`updated_at` اکثر جدول‌ها وجود ندارند؛ برخی ستون‌ها nullable‌ترند.
 - `srs.ts` از نظر منطق با بک‌اند یکی است (ثابت‌ها، فرمول‌ها، `DAY_START_HOUR = 6`) ولی byte-identical نیست (سبک کد/تایپ‌ها).
 
-> **مهاجرت اسکیمای نصب‌های قدیمی:** چون `CREATE TABLE IF NOT EXISTS` هرگز جدول موجود را تغییر نمی‌دهد، `migrateSchema()` با `PRAGMA table_info` ستون‌های غایب را از آرایه‌های `PROGRESS_ADDED_COLUMNS`، `WORDS_ADDED_COLUMNS`، `USER_SETTINGS_ADDED_COLUMNS` با `ALTER TABLE ... ADD COLUMN` اضافه می‌کند (و اگر `manual_status` تازه اضافه شد، `status` را در آن کپی می‌کند). ایندکس `idx_progress_due` **بعد از** این ADD COLUMNها داخل همین تابع ساخته می‌شود. هیچ شماره‌ی نسخه‌ی اسکیما وجود ندارد (`DB_VERSION = 1` استفاده نمی‌شود).
+> **مهاجرت اسکیمای نصب‌های قدیمی:** چون `CREATE TABLE IF NOT EXISTS` هرگز جدول موجود را تغییر نمی‌دهد، `migrateSchema()` با `PRAGMA table_info` ستون‌های غایب را از آرایه‌های `PROGRESS_ADDED_COLUMNS`، `WORDS_ADDED_COLUMNS`، `USER_SETTINGS_ADDED_COLUMNS` با `ALTER TABLE ... ADD COLUMN` اضافه می‌کند (و اگر `manual_status` تازه اضافه شد، `status` را در آن کپی می‌کند). ایندکس `idx_progress_due` **بعد از** این ADD COLUMNها داخل همین تابع ساخته می‌شود. `DB_VERSION = 1` به `createConnection()` پلاگین پاس داده می‌شود، ولی مهاجرت ستون‌ها با بررسی وجودشان انجام می‌شود، نه با افزایش این نسخه.
 >
 > **چک‌لیست ستون جدید:** (۱) DDL در `CREATE TABLE`، (۲) ورودی در آرایه‌ی `*_ADDED_COLUMNS` مربوطه — با `DEFAULT` اگر `NOT NULL` است، (۳) ایندکس روی ستون جدید فقط داخل `migrateSchema()`، (۴) اگر seed آن را پر می‌کند، لیست ستون‌های `bulkInsert` در `seed.ts`. جدول کاملاً جدید فقط DDL لازم دارد.
 
@@ -137,7 +137,7 @@ if (isNative()) {
   return
 }
 ```
-روی نیتیو کاربرِ محلیِ ادمین ست می‌شود تا همه‌ی مسیرها (از جمله ویرایش لغت) باز باشند و صفحه‌ی لاگین نیاید. `App.tsx` هم مسیر `/` را روی نیتیو به `/dashboard` هدایت می‌کند.
+روی نیتیو کاربرِ محلیِ ادمین ست می‌شود تا همه‌ی مسیرها (از جمله ویرایش لغت) باز باشند و صفحه‌ی لاگین نیاید. `App.tsx` مسیر `/` را تا تکمیل onboarding به `/onboarding` و سپس به `/dashboard` هدایت می‌کند.
 
 ### ۳.۵. تفاوت‌های UIِ نیتیو
 - **سایدبار:** بخش مدیریت سروری (کاربران/کتاب‌ها/پنل) مخفی؛ فقط «افزودن لغت» می‌ماند.
@@ -180,7 +180,8 @@ npm install
 #   نیازمند frontend/.env با VITE_SEED_SECRET (کلید مشترکِ رمز/رمزگشایی)
 npm run seed:encrypt
 
-# ۲) بیلد وب‌اپ  (⚠ از vite مستقیم استفاده کن، نه `npm run build`)
+# ۲) بررسی تایپ و بیلد وب‌اپ (`npm run build` نیز همین دو مرحله را اجرا می‌کند)
+npx tsc --noEmit
 npx vite build
 
 # ۳) انتقال assets و پلاگین‌ها به پروژه‌ی اندروید
@@ -200,7 +201,7 @@ frontend/android/app/build/outputs/apk/debug/app-debug.apk
 ```
 (در روت پروژه هم کپی شده: `VocabFlow-offline-debug.apk`)
 
-> **چرا `npx vite build` و نه `npm run build`؟** اسکریپت `build` اول `tsc` را اجرا می‌کند و قبلاً چند خطای تایپیِ قدیمی باعث توقف می‌شد. در 2026-10-04 `npx tsc --noEmit` بدون خطا بود، پس هر دو کار می‌کنند؛ `vite build` مستقیم همچنان مسیر مستند است چون به وضعیت تایپ‌ها وابسته نیست. قبل از بیلد، `npx tsc --noEmit` را جداگانه اجرا کن.
+> مسیر تاریخی بیلد از `npx vite build` استفاده می‌کرد چون خطاهای تایپیِ قدیمی `npm run build` را متوقف می‌کردند. `npm run build` واقعاً `tsc && vite build` است و بررسی تایپ نباید دور زده شود: یا همان اسکریپت را اجرا کن، یا ابتدا `npx tsc --noEmit` و سپس `npx vite build`.
 
 ### نصب روی گوشی
 فایل APK را به گوشی منتقل کن → «نصب از منابع ناشناس» را برای فایل‌منیجر/مرورگر فعال کن → نصب. (APK دیباگ با کلید دیباگِ خودکار امضا می‌شود و برای سایدلود کافی است.)

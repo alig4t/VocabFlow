@@ -193,7 +193,7 @@ ON CONFLICT (slug) DO NOTHING;
 Or use the Prisma seed script which does the same idempotently:
 
 ```bash
-npx prisma db seed
+npm run db:seed
 ```
 
 ---
@@ -308,7 +308,7 @@ ON CONFLICT (user_id, word_id, review_mode) DO NOTHING;
 | `npx prisma migrate deploy` | Apply pending migrations in production (no schema changes, no prompts) |
 | `npx prisma migrate reset` | Drop the database and reapply all migrations from scratch (development only) |
 | `npx prisma migrate status` | Show which migrations have been applied vs. pending |
-| `npx prisma db seed` | Run `prisma/seed.ts` to populate default data |
+| `npm run db:seed` | Run `prisma/seed.ts` via the configured npm script (no Prisma seed hook is configured) |
 | `npx prisma generate` | Regenerate the Prisma Client after schema changes |
 | `npx prisma studio` | Open the Prisma Studio GUI to inspect data |
 | `npx prisma db pull` | Introspect an existing database and update `schema.prisma` |

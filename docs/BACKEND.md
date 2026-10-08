@@ -9,7 +9,7 @@
 | ابزار | نسخه | کاربرد |
 |-------|------|--------|
 | Node.js | 20+ | Runtime |
-| TypeScript | 5.6 (`strict`) | زبان اصلی |
+| TypeScript | 5.9.3 در lockfile؛ بازه‌ی manifest: `^5.6.3` (`strict`) | زبان اصلی |
 | Express.js | 4.21 + `express-async-errors` | فریم‌ورک HTTP |
 | PostgreSQL | 16 (Docker، `docker-compose.yml`) | دیتابیس |
 | Prisma ORM | 5.22 — **ارتقا نده** | ارتباط با دیتابیس |
