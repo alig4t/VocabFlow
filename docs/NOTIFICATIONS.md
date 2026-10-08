@@ -251,7 +251,6 @@ cd android && JAVA_HOME=/usr/lib/jvm/java-17-openjdk ./gradlew assembleDebug   #
 - ✅ `tsc --noEmit`: صفر خطا در کل پروژه
 - ✅ `vite build` + `cap sync` موفق (پلاگین ثبت شد)
 - ✅ **APK ساخته شد** با JDK 17؛ مانیفست merge‌شده مجوزها و Receiverِ boot را دارد
-- ✅ فایل‌ها به سیستم دوم (`192.168.2.115:D:/project/VocabFlow`) mirror شد (byte-size match)
 
 ### تستِ روی دستگاه (هنوز انجام‌نشده — نیاز به گوشی)
 1. نصب APK و اجرا؛ اولین بار اجازه‌ی اعلان را بده.
@@ -294,6 +293,3 @@ cd android && JAVA_HOME=/usr/lib/jvm/java-17-openjdk ./gradlew assembleDebug   #
   `addMissingColumns()` اضافه می‌شوند.
 - **AndroidManifest merge**: مجوز/Receiverِ پلاگین خودکار merge می‌شود؛ فقط exact-alarm را دستی افزودیم.
 - **سازگاری دوگانه‌ی وب/نیتیو**: فیلدهای جدید در تایپ اختیاری بمانند و UI پشتِ `isNative()` گِیت شود تا وب نشکند.
-- **همگام‌سازی دو سیستم**: بعد از هر تغییر، فایل‌ها با `sshpass -e scp` به
-  `192.168.2.115` (کاربر `localadmin`، دایرکتوری `D:/project/VocabFlow`) کپی و byte-size چک شوند.
-  APK همیشه فقط روی سیستم لینوکس ساخته می‌شود.

@@ -59,7 +59,7 @@ function loadMuted(): boolean {
 // Persist the in-progress session (queue, position, tallies) so leaving the
 // page (back button, accidental nav, phone lock) and returning resumes at the
 // exact same card instead of re-fetching and losing position. Cleared on
-// finish/restart.
+// finish.
 // v2: the tally switched from button presses to per-word outcomes, so a session
 // persisted by the old build can't be resumed — bumping the key drops it.
 const SESSION_KEY = "vocab_study_session_v2";
@@ -727,22 +727,6 @@ export function StudySessionPage() {
     });
   }, []);
 
-  const restart = useCallback(() => {
-    clearPersistedSession();
-    ratedWords.current = new Set();
-    wrongWords.current = new Set();
-    hardWords.current = new Set();
-    skippedWords.current = new Set();
-    introducedNew.current = new Set();
-    seenNewOnce.current = new Set();
-    activeMsRef.current = 0;
-    setSummary(null);
-    setQueue(null);
-    setIndex(0);
-    setFlipped(false);
-    refetch();
-  }, [refetch]);
-
   // Auto-play the English word when entering a new card (EN→FA, unmuted, enabled).
   useEffect(() => {
     if (!muted && autoPlay && mode === "EN_TO_FA" && current && !summary) {
@@ -815,7 +799,6 @@ export function StudySessionPage() {
         stats={summary}
         saving={saving}
         onHome={() => navigate("/dashboard")}
-        onAgain={restart}
         hardPracticeCount={
           !isFetching && !isError ? today?.meta.hardTodayCount : 0
         }

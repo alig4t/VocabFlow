@@ -114,7 +114,7 @@ main JS دقیقاً ۳۶۹٬۵۴۱→۳۶۹٬۵۴۴ بایت، gzip حدود ۱
 - `npx tsc --noEmit` در frontend و backend: موفق. `npm run build` در frontend: موفق، با هشدارهای قبلی مسیر فونت‌های بلااستفادهٔ Vazirmatn. backend build اجرا نشد.
 - Prettier روی دو فایل offline تغییریافته: موفق. `npm run format:check` کامل: ناموفق در ۲۰ فایل src دست‌نخورده؛ reformat عمومی انجام نشد. `git diff --check` روی فایل‌های این تغییر موفق؛ بررسی کامل blank line قبلیِ انتهای `.gitignore` را گزارش می‌کند.
 - ابزار تشخیصی جدید: syntax check و اجرای ۷ نمونهٔ خواندنی روی native موفق. این بررسی‌ها application test suite نیستند؛ چنین suiteای در مخزن وجود ندارد.
-- APK، dependency، toolchain، schema، migration، دادهٔ رمز‌شده و `SEED_VERSION` تغییر نکردند؛ commit انجام نشد. تغییرات موجود کاربر حفظ شدند. فایل‌ها به ماشین دوم mirror نشدند، چون نشانی/مسیر Linux مقصد در این checkout معلوم نبود.
+- APK، dependency، toolchain، schema، migration، دادهٔ رمز‌شده و `SEED_VERSION` تغییر نکردند؛ commit انجام نشد. تغییرات موجود کاربر حفظ شدند.
 - دیتابیس‌های موقت و تغییر مسیر assetها روی شبیه‌ساز پاک/بازگردانده شدند و forwarding آزمایش حذف شد. حذف پوشه یا فایل‌های مشخصِ audit از Windows Temp توسط بررسی خودکار ابزار با علت «blocked by policy» رد شد؛ فایل‌های میزبان در `%TEMP%\vocabflow-perf-20261008` باقی‌اند و داخل مخزن نیستند.
 
 ## تکرار سنجش و آزمون دستگاه واقعی

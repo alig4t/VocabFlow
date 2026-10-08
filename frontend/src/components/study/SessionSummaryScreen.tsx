@@ -5,8 +5,6 @@ import {
   SkipForward,
   Clock,
   Sparkles,
-  Brain,
-  ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -41,11 +39,10 @@ export interface SessionStats {
 interface SessionSummaryScreenProps {
   stats: SessionStats;
   onHome: () => void;
-  onAgain: () => void;
   /** True while the session record is still being saved. */
   saving?: boolean;
   hardPracticeCount?: number;
-  onPracticeHard?: () => void;
+  onPracticeHard: () => void;
 }
 
 function formatDuration(sec: number): string {
@@ -90,7 +87,6 @@ function StatTile({
 export function SessionSummaryScreen({
   stats,
   onHome,
-  onAgain,
   saving,
   hardPracticeCount = 0,
   onPracticeHard,
@@ -185,42 +181,17 @@ export function SessionSummaryScreen({
         واژه
       </p>
 
-      {!saving && hardPracticeCount > 0 && onPracticeHard && (
-        <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5 text-start">
-          <div className="flex items-start gap-3">
-            <span className="rounded-xl bg-primary/15 p-2.5 text-accent-foreground">
-              <Brain className="h-5 w-5" aria-hidden="true" />
-            </span>
-            <div className="space-y-1">
-              <h2 className="text-sm font-bold">مرور واژه‌های سخت امروز</h2>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                {hardPracticeCount} واژه به یک دور تمرین بیشتر نیاز دارند. بدون
-                امتیازدهی دوباره بخوانید.
-              </p>
-            </div>
-          </div>
-          <Button
-            size="lg"
-            className="mt-4 w-full gap-2"
-            onClick={onPracticeHard}
-          >
-            تمرین واژه‌های سخت
-            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          </Button>
-        </div>
-      )}
-
       <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
         <Button onClick={onHome} className="w-full sm:w-auto" disabled={saving}>
           بازگشت به خانه
         </Button>
         <Button
-          onClick={onAgain}
+          onClick={onPracticeHard}
           variant="outline"
           className="w-full sm:w-auto"
-          disabled={saving}
+          disabled={saving || hardPracticeCount === 0}
         >
-          مطالعه‌ی دوباره
+          تمرین واژه‌های سخت
         </Button>
       </div>
     </div>

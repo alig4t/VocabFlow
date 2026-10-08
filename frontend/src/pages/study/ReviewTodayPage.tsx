@@ -47,7 +47,7 @@ function loadMuted(): boolean {
  * like `/vocabulary/review`. **Nothing on this page touches SM-2** — no
  * `study/answer` call, no interval/ease/next-review change — so practising as
  * often as you like can never disturb tomorrow's queue.
- * The hard-word variant shares the cards, with navigation only and no marks.
+ * The hard-word variant shares the same cards and manual review actions.
  */
 export function ReviewTodayPage({ kind = "new" }: { kind?: "new" | "hard" }) {
   const navigate = useNavigate();
@@ -124,7 +124,7 @@ export function ReviewTodayPage({ kind = "new" }: { kind?: "new" | "hard" }) {
 
   const markStatus = useCallback(
     (status: "KNOWN" | "NOT_KNOWN") => {
-      if (hardPractice || !currentWord) return;
+      if (!currentWord) return;
       const wordId = currentWord.id;
       setWords((list) =>
         (list ?? []).map((w) =>
@@ -157,7 +157,7 @@ export function ReviewTodayPage({ kind = "new" }: { kind?: "new" | "hard" }) {
       updateStatus({ wordId, reviewMode: activeMode, status });
       goNext();
     },
-    [hardPractice, currentWord, activeMode, updateStatus, goNext],
+    [currentWord, activeMode, updateStatus, goNext],
   );
 
   const handleKnown = useCallback(() => markStatus("KNOWN"), [markStatus]);
@@ -189,8 +189,7 @@ export function ReviewTodayPage({ kind = "new" }: { kind?: "new" | "hard" }) {
     return () => stopPronunciation();
   }, []);
 
-  // Keyboard: arrows navigate, Space flips, P pronounces. Rating shortcuts
-  // apply only to the existing new-word practice.
+  // Keyboard: arrows navigate, Space flips, P pronounces, up/down mark manually.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (
@@ -201,19 +200,19 @@ export function ReviewTodayPage({ kind = "new" }: { kind?: "new" | "hard" }) {
         return;
       if (finished || !currentWord) return;
 
-      if (e.key === (hardPractice ? "ArrowLeft" : "ArrowRight")) {
+      if (e.key === "ArrowLeft") {
         e.preventDefault();
         goNext();
-      } else if (e.key === (hardPractice ? "ArrowRight" : "ArrowLeft")) {
+      } else if (e.key === "ArrowRight") {
         e.preventDefault();
         goPrev();
       } else if (e.key === " " || e.code === "Space") {
         e.preventDefault();
         toggleFlip();
-      } else if (!hardPractice && e.key === "ArrowUp") {
+      } else if (e.key === "ArrowUp") {
         e.preventDefault();
         handleKnown();
-      } else if (!hardPractice && e.key === "ArrowDown") {
+      } else if (e.key === "ArrowDown") {
         e.preventDefault();
         handleNotKnown();
       } else if (e.key === "p" || e.key === "P") {
@@ -232,7 +231,6 @@ export function ReviewTodayPage({ kind = "new" }: { kind?: "new" | "hard" }) {
     handleKnown,
     handleNotKnown,
     pronounce,
-    hardPractice,
   ]);
 
   const bookLabel = useMemo(() => {
@@ -337,22 +335,20 @@ export function ReviewTodayPage({ kind = "new" }: { kind?: "new" | "hard" }) {
           </p>
         </div>
 
-        {!hardPractice && (
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-xl border border-border bg-card px-3 py-4">
-              <p className="text-2xl font-bold tabular-nums text-green-500">
-                {tally.known}
-              </p>
-              <p className="mt-0.5 text-xs text-muted-foreground">گرفتم</p>
-            </div>
-            <div className="rounded-xl border border-border bg-card px-3 py-4">
-              <p className="text-2xl font-bold tabular-nums text-red-500">
-                {tally.notKnown}
-              </p>
-              <p className="mt-0.5 text-xs text-muted-foreground">نگرفتم</p>
-            </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-xl border border-border bg-card px-3 py-4">
+            <p className="text-2xl font-bold tabular-nums text-green-500">
+              {tally.known}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">گرفتم</p>
           </div>
-        )}
+          <div className="rounded-xl border border-border bg-card px-3 py-4">
+            <p className="text-2xl font-bold tabular-nums text-red-500">
+              {tally.notKnown}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">نگرفتم</p>
+          </div>
+        </div>
 
         <p className="text-xs text-muted-foreground">
           این تمرین روی زمان‌بندی مرور فردا هیچ اثری نگذاشت.
@@ -400,7 +396,7 @@ export function ReviewTodayPage({ kind = "new" }: { kind?: "new" | "hard" }) {
           </p>
           <p className="text-xs leading-relaxed text-muted-foreground">
             {hardPractice
-              ? "واژه‌هایی که امروز سخت بودند یا به یاد نیاوردید؛ با خیال راحت و بدون امتیازدهی دوباره بخوانید."
+              ? "واژه‌هایی که امروز سخت بودند یا به یاد نیاوردید، یک‌بار دیگر. این تمرین آزاد است و روی زمان‌بندی «مطالعه امروز» هیچ تأثیری ندارد."
               : "واژه‌هایی که امروز برای اولین بار خواندید، یک‌بار دیگر. این تمرین آزاد است و روی زمان‌بندی «مطالعه امروز» هیچ تأثیری ندارد."}
           </p>
         </div>
@@ -417,11 +413,7 @@ export function ReviewTodayPage({ kind = "new" }: { kind?: "new" | "hard" }) {
             title="بازگشت"
             aria-label="بازگشت به خانه"
           >
-            {hardPractice ? (
-              <ChevronRight className="h-5 w-5" />
-            ) : (
-              <ArrowLeft className="h-5 w-5" />
-            )}
+            <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-sm font-bold text-foreground">
@@ -511,55 +503,38 @@ export function ReviewTodayPage({ kind = "new" }: { kind?: "new" | "hard" }) {
             showExamples={settings?.showExamples ?? true}
           />
 
-          {hardPractice ? (
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                variant="outline"
-                size="lg"
-                className="gap-2 rounded-xl"
-                disabled={index === 0}
-                onClick={goPrev}
-              >
-                <ChevronRight className="h-5 w-5" aria-hidden="true" />
-                قبلی
-              </Button>
-              <Button size="lg" className="gap-2 rounded-xl" onClick={goNext}>
-                بعدی
-                <ChevronLeft className="h-5 w-5" aria-hidden="true" />
-              </Button>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-10 w-10 flex-shrink-0 rounded-full"
-                disabled={index === 0}
-                onClick={goPrev}
-                title="قبلی (←)"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </Button>
+          <div className="flex items-center justify-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-10 w-10 flex-shrink-0 rounded-full"
+              disabled={index === 0}
+              onClick={goPrev}
+              title="قبلی (→)"
+              aria-label="قبلی"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </Button>
 
-              <ReviewActions
-                word={currentWord}
-                mode={activeMode}
-                onKnown={handleKnown}
-                onNotKnown={handleNotKnown}
-                onSkip={goNext}
-              />
+            <ReviewActions
+              word={currentWord}
+              mode={activeMode}
+              onKnown={handleKnown}
+              onNotKnown={handleNotKnown}
+              onSkip={goNext}
+            />
 
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-10 w-10 flex-shrink-0 rounded-full"
-                onClick={goNext}
-                title="بعدی (→)"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </Button>
-            </div>
-          )}
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-10 w-10 flex-shrink-0 rounded-full"
+              onClick={goNext}
+              title="بعدی (←)"
+              aria-label="بعدی"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+          </div>
 
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
             <button
@@ -574,22 +549,14 @@ export function ReviewTodayPage({ kind = "new" }: { kind?: "new" | "hard" }) {
 
           {!isNative() && (
             <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[11px] text-muted-foreground/80">
-              {(hardPractice
-                ? [
-                    { key: "→", label: "قبلی" },
-                    { key: "←", label: "بعدی" },
-                    { key: "Space", label: "برگرداندن" },
-                    { key: "P", label: "تلفظ" },
-                  ]
-                : [
-                    { key: "→", label: "قبلی" },
-                    { key: "←", label: "بعدی" },
-                    { key: "Space", label: "برگرداندن" },
-                    { key: "↑", label: "گرفتم" },
-                    { key: "↓", label: "نگرفتم" },
-                    { key: "P", label: "تلفظ" },
-                  ]
-              ).map((s) => (
+              {[
+                { key: "→", label: "قبلی" },
+                { key: "←", label: "بعدی" },
+                { key: "Space", label: "برگرداندن" },
+                { key: "↑", label: "گرفتم" },
+                { key: "↓", label: "نگرفتم" },
+                { key: "P", label: "تلفظ" },
+              ].map((s) => (
                 <span key={s.label} className="inline-flex items-center gap-1">
                   <kbd className="rounded border border-border px-1.5 py-0.5 font-mono text-[11px]">
                     {s.key}
@@ -605,7 +572,7 @@ export function ReviewTodayPage({ kind = "new" }: { kind?: "new" | "hard" }) {
   );
 }
 
-/** Shares the existing practice cards; this variant never writes a rating. */
+/** Shares the practice cards and manual marks; never writes an SM-2 answer. */
 export function ReviewHardTodayPage() {
   return <ReviewTodayPage kind="hard" />;
 }

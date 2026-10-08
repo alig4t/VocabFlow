@@ -30,7 +30,7 @@ export const studyService = {
       .then((r) => r.data);
   },
 
-  /** Read-only difficult-word practice, unlocked after completing today's queue. */
+  /** Today's difficult words, unlocked after completing today's queue. */
   getTodayHard(): Promise<TodayHardWords> {
     if (isNative()) return off().then((o) => o.getTodayHardWords());
     return api

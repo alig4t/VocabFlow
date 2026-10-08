@@ -89,7 +89,7 @@ These are documented, not fixed. Fixing any of them is a behavior change, so con
 - Which copy of the book JSON (`books/` or `seed-src/`) is canonical?
 - Has an APK ever been built on the Windows machine? All recorded builds were on the Linux machine.
 - Are the reminders (local notifications) verified on a real device? The implementation log said "not yet".
-- Are all migrations applied on each machine's Postgres? (`npx prisma migrate status` in `backend/`.)
+- Are all migrations applied on the intended local Postgres database? (`npx prisma migrate status` in `backend/`.)
 
 Resolved by file inspection (2026-10-08): both Oxford Word Skills Intermediate JSON copies now contain 80 nonempty
 lessons numbered 1–80 and 2,873 words. The earlier 11-lesson shortfall is absent; accuracy against the publisher's
@@ -116,25 +116,3 @@ content remains unverified (see `docs/CONTENT_PIPELINE.md`).
 - **Silent TTS.** The WebView's `speechSynthesis` exposes no voices, and many engines reject `en-US`. Native calls the TTS
   plugin directly with `en` and retries during engine init. The manifest needs the `TTS_SERVICE` `<queries>` block.
 - Since 2026-07-23 the native build has been run on physical devices (the SQLCipher bug was diagnosed from logcat).
-
----
-
-## Two-machine workflow
-
-The project is edited on two machines. The user's standing request is to mirror every changed file to the other machine
-at the end of each task, without being asked.
-
-| | Linux machine | Windows machine |
-|---|---|---|
-| Path | not recorded in the repo | `D:\project\VocabFlow` (`localadmin@192.168.2.115`, hostname `DESKTOP-83HQI7S`) |
-| Shell | bash | PowerShell / Git Bash locally; **cmd.exe** over SSH (`dir` not `ls`, `&` not `;`) |
-| APK builds | yes (JDK 17 at `/usr/lib/jvm/java-17-openjdk`) | none recorded (default JDK 21) |
-
-- Before syncing, **check which machine you are on** (`hostname`, `ipconfig`/`ip addr`). The old instruction "scp to
-  192.168.2.115" only makes sense from the Linux machine. From the Windows machine it would target itself.
-- Method: `sshpass -e scp` with forward-slash remote paths, then compare byte sizes. Sync only files you changed.
-  `frontend/public/logo/` and `frontend/public/books/` are already identical. Don't sync build/cache dirs (`node_modules`,
-  `android/.gradle`, `android/**/build`, `android/app/src/main/assets/public`).
-- `frontend/.env` (`VITE_SEED_SECRET`) must be identical on both, or encrypted seed blobs built on one won't decrypt on
-  the other.
-- Never write credentials into repo files.
