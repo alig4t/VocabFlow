@@ -74,8 +74,15 @@ These are documented, not fixed. Fixing any of them is a behavior change, so con
 - `books/` and `frontend/seed-src/` hold the same 26 books but several files differ by a few bytes. Six old-format
   `seed-src/4000-essential-english-words-{1..6}.json` are dead (not in the manifest).
 - `docs/DATABASE_SCHEMA.html` predates `review_events`.
-- Cosmetic: unused Vazirmatn `@font-face` rules with broken URLs, Inter loaded but unused, and `ReactQueryDevtools`
-  mounted in every build including the APK.
+- Cosmetic: unused Vazirmatn `@font-face` rules with broken URLs. Inter's unused external stylesheet was removed
+  on 2026-10-08 after a render-blocking network delay was observed. `ReactQueryDevtools` is mounted, but the installed
+  package exports a null component in production; this is not evidence of an active APK devtools panel.
+- TTS cancellation (Android emulator, 2026-10-08): a native `speak()` promise remained pending after `stop()` and
+  an additional 1.8 seconds. The installed 5.1.0 plugin clears its utterance callbacks on stop without resolving
+  their calls. Long-session callback retention needs a dedicated fix/measurement; do not patch `node_modules`.
+- Large study snapshots (2026-10-08): the daily page serializes the entire queue into localStorage on each answer.
+  The allowed sum of plan review caps can be much larger than the new-word cap. Measurements and remaining
+  performance concerns are in [PERFORMANCE.md](PERFORMANCE.md); no session format or queue-limit change was made.
 
 ## Open questions (could not be verified from the repo)
 
@@ -91,6 +98,11 @@ content remains unverified (see `docs/CONTENT_PIPELINE.md`).
 ---
 
 ## Lessons from past bugs (why some code looks the way it does)
+
+- **Correlated event lookups can pick the wrong useful index (2026-10-08).** Android SQLite 3.39.4 chose the
+  mode/date index inside the old hard-today `EXISTS`, repeatedly scanning today's events for candidate words.
+  Selecting the eligible word ids once with `IN` removed that repeated scan without changing the result. Inspect
+  `EXPLAIN QUERY PLAN` on realistic history before adding indexes. Full evidence: [PERFORMANCE.md](PERFORMANCE.md).
 
 - **SQLCipher open mode.** The first version used `encryption` mode on every first run. On a fresh install there is
   no plaintext file to encrypt, so the device threw `Failed in encryption … not found`. `db.ts` now branches on

@@ -76,7 +76,7 @@ getWords(filters) {
 }
 ```
 
-سرویس‌های شاخه‌دار: `vocabulary`, `progress`, `book` (فقط `getBooksSimple`/`getVolumes`/`getVolumesSimple`/`getLessonsSimple`)، `dashboard` (شامل `getStats` → `getLearningStats`)، `synonym`, `study` (امروز/لغات امروز/پاسخ/ثبت سشن)، `plan`، `settings`.
+سرویس‌های شاخه‌دار: `vocabulary`, `progress`, `book` (فقط `getBooksSimple`/`getVolumes`/`getVolumesSimple`/`getLessonsSimple`)، `dashboard` (شامل `getStats` → `getLearningStats`)، `synonym`, `study` (امروز/لغات امروز/واژه‌های سخت امروز/پاسخ/ثبت سشن)، `plan`، `settings`.
 **بدون شاخه (فقط وب):** `auth.service`، `user.service`، و CRUD کتاب/جلد/درس در `book.service` — روی نیتیو به `/api` وب‌ویو می‌خورند و کار نمی‌کنند؛ UIشان روی نیتیو مخفی است.
 صفحات React در اغلب موارد مشترک‌اند — فقط لایه‌ی سرویس عوض می‌شود؛ تفاوت‌های UI در بخش ۳.۵.
 > ⚠ فقط `repo.ts` با import پویا جدا می‌شود؛ `App.tsx` به‌صورت ایستا `offline/bootstrap` (→ `seed` → `db` و `seed-crypto`) را import می‌کند، پس SQLite و `VITE_SEED_SECRET` در باندل **وب** هم هستند.
@@ -100,6 +100,8 @@ getWords(filters) {
 
 سایر جدول‌ها: `learning_plans` (`daily_new_words, daily_goal, is_active`)، `study_sessions`، `review_events` (لاگ پاسخ‌ها؛ `answerStudy` در `repo.ts` آن را می‌نویسد، SKIP ثبت نمی‌شود)، `user_settings` (تک‌ردیفی `id='local'`، به‌علاوه‌ی ۵ ستون یادآور که در Postgres نیستند)، `meta` (فقط کلید `seed_version`).
 
+تمرین واژه‌های سخت امروز (2026-10-08) با `getTodayHardWords` و `meta.hardTodayCount` در `repo.ts` کاملاً آفلاین اجرا می‌شود. انتخاب با `IN` روی شناسه‌های واجد شرایطِ `review_events`، جهت مطالعه و برنامه‌های فعال انجام می‌شود تا هر واژه فقط یک کارت داشته باشد؛ واژه‌ی حذف‌شده یا پیشرفت ریست‌شده وارد فهرست نمی‌شود. شرط تکمیل صف و قواعد پاسخ/مرز روز دقیقاً مطابق [`BACKEND.md`](BACKEND.md) است. این قابلیت فقط خواندنی است و به تغییر اسکیما، مهاجرت یا افزایش `SEED_VERSION` نیاز ندارد؛ رابط تمرین و حالت قفل در [`FRONTEND.md`](FRONTEND.md) شرح داده شده‌اند.
+
 **تفاوت‌های عمدی/موجود با Postgres** (هنگام پورت کوئری مهم‌اند):
 - بدون `users`/`refresh_tokens`/`learning_modules`/`synonym_groups` و بدون `user_id` در هیچ جدولی (تک‌کاربره). `module_id` با ثابت `MODULE_ID = "offline-vocabulary"` جعل می‌شود.
 - `order` → `ord` (کلمه‌ی رزرو)؛ آرایه‌ها → JSON در `TEXT`؛ تاریخ‌ها ISO-8601 UTC به‌صورت رشته (مقایسه‌ی لغوی `<=` درست است).
@@ -110,6 +112,9 @@ getWords(filters) {
 > **مهاجرت اسکیمای نصب‌های قدیمی:** چون `CREATE TABLE IF NOT EXISTS` هرگز جدول موجود را تغییر نمی‌دهد، `migrateSchema()` با `PRAGMA table_info` ستون‌های غایب را از آرایه‌های `PROGRESS_ADDED_COLUMNS`، `WORDS_ADDED_COLUMNS`، `USER_SETTINGS_ADDED_COLUMNS` با `ALTER TABLE ... ADD COLUMN` اضافه می‌کند (و اگر `manual_status` تازه اضافه شد، `status` را در آن کپی می‌کند). ایندکس `idx_progress_due` **بعد از** این ADD COLUMNها داخل همین تابع ساخته می‌شود. `DB_VERSION = 1` به `createConnection()` پلاگین پاس داده می‌شود، ولی مهاجرت ستون‌ها با بررسی وجودشان انجام می‌شود، نه با افزایش این نسخه.
 >
 > **چک‌لیست ستون جدید:** (۱) DDL در `CREATE TABLE`، (۲) ورودی در آرایه‌ی `*_ADDED_COLUMNS` مربوطه — با `DEFAULT` اگر `NOT NULL` است، (۳) ایندکس روی ستون جدید فقط داخل `migrateSchema()`، (۴) اگر seed آن را پر می‌کند، لیست ستون‌های `bulkInsert` در `seed.ts`. جدول کاملاً جدید فقط DDL لازم دارد.
+
+جزئیات سنجش عملکرد و محدودیت‌های شبیه‌ساز در [گزارش عملکرد 2026-10-08](../PERFORMANCE.md) آمده است.
+شمارش‌های داشبوردِ جلدهای فعال در یک کوئری تجمیعی انجام می‌شود؛ صف مطالعه ابتدا شناسه‌ها را با سقف هر برنامه انتخاب و سپس کارت‌ها را مشترک بارگذاری می‌کند. بارگذاری کارت‌ها و مثال‌های عبارت‌ها دسته‌های حداکثر ۵۰۰ شناسه دارد و نتیجه را کوتاه نمی‌کند. انتخاب واژه‌های سخت امروز از `IN` روی رویدادهای واجد شرایط استفاده می‌کند تا ایندکس تاریخ یک بار خوانده شود؛ قرارداد خروجی، جهت، وضعیت دستی و SM-2 تغییر نکرده‌اند. اسکیما و `SEED_VERSION` تغییر نکرده‌اند.
 
 ### ۳.۳. seed اولیه
 
@@ -124,7 +129,7 @@ getWords(filters) {
 
 - منبعِ خامِ کتاب‌ها در `frontend/seed-src/*.json` + `manifest.json` است؛ نسخه‌ی رمزشده در `frontend/public/seed-enc/*.enc` (+ `manifest.json` که plaintext می‌ماند، چون فقط لیست نام فایل‌هاست).
 - هنگام `cap sync` فقط `seed-enc` (رمزشده) داخل assets اپ بسته‌بندی می‌شود.
-- در **اولین اجرا** `App.tsx` صفحه‌ی `SeedLoader` (نوار پیشرفت) را نشان می‌دهد و `seedIfNeeded()` همه‌ی JSONها را می‌خواند و ~۱۷هزار واژه را در SQLite درج می‌کند (در یک transaction). بعد از آن اپ کاملاً آفلاین است.
+- در **اولین اجرا** `App.tsx` صفحه‌ی `SeedLoader` (نوار پیشرفت) را نشان می‌دهد و `seedIfNeeded()` محتوای ۲۶ فایلِ manifest فعلی را در SQLite درج می‌کند: ۱۴ کتاب، ۲۶ جلد و ۳۲٬۱۷۵ واژه (شمارش 2026-10-08). فایل‌ها یکی‌یکی رمزگشایی و درج می‌شوند؛ از هر جدول فقط باقی‌مانده‌ی دسته‌ی ۲۰۰تایی تا فایل بعد نگه داشته می‌شود. همه‌ی فایل‌ها همچنان در **یک transaction** هستند و خطای خواندن/درج، پاک‌سازی و درج‌های قبلی همان اجرا را rollback می‌کند. بعد از آن seed با فلگ نسخه رد می‌شود.
 - idempotent با فلگ `meta.seed_version` (مقدار فعلی `SEED_VERSION = "5"` در `seed.ts`).
 - ⚠️ **بالا بردن `SEED_VERSION` پیشرفت کاربر را پاک می‌کند.** در یک transaction روی همه‌ی جدول‌های `WIPE_TABLES` دستور `DELETE` اجرا می‌شود: `word_phrase_examples, word_phrases, word_examples, words, lessons, volumes, books, progress, watchlist`. همه‌ی idها با `uid()` تازه ساخته می‌شوند، پس `learning_plans`، `review_events` و `study_sessions` (که پاک نمی‌شوند) به جلد/لغت‌هایی اشاره می‌کنند که دیگر وجود ندارند، و ویرایش‌های محلی لغات هم از بین می‌روند. فقط وقتی bump کن که محتوای کتاب‌ها واقعاً عوض شده و این هزینه پذیرفته شده — و این را صریحاً به کاربر بگو.
 

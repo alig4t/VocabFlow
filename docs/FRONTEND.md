@@ -12,7 +12,7 @@
 | TypeScript | 5.9.3 در lockfile؛ بازه‌ی manifest: `^5.6.3` (`strict`, `noUnusedLocals/Parameters`) | زبان |
 | Vite | 5.4 | dev server و build |
 | Tailwind CSS + shadcn/ui (Radix) | 3.4 | استایل و کامپوننت |
-| TanStack Query | 5.62 | state داده (devtools در همه‌ی buildها mount است) |
+| TanStack Query | 5.62 | state داده (devtools در development فعال است؛ export بسته در production فقط `null` برمی‌گرداند) |
 | Zustand | 5.0 | فقط auth |
 | React Router | 6.28 | مسیریابی |
 | React Hook Form + Zod | 7.54 / 3.23 | فرم‌ها |
@@ -59,6 +59,7 @@ pages/              پایین‌تر
 | `/vocabulary/review` | ReviewPage — **«مرور آزاد»**، مسیر دستی (`manual_status`) | ProtectedRoute |
 | `/study` | StudySessionPage — **«مطالعه‌ی امروز»** (SM-2) | ProtectedRoute |
 | `/review-today` | ReviewTodayPage — مرور آزادِ لغات امروز (`/study/today-new`) | ProtectedRoute |
+| `/review-hard-today` | ReviewHardTodayPage — تمرین واژه‌های سخت امروز، فقط پس از تکمیل صف روزانه (`/study/today-hard`) | ProtectedRoute |
 | `/settings` | SettingsPage (تنظیمات، planها، یادآورها روی نیتیو) | ProtectedRoute |
 | `/guide`، `/about` | GuidePage، AboutPage | ProtectedRoute |
 | `/admin`، `/admin/users`، `/admin/words/new`، `/admin/words/:id/edit`، `/admin/books`، `/admin/books/new`، `/admin/books/:id/edit`، `/admin/books/:bookId/volumes`، `/admin/books/:bookId/volumes/:volumeId/lessons` | صفحات ادمین | AdminRoute |
@@ -105,9 +106,9 @@ getToday() {
 
 ## داده و state
 
-Query keyها: `['words', filters]`، `['words', id]`، `['modules']`، `['progress','stats']`، `['auth','me']`، `['books']`، `['books','simple']`، `['books', id]`، `['volumes', bookId(, 'simple')]`، `['lessons', bookId, volumeId(, 'simple')]`، `['dashboard']`، `['dashboard','hard-words']`، `['stats']`، `['discovery-books']`، `['watchlist','books']`، `['plans']`، `['settings']`، `['study','today']`، `['study','today-new']`، `['users']`.
+Query keyها: `['words', filters]`، `['words', id]`، `['modules']`، `['progress','stats']`، `['auth','me']`، `['books']`، `['books','simple']`، `['books', id]`، `['volumes', bookId(, 'simple')]`، `['lessons', bookId, volumeId(, 'simple')]`، `['dashboard']`، `['dashboard','hard-words']`، `['stats']`، `['discovery-books']`، `['watchlist','books']`، `['plans']`، `['settings']`، `['study','today']`، `['study','today-new']`، `['study','today-hard']`، `['users']`.
 
-- mutationهای plan شش key را invalidate می‌کنند (`usePlans.ts`)؛ toggle واچ‌لیست optimistic با rollback است؛ تغییر settings کش را مستقیم می‌نویسد و `study/today` و `dashboard` را invalidate می‌کند؛ hookهای study `staleTime: 0`.
+- mutationهای plan هفت key را invalidate می‌کنند (`usePlans.ts`)، از جمله هر دو تمرین امروز؛ toggle واچ‌لیست optimistic با rollback است؛ تغییر settings کش را مستقیم می‌نویسد و خانواده‌ی `study` و `dashboard` را invalidate می‌کند؛ hookهای study `staleTime: 0`.
 - قرارداد: کامپوننت‌ها از hookها استفاده کنند. **استثناهای موجود** (عمداً دست نخورده): `StudySessionPage` (`studyService.answer` و `recordSession` + invalidate دستی)، `WordFormPage` (`vocabularyService.addExample`)، `WordCard` (`synonymService.getSynonyms` — hook مترادف وجود ندارد).
 
 ### ReviewPage (`/vocabulary/review`)
@@ -117,7 +118,14 @@ Query keyها: `['words', filters]`، `['words', id]`، `['modules']`، `['progr
 - localStorage: `vocab_review_mode`، `vocab_review_muted`، `vocab_review_filter`، `vocab_review_scope`.
 
 ### StudySessionPage (`/study`)
-پاسخ‌ها: بلدم (EASY)، سخت (HARD)، بلد نیستم (AGAIN — کارت دوباره در صف همین جلسه قرار می‌گیرد)، رد (SKIP — فقط رد می‌شود: نه زمان‌بندی، نه requeue، نه ثبت در سرور). لغت جدید در **اولین** نمایش به‌جای دکمه‌های معمول نوار «خواندم/رد» دارد؛ «خواندم» دقیقاً مثل AGAIN رفتار می‌کند. پاسخ‌ها fire-and-forget ثبت می‌شوند (`StudySessionPage.tsx` حدود خط 660–690). جلسه snapshot منجمد دارد؛ در پایان `SessionSummaryScreen` و ثبت جلسه، و روی نیتیو بازسازی یادآورها.
+پاسخ‌ها: بلدم (EASY)، سخت (HARD)، بلد نیستم (AGAIN — کارت دوباره در صف همین جلسه قرار می‌گیرد)، رد (SKIP — فقط رد می‌شود: نه زمان‌بندی، نه requeue، نه ثبت در سرور). لغت جدید در **اولین** نمایش به‌جای دکمه‌های معمول نوار «خواندم/رد» دارد؛ «خواندم» دقیقاً مثل AGAIN رفتار می‌کند. پاسخ‌ها حین مطالعه غیرمسدودکننده ثبت می‌شوند؛ پایان جلسه پیش از ثبت خلاصه و تازه‌سازی داده‌ی تمرین، منتظر پاسخ‌های در حال ذخیره می‌ماند. جلسه snapshot منجمد دارد؛ در پایان `SessionSummaryScreen` و ثبت جلسه، و روی نیتیو بازسازی یادآورها.
+
+### تمرین امروز و واژه‌های سخت (`/review-today` و `/review-hard-today`)
+
+- کارت `TodayPracticeCard` گزینه‌های تمرین را از متادیتای صف روزانه می‌سازد: تمرین واژه‌های جدید همچنان پیش از پایان درس پیش‌نمایش قفل‌شده دارد؛ گزینه‌ی «مرور واژه‌های سخت امروز» فقط پس از خالی‌شدن هر دو صف و با `hardTodayCount > 0` نمایش داده می‌شود، حتی در روزی بدون واژه‌ی جدید. پس از ذخیره و تازه‌سازی صف، صفحه‌ی خلاصه هم میان‌بر تمرین سخت دارد. ردکردن کارت‌ها به‌تنهایی شرط تکمیل صف را برآورده نمی‌کند.
+- هر دو صفحه از `ReviewTodayPage` و `ReviewCard` استفاده می‌کنند؛ نوع سخت با hook `useTodayHardWords` و کلید `['study','today-hard']` خوانده می‌شود. پاسخ `available=false` حتی هنگام ورود مستقیم به مسیر، کاربر را به ادامه‌ی مطالعه هدایت می‌کند. حالت خطا، فهرست خالی، شمارنده، پایان تمرین و شروع دوباره پوشش داده شده‌اند؛ فهرست کارت‌ها در طول تمرین ثابت می‌ماند.
+- تمرین سخت فقط «قبلی/بعدی»، برگرداندن کارت، جهت نمایش و تلفظ دارد؛ هیچ پاسخ یا علامت دستی ثبت نمی‌کند. کیبورد در این نوع: `→` قبلی، `←` بعدی، `Space` نمایش معنی، `P` تلفظ؛ کلیدهای بالا/پایین امتیازی ثبت نمی‌کنند. رفتار علامت‌گذاری دستی تمرین واژه‌های جدید حفظ شده است.
+- پس از مطالعه و تغییر جهت تنظیمات، خانواده‌ی queryهای `['study']` invalidate می‌شود؛ سرویس داده در هر دو پلتفرم شاخه دارد. قواعد انتخاب واژه‌ها و مرز روز در [`BACKEND.md`](BACKEND.md) آمده است.
 
 ---
 
@@ -126,7 +134,7 @@ Query keyها: `['words', filters]`، `['words', id]`، `['modules']`، `['progr
 - **تم‌ها:** `ThemeProvider` (کلید localStorage `eng-theme`، پیش‌فرض `system`) یکی از کلاس‌های `light`/`dark`/`study` را روی `<html>` می‌گذارد؛ توکن‌ها متغیرهای HSL در `index.css` هستند: `:root` (روشن)، `.dark`، `.study` (سپیا). Tailwind: `darkMode: ['class']`.
 - **برند:** رنگ‌های لوگو navy `#18243C` + طلایی `#E4A824`. در توکن‌ها به‌صورت HSL پیاده شده‌اند (`--primary` طلایی؛ مقدار دقیق hex نیست). سبزِ وضعیت KNOWN و قرمزِ destructive عمداً حفظ شده‌اند؛ accent سایدبارِ ادمین slate است. لوگوهای `public/logo/` شفافیت ندارند ⇒ روی سطح تیره داخل یک chip روشن.
 - **RTL:** `index.html` دارای `<html lang="fa" dir="ltr">` است؛ RTL **per-element** با `dir="rtl"` (حدود ۴۵ فایل، مثلاً `Layout.tsx`) یا کلاس `.rtl` اعمال می‌شود. ورودی‌های انگلیسی LTR بمانند.
-- **فونت‌ها:** `font-persian` = Anjoman (`/fonts/7285anjoman.woff2|woff`)؛ AnjomanMax برای bold. `@font-face`های Vazirmatn در `index.css` به مسیر ناموجود اشاره دارند و استفاده نمی‌شوند؛ Inter از Google Fonts در `index.html` لود می‌شود ولی استفاده نمی‌شود. آوانگاری IPA با `.font-ipa` (نه `font-mono` — Roboto Mono در وب‌ویو اندروید گلیف IPA ندارد).
+- **فونت‌ها:** `font-persian` = Anjoman (`/fonts/7285anjoman.woff2|woff`)؛ فونت محلی woff2 در `index.html` preload می‌شود. AnjomanMax برای bold است. درخواست stylesheet خارجی Interِ بلااستفاده حذف شد چون در حالت آفلاین می‌توانست اولین paint را تا timeout شبکه عقب بیندازد. `@font-face`های Vazirmatn در `index.css` به مسیر ناموجود اشاره دارند و استفاده نمی‌شوند. آوانگاری IPA با `.font-ipa` (نه `font-mono` — Roboto Mono در وب‌ویو اندروید گلیف IPA ندارد).
 - **Safe area (نیتیو، edge-to-edge با targetSdk 35):** پلاگین بومی `SafeAreaPlugin` (`android/.../SafeAreaPlugin.java`) → `lib/safeArea.ts` متغیرهای `--safe-top-px`/`--safe-bottom-px` را می‌گذارد (مقدار = هم‌پوشانی واقعی نوار با WebView، نه ارتفاع خام نوار؛ روی اندروید ≤۱۴ نوار ناوبری پایین ۰ است. پلاگین هر تغییر را با رویداد `insetsChange` هم می‌فرستد)؛ `--safe-top`/`--safe-bottom` = `max(env(), px)` در `index.css`؛ مصرف در Navbar، Sidebar، BottomNav، toast. ارتفاع BottomNav `calc(4rem+var(--safe-bottom))` است (با `border-box`، padding از `h-16` کم می‌شد و تب‌ها زیر دکمه‌های سیستم می‌رفتند). `StatusBarSync` نوار وضعیت را overlay شفاف با استایل آیکون متناسب با تم می‌کند.
 - **تلفظ** (`lib/pronounce.ts`): اول `word.pronunciationAudio` اگر باشد؛ نیتیو مستقیم پلاگین TTS با `lang: 'en'` (نه `en-US`) و ۶ تلاش با فاصله‌ی ۳۰۰ms؛ وب easy-speech و در نهایت `speechSynthesis`. هیچ صدای آنلاینی استفاده نمی‌شود.
 - Toast: `toast({ title, description, variant })`؛ آپلود کاور کتاب/جلد: FileReader → data URL base64 مستقیم در DB.

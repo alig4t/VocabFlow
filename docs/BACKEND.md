@@ -137,7 +137,7 @@ Enumها: `Role` (USER/ADMIN)، `ReviewMode` (EN_TO_FA/FA_TO_EN)، `WordStatus` 
 | **synonyms** `/api/synonyms` | `GET /words/:wordId` (A) |
 | **books** `/api/books` | GET عمومی: `/`، `/simple`، `/:id`، `/:bookId/volumes`، `/:bookId/volumes/simple`، `/:bookId/volumes/:volumeId`، `/:bookId/volumes/:volumeId/lessons`، `.../lessons/simple`؛ POST/PUT/DELETE کتاب، جلد، درس (AD) |
 | **watchlist** `/api/watchlist` | `GET /`، `GET /discovery`، `POST /`، `DELETE /:bookId` (A) |
-| **study** `/api/study` | `GET /today`، `GET /today-new` (لغاتی که امروز وارد چرخه شدند)، `POST /answer`، `POST /session` (A) |
+| **study** `/api/study` | `GET /today`، `GET /today-new` (لغاتی که امروز وارد چرخه شدند)، `GET /today-hard` (تمرین واژه‌های سخت امروز پس از تکمیل صف)، `POST /answer`، `POST /session` (A) |
 | **plans** `/api/plans` | `GET /`، `POST /`، `PATCH /:id`، `DELETE /:id` (A) |
 | **settings** `/api/settings` | `GET /` (پیش‌فرض‌ها را lazy می‌سازد)، `PUT /` (A) |
 | **dashboard** `/api/dashboard` | `GET /`، `GET /hard-words` (A) |
@@ -186,6 +186,8 @@ Enumها: `Role` (USER/ADMIN)، `ReviewMode` (EN_TO_FA/FA_TO_EN)، `WordStatus` 
 **قوانین plan** (`plan.service.ts`): `daily_new_words ∈ {10,20,30,40,50}`؛ `5 ≤ daily_goal ≤ 500` و `daily_goal ≥ daily_new_words`؛ جمع planهای فعال ≤ 200. اگر `dailyGoal` ارسال نشود controller آن را `dailyNewWords × 3` می‌گذارد (پیش‌فرض 30ِ اسکیما عملاً استفاده نمی‌شود).
 
 **جریان:** `GET /study/today` → برای هر کارت `POST /study/answer` (→ `saveSchedule` + `review_events`) → در پایان `POST /study/session` (یک ردیف `study_sessions`).
+
+**تمرین واژه‌های سخت امروز** (2026-10-08): `GET /study/today` در `meta.hardTodayCount` تعداد واژه‌های متمایز را فقط وقتی برمی‌گرداند که برنامه‌ی فعال وجود داشته باشد و هر دو صف مرور و جدید خالی باشند؛ در بقیه‌ی حالت‌ها صفر است. `GET /study/today-hard` پاسخ `{ words, count, direction, available }` دارد و همین شرط تکمیل را سمت سرور هم اعمال می‌کند (در حالت قفل: `available=false` و فهرست خالی). منبع فهرست، رویدادهای `HARD` یا `AGAIN` با `isFirst=false` در بازه‌ی روزِ ساعت ۰۶:۰۰ است؛ اولین «خواندم» روی واژه‌ی جدید اشتباه محسوب نمی‌شود. جهت مطالعه، کاربر و جلدهای برنامه‌های فعال فیلتر می‌شوند و واژه باید هنوز وارد چرخه باشد؛ تکرار پاسخ‌ها کارت اضافه نمی‌سازد و پاسخ بعدی EASY واژه را از تمرین حذف نمی‌کند. این مسیر فقط خواندنی است و به وضعیت دستی، زمان‌بندی، تاریخچه یا آمار جلسه چیزی نمی‌نویسد.
 
 ---
 
