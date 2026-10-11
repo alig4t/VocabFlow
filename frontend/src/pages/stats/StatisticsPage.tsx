@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatTile } from "@/components/dashboard/StatTile";
 import { MemoryOverview } from "@/components/dashboard/MemoryOverview";
+import { PremiumContent } from "../../components/subscription/PremiumGate";
 import { ActivityHeatmap } from "@/components/dashboard/ActivityHeatmap";
 import { useStats, useDashboard } from "@/hooks/useDashboard";
 import { faNum, faPercent } from "@/lib/format";
@@ -540,50 +541,55 @@ function StatsContent({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {stats.hardestWords.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              فعلاً واژه‌ی دردسرسازی نداری — عالیه! 🎉
-            </p>
-          ) : (
-            <>
-              <ul className="divide-y divide-border">
-                {stats.hardestWords.map((w, i) => (
-                  <li key={w.wordId} className="flex items-center gap-3 py-2.5">
-                    <span
-                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-bold tabular-nums text-muted-foreground"
-                      aria-hidden="true"
+          <PremiumContent>
+            {stats.hardestWords.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                فعلاً واژه‌ی دردسرسازی نداری — عالیه! 🎉
+              </p>
+            ) : (
+              <>
+                <ul className="divide-y divide-border">
+                  {stats.hardestWords.map((w, i) => (
+                    <li
+                      key={w.wordId}
+                      className="flex items-center gap-3 py-2.5"
                     >
-                      {faNum(i + 1)}
-                    </span>
-                    <span className="min-w-0 flex-1">
                       <span
-                        dir="ltr"
-                        className="block truncate text-right text-sm font-semibold text-foreground"
+                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-bold tabular-nums text-muted-foreground"
+                        aria-hidden="true"
                       >
-                        {w.eng}
+                        {faNum(i + 1)}
                       </span>
-                      <span className="block truncate text-xs text-muted-foreground">
-                        {w.per}
+                      <span className="min-w-0 flex-1">
+                        <span
+                          dir="ltr"
+                          className="block truncate text-right text-sm font-semibold text-foreground"
+                        >
+                          {w.eng}
+                        </span>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {w.per}
+                        </span>
                       </span>
-                    </span>
-                    <span className="shrink-0 rounded-full bg-warning/15 px-2 py-0.5 text-[11px] font-medium tabular-nums text-warning">
-                      {w.hardCount >= w.wrongCount
-                        ? `${faNum(w.hardCount)} بار سخت`
-                        : `${faNum(w.wrongCount)} بار غلط`}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                onClick={onOpenHardWords}
-              >
-                دیدن همه واژه‌های سخت
-              </Button>
-            </>
-          )}
+                      <span className="shrink-0 rounded-full bg-warning/15 px-2 py-0.5 text-[11px] font-medium tabular-nums text-warning">
+                        {w.hardCount >= w.wrongCount
+                          ? `${faNum(w.hardCount)} بار سخت`
+                          : `${faNum(w.wrongCount)} بار غلط`}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={onOpenHardWords}
+                >
+                  دیدن همه واژه‌های سخت
+                </Button>
+              </>
+            )}
+          </PremiumContent>
         </CardContent>
       </Card>
 

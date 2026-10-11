@@ -1,0 +1,9 @@
+# Copy to billing.local.properties. Obtain these four values from Bazaar's panel.
+# Keep the actual SKUs stable after publication. Use the public RSA key, NOT an API secret.
+bazaar.rsaPublicKey=
+bazaar.monthlySku=
+bazaar.quarterlySku=
+bazaar.yearlySku=
+# Generated locally by: node scripts/developer-code.mjs --init
+# This is client-side developer convenience, not a production security boundary.
+developer.secret=

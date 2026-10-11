@@ -1,6 +1,7 @@
 import api from "@/lib/axios";
 import { API_ENDPOINTS } from "@/config/api";
 import { isNative } from "@/lib/platform";
+import { subscriptionService } from "./subscription.service";
 import type {
   Word,
   WordFilters,
@@ -10,7 +11,10 @@ import type {
 } from "@/types";
 
 // Offline (native) data layer — lazy-loaded so the SQLite code stays out of the web bundle.
-const off = () => import("@/offline/repo");
+const off = async () => {
+  await subscriptionService.assertAccess();
+  return import("@/offline/repo");
+};
 
 export interface CreateWordData {
   eng: string;

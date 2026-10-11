@@ -18,6 +18,7 @@ import {
   FilePlus2,
   ShieldCheck,
   X,
+  Crown,
 } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 import { isNative } from "../../lib/platform";
@@ -111,11 +112,21 @@ export function BottomNav() {
   const { user } = useAuthStore();
   const isAdmin = user?.role === "ADMIN";
   const native = isNative();
+  const visibleSecondaryItems = native
+    ? [
+        {
+          to: "/subscription",
+          icon: <Crown className="h-5 w-5" />,
+          label: "اشتراک من",
+        },
+        ...secondaryItems,
+      ]
+    : secondaryItems;
   const { pathname } = useLocation();
 
   const morePaths = [
     ...moreItems.map((i) => i.to),
-    ...secondaryItems.map((i) => i.to),
+    ...visibleSecondaryItems.map((i) => i.to),
     ...(isAdmin ? adminItems.map((i) => i.to) : []),
     // کتاب/درس زیرمجموعه کتابخانه نیستند ولی واژه‌های ادمین هم «بیشتر» محسوب می‌شوند
   ];
@@ -266,7 +277,7 @@ export function BottomNav() {
             <hr className="my-3 border-border" />
 
             <div className="space-y-1">
-              {secondaryItems.map((item) => (
+              {visibleSecondaryItems.map((item) => (
                 <MoreLink
                   key={item.to}
                   item={item}

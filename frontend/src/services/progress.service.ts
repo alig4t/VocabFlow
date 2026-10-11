@@ -1,6 +1,7 @@
 import api from "@/lib/axios";
 import { API_ENDPOINTS } from "@/config/api";
 import { isNative } from "@/lib/platform";
+import { subscriptionService } from "./subscription.service";
 import type { ReviewMode, WordStatus, ProgressStats } from "@/types";
 
 const off = () => import("@/offline/repo");
@@ -12,7 +13,10 @@ export const progressService = {
     status: WordStatus,
   ): Promise<void> {
     if (isNative())
-      return off().then((o) => o.updateWordStatus(wordId, reviewMode, status));
+      return subscriptionService
+        .assertAccess()
+        .then(() => off())
+        .then((o) => o.updateWordStatus(wordId, reviewMode, status));
     return api
       .put(API_ENDPOINTS.progress.update(wordId), { reviewMode, status })
       .then((res) => res.data);
@@ -24,7 +28,11 @@ export const progressService = {
   },
 
   resetProgress(reviewMode?: ReviewMode): Promise<void> {
-    if (isNative()) return off().then((o) => o.resetProgress(reviewMode));
+    if (isNative())
+      return subscriptionService
+        .assertAccess()
+        .then(() => off())
+        .then((o) => o.resetProgress(reviewMode));
     const params: Record<string, string> = {};
     if (reviewMode !== undefined) {
       params.reviewMode = reviewMode;

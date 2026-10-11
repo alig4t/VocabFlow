@@ -1,15 +1,39 @@
 import { Mail, Github } from "lucide-react";
+import { useRef, useState } from "react";
+import { isNative } from "../../lib/platform";
+import { SUBSCRIPTION_POLICY } from "../../config/subscription";
+import { DeveloperAccessSheet } from "../../components/subscription/DeveloperAccessSheet";
 
 // «درباره سازنده» — a quiet, unobtrusive page. Reached from the faint footer
 // link; intentionally minimal so it never competes with the app itself.
 export function AboutPage() {
+  const [developerOpen, setDeveloperOpen] = useState(false);
+  const taps = useRef({ count: 0, lastAt: 0 });
+  function tapTitle() {
+    if (!isNative()) return;
+    const now = performance.now();
+    taps.current.count =
+      now - taps.current.lastAt > SUBSCRIPTION_POLICY.developerTapTimeoutMs
+        ? 1
+        : taps.current.count + 1;
+    taps.current.lastAt = now;
+    if (taps.current.count >= SUBSCRIPTION_POLICY.developerTapCount) {
+      taps.current.count = 0;
+      setDeveloperOpen(true);
+    }
+  }
   return (
     <div dir="rtl" className="mx-auto max-w-xl px-4 py-12 font-persian">
       <div className="flex flex-col items-center text-center">
         <p className="text-xs tracking-wide text-muted-foreground/60">
           درباره‌ی سازنده
         </p>
-        <h1 className="mt-2 text-2xl font-bold text-foreground">وکب فلو</h1>
+        <h1
+          className="mt-2 text-2xl font-bold text-foreground"
+          onClick={tapTitle}
+        >
+          وکب فلو
+        </h1>
 
         <div className="mt-6 space-y-4 text-[15px] leading-8 text-muted-foreground">
           <p>
@@ -56,6 +80,12 @@ export function AboutPage() {
           </a>
         </div>
       </div>
+      {isNative() && (
+        <DeveloperAccessSheet
+          open={developerOpen}
+          onOpenChange={setDeveloperOpen}
+        />
+      )}
     </div>
   );
 }

@@ -320,9 +320,43 @@ export async function query<T = Record<string, unknown>>(
   return (res.values ?? []) as T[];
 }
 
-export async function run(sql: string, values: unknown[] = []): Promise<void> {
-  const db = await getDb();
-  await db.run(sql, values as never[]);
+// All writers share one queue: a normal run must never enter another writer's
+// explicit transaction on the single SQLite connection.
+let writeQueue: Promise<unknown> = Promise.resolve();
+
+function serializeWrite<T>(work: () => Promise<T>): Promise<T> {
+  const result = writeQueue.then(work, work);
+  writeQueue = result.then(
+    () => undefined,
+    () => undefined,
+  );
+  return result;
+}
+
+export function run(sql: string, values: unknown[] = []): Promise<void> {
+  return serializeWrite(async () => {
+    const db = await getDb();
+    await db.run(sql, values as never[]);
+  });
+}
+
+/** Inside work use tx.query/run(..., false), not the queued global writers. */
+export function withTransaction<T>(
+  work: (tx: SQLiteDBConnection) => Promise<T>,
+): Promise<T> {
+  return serializeWrite(async () => {
+    const db = await getDb();
+    await db.beginTransaction();
+    try {
+      const result = await work(db);
+      await db.commitTransaction();
+      return result;
+    } catch (error) {
+      if ((await db.isTransactionActive()).result)
+        await db.rollbackTransaction();
+      throw error;
+    }
+  });
 }
 
 export async function getMeta(key: string): Promise<string | null> {

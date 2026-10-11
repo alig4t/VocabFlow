@@ -4,6 +4,7 @@ import { Navbar } from "./Navbar";
 import { Sidebar } from "./Sidebar";
 import { BottomNav } from "./BottomNav";
 import { SCROLL_CONTAINER_ID } from "@/lib/scroll";
+import { PremiumGate } from "../subscription/PremiumGate";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -71,7 +72,7 @@ export function Layout({ children }: LayoutProps) {
           {mergedHeroNav && (
             <Navbar hero onMenuClick={() => setSidebarOpen(true)} />
           )}
-          {children}
+          <PremiumGate>{children}</PremiumGate>
         </main>
       </div>
 

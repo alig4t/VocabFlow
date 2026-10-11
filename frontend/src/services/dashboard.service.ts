@@ -1,6 +1,7 @@
 import api from "@/lib/axios";
 import { API_ENDPOINTS } from "@/config/api";
 import { isNative } from "@/lib/platform";
+import { subscriptionService } from "./subscription.service";
 import type {
   BookSimple,
   DashboardData,
@@ -32,7 +33,11 @@ export const dashboardService = {
 
   /** Full "needs more attention" list (the dashboard card shows only the top 5). */
   getHardWords(): Promise<HardWordItem[]> {
-    if (isNative()) return off().then((o) => o.getHardWords());
+    if (isNative())
+      return subscriptionService
+        .assertAccess()
+        .then(() => off())
+        .then((o) => o.getHardWords());
     return api
       .get<HardWordItem[]>(API_ENDPOINTS.dashboard.hardWords)
       .then((r) => r.data);

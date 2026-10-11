@@ -13,6 +13,7 @@ frontend/.env.*.local
 backend/.env
 backend/.env.local
 backend/.env.*.local
+frontend/android/billing.local.properties
 
 # Build output
 frontend/dist/

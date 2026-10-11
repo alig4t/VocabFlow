@@ -17,6 +17,8 @@ import {
   rescheduleNotifications,
 } from "./lib/notifications";
 import { syncSafeAreaVars } from "./lib/safeArea";
+import { subscriptionService } from "./services/subscription.service";
+import { BazaarBilling } from "./lib/bazaarBilling";
 import { type Role } from "./types";
 
 // ── Lazy-loaded pages (code-split; PageLoader shows while chunks load) ────────
@@ -43,6 +45,11 @@ const HardWordsPage = lazy(() =>
 const StatisticsPage = lazy(() =>
   import("./pages/stats/StatisticsPage").then((m) => ({
     default: m.StatisticsPage,
+  })),
+);
+const SubscriptionPage = lazy(() =>
+  import("./pages/subscription/SubscriptionPage").then((m) => ({
+    default: m.SubscriptionPage,
   })),
 );
 const LibraryPage = lazy(() =>
@@ -184,18 +191,45 @@ export default function App() {
   useEffect(() => {
     if (!isNative() || !dbReady) return;
     initNotifications();
+    const refreshSubscription = () => {
+      void subscriptionService.onResume().catch(() => undefined);
+    };
+    refreshSubscription();
     let remove: (() => void) | undefined;
+    let removeNetwork: (() => void) | undefined;
+    let disposed = false;
+    BazaarBilling.addListener("networkChange", ({ online }) => {
+      if (online && document.visibilityState !== "hidden")
+        refreshSubscription();
+    })
+      .then((handle) => {
+        if (disposed) void handle.remove();
+        else
+          removeNetwork = () => {
+            void handle.remove();
+          };
+      })
+      .catch(() => undefined);
     import("@capacitor/app").then(({ App: CapApp }) => {
       CapApp.addListener("appStateChange", ({ isActive }) => {
         if (isActive) {
           rescheduleNotifications();
           syncSafeAreaVars();
+          refreshSubscription();
         }
       }).then((handle) => {
-        remove = () => handle.remove();
+        if (disposed) void handle.remove();
+        else
+          remove = () => {
+            void handle.remove();
+          };
       });
     });
-    return () => remove?.();
+    return () => {
+      disposed = true;
+      remove?.();
+      removeNetwork?.();
+    };
   }, [dbReady]);
 
   // Block route rendering until auth is restored from localStorage.
@@ -295,6 +329,20 @@ export default function App() {
                     <StatisticsPage />
                   </Layout>
                 </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/subscription"
+              element={
+                isNative() ? (
+                  <ProtectedRoute>
+                    <Layout>
+                      <SubscriptionPage />
+                    </Layout>
+                  </ProtectedRoute>
+                ) : (
+                  <Navigate to="/dashboard" replace />
+                )
               }
             />
             <Route

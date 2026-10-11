@@ -1,4 +1,10 @@
-import { query, run, uid } from "./db";
+import { query, run, uid, withTransaction } from "./db";
+import { consumeTrialDay } from "../lib/entitlement";
+import {
+  readEntitlementRecords,
+  writeEntitlementMeta,
+  notifyEntitlementChanged,
+} from "./entitlement.repo";
 import { schedule, startOfDay, endOfDay } from "./srs";
 import type {
   Word,
@@ -453,11 +459,23 @@ export async function updateWordStatus(
   reviewMode: ReviewMode,
   status: WordStatus,
 ): Promise<void> {
-  await run(
-    `INSERT INTO progress (word_id, review_mode, manual_status, updated_at) VALUES (?, ?, ?, ?)
-     ON CONFLICT(word_id, review_mode) DO UPDATE SET manual_status = excluded.manual_status, updated_at = excluded.updated_at`,
-    [wordId, reviewMode, status, now()],
-  );
+  let trialChanged = false;
+  await withTransaction(async (tx) => {
+    const nowDate = new Date();
+    const records = await readEntitlementRecords(tx);
+    const trial = consumeTrialDay(records, nowDate);
+    await tx.run(
+      `INSERT INTO progress (word_id, review_mode, manual_status, updated_at) VALUES (?, ?, ?, ?)
+       ON CONFLICT(word_id, review_mode) DO UPDATE SET manual_status = excluded.manual_status, updated_at = excluded.updated_at`,
+      [wordId, reviewMode, status, nowDate.toISOString()],
+      false,
+    );
+    if (trial !== records.trial) {
+      await writeEntitlementMeta(tx, "trial", trial);
+      trialChanged = true;
+    }
+  });
+  if (trialChanged) notifyEntitlementChanged();
 }
 
 /** Reset MANUAL marks only (keep SM-2 rows/scheduling intact). */
@@ -1710,115 +1728,136 @@ export async function answerStudy(
 ): Promise<StudyAnswerResult> {
   const settings = await getSettings();
   const mode = settings.studyDirection;
-  const nowDate = new Date();
-  const nowIso = nowDate.toISOString();
+  let trialChanged = false;
+  const result = await withTransaction(async (tx) => {
+    const query = async <T>(
+      sql: string,
+      values: unknown[] = [],
+    ): Promise<T[]> =>
+      ((await tx.query(sql, values as never[])).values ?? []) as T[];
+    const run = async (sql: string, values: unknown[] = []): Promise<void> => {
+      await tx.run(sql, values as never[], false);
+    };
+    const nowDate = new Date();
+    const nowIso = nowDate.toISOString();
 
-  const existing = (
-    await query<{
-      repetitions: number;
-      interval_days: number;
-      ease_factor: number;
-      review_count: number;
-      correct_count: number;
-      wrong_count: number;
-      introduced_at: string | null;
-    }>(
-      "SELECT repetitions, interval_days, ease_factor, review_count, correct_count, wrong_count, introduced_at FROM progress WHERE word_id=? AND review_mode=?",
-      [wordId, mode],
-    )
-  )[0];
+    const existing = (
+      await query<{
+        repetitions: number;
+        interval_days: number;
+        ease_factor: number;
+        review_count: number;
+        correct_count: number;
+        wrong_count: number;
+        introduced_at: string | null;
+      }>(
+        "SELECT repetitions, interval_days, ease_factor, review_count, correct_count, wrong_count, introduced_at FROM progress WHERE word_id=? AND review_mode=?",
+        [wordId, mode],
+      )
+    )[0];
 
-  const res = schedule(
-    existing
-      ? {
-          repetitions: existing.repetitions,
-          intervalDays: existing.interval_days,
-          easeFactor: existing.ease_factor,
-        }
-      : null,
-    answer,
-    nowDate,
-  );
-  if (!res) return { wordId, skipped: true };
+    const res = schedule(
+      existing
+        ? {
+            repetitions: existing.repetitions,
+            intervalDays: existing.interval_days,
+            easeFactor: existing.ease_factor,
+          }
+        : null,
+      answer,
+      nowDate,
+    );
+    if (!res) return { wordId, skipped: true };
 
-  const introducedAt = existing?.introduced_at ?? nowIso;
-  const nextIso = res.nextReviewAt.toISOString();
-  // "خواندم" — the first AGAIN on a never-introduced word — is a read, not a
-  // mistake: it must not increment wrong_count (matches the session stats).
-  const wrongInc = !res.correct && existing?.introduced_at ? 1 : 0;
+    const records = await readEntitlementRecords(tx);
+    const trial = consumeTrialDay(records, nowDate);
 
-  if (existing) {
-    await run(
-      `UPDATE progress SET status=?, repetitions=?, interval_days=?, ease_factor=?,
+    const introducedAt = existing?.introduced_at ?? nowIso;
+    const nextIso = res.nextReviewAt.toISOString();
+    // "خواندم" — the first AGAIN on a never-introduced word — is a read, not a
+    // mistake: it must not increment wrong_count (matches the session stats).
+    const wrongInc = !res.correct && existing?.introduced_at ? 1 : 0;
+
+    if (existing) {
+      await run(
+        `UPDATE progress SET status=?, repetitions=?, interval_days=?, ease_factor=?,
          review_count=review_count+1, correct_count=correct_count+?, wrong_count=wrong_count+?, hard_count=hard_count+?,
          last_reviewed_at=?, next_review_at=?, introduced_at=?, updated_at=?
        WHERE word_id=? AND review_mode=?`,
-      [
-        res.status,
-        res.repetitions,
-        res.intervalDays,
-        res.easeFactor,
-        res.correct ? 1 : 0,
-        wrongInc,
-        res.hard ? 1 : 0,
-        nowIso,
-        nextIso,
-        introducedAt,
-        nowIso,
-        wordId,
-        mode,
-      ],
-    );
-  } else {
-    await run(
-      `INSERT INTO progress (word_id, review_mode, status, updated_at, repetitions, interval_days,
+        [
+          res.status,
+          res.repetitions,
+          res.intervalDays,
+          res.easeFactor,
+          res.correct ? 1 : 0,
+          wrongInc,
+          res.hard ? 1 : 0,
+          nowIso,
+          nextIso,
+          introducedAt,
+          nowIso,
+          wordId,
+          mode,
+        ],
+      );
+    } else {
+      await run(
+        `INSERT INTO progress (word_id, review_mode, status, updated_at, repetitions, interval_days,
          ease_factor, review_count, correct_count, wrong_count, hard_count, last_reviewed_at, next_review_at, introduced_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?)`,
+        [
+          wordId,
+          mode,
+          res.status,
+          nowIso,
+          res.repetitions,
+          res.intervalDays,
+          res.easeFactor,
+          res.correct ? 1 : 0,
+          wrongInc,
+          res.hard ? 1 : 0,
+          nowIso,
+          nextIso,
+          introducedAt,
+        ],
+      );
+    }
+
+    // Append to the review log (mirrors backend study.service.answer). `isFirst`
+    // is decided from the state *before* this answer stamped introduced_at.
+    await run(
+      `INSERT INTO review_events (id, word_id, review_mode, answer, repetitions, interval_days,
+       ease_factor, is_first, is_lapse, reviewed_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
+        uid(),
         wordId,
         mode,
-        res.status,
-        nowIso,
+        answer,
         res.repetitions,
         res.intervalDays,
         res.easeFactor,
-        res.correct ? 1 : 0,
-        wrongInc,
-        res.hard ? 1 : 0,
+        existing?.introduced_at ? 0 : 1,
+        !res.correct && (existing?.repetitions ?? 0) > 0 ? 1 : 0,
         nowIso,
-        nextIso,
-        introducedAt,
       ],
     );
-  }
 
-  // Append to the review log (mirrors backend study.service.answer). `isFirst`
-  // is decided from the state *before* this answer stamped introduced_at.
-  await run(
-    `INSERT INTO review_events (id, word_id, review_mode, answer, repetitions, interval_days,
-       ease_factor, is_first, is_lapse, reviewed_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      uid(),
+    if (trial !== records.trial) {
+      await writeEntitlementMeta(tx, "trial", trial);
+      trialChanged = true;
+    }
+
+    return {
       wordId,
-      mode,
-      answer,
-      res.repetitions,
-      res.intervalDays,
-      res.easeFactor,
-      existing?.introduced_at ? 0 : 1,
-      !res.correct && (existing?.repetitions ?? 0) > 0 ? 1 : 0,
-      nowIso,
-    ],
-  );
-
-  return {
-    wordId,
-    skipped: false,
-    status: res.status,
-    nextReviewAt: nextIso,
-    correct: res.correct,
-  };
+      skipped: false,
+      status: res.status,
+      nextReviewAt: nextIso,
+      correct: res.correct,
+    };
+  });
+  if (trialChanged) notifyEntitlementChanged();
+  return result;
 }
 
 export async function recordStudySession(

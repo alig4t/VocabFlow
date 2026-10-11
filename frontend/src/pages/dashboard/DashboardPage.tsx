@@ -21,6 +21,7 @@ import { MemoryOverview } from "@/components/dashboard/MemoryOverview";
 import { UpcomingReviews } from "@/components/dashboard/UpcomingReviews";
 import { HardWords } from "@/components/dashboard/HardWords";
 import { useDashboard } from "@/hooks/useDashboard";
+import { PremiumContent } from "../../components/subscription/PremiumGate";
 
 function DashboardSkeleton() {
   return (
@@ -133,7 +134,9 @@ export function DashboardPage() {
                 دردسرساز
               </SectionHeading>
               <div className="surface rounded-3xl p-4 sm:p-5">
-                <HardWords words={data.hardWords} />
+                <PremiumContent>
+                  <HardWords words={data.hardWords} />
+                </PremiumContent>
               </div>
             </section>
 

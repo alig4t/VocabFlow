@@ -14,6 +14,7 @@ import {
   Rocket,
   Info,
   BarChart3,
+  Crown,
 } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
@@ -94,6 +95,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const primaryItems: NavItem[] = native
     ? [
         ...mainItems,
+        {
+          to: "/subscription",
+          icon: <Crown className="h-5 w-5" />,
+          label: "اشتراک من",
+        },
         {
           to: "/admin/words/new",
           icon: <FilePlus2 className="h-5 w-5" />,

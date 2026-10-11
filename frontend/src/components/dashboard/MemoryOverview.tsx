@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Brain, Sprout, Leaf, TreeDeciduous, TrendingUp } from "lucide-react";
 import { MemoryWordHalo } from "./MemoryWordHalo";
+import { PremiumContent } from "../subscription/PremiumGate";
 import { faNum } from "../../lib/format";
 import { cn } from "../../lib/utils";
 import type { GrowthPoint, MemoryBreakdown } from "../../types";
@@ -126,7 +127,9 @@ export function MemoryOverview({
       </header>
 
       <div className="space-y-6">
-        <MemoryWordHalo words={words} />
+        <PremiumContent hideWhenLocked>
+          <MemoryWordHalo words={words} />
+        </PremiumContent>
 
         {total === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">

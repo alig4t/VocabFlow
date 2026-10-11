@@ -223,11 +223,14 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
           className={cn(
             btn,
             "border-red-300 text-red-700 hover:bg-red-50 focus-visible:ring-red-400 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40",
-            isNative() && "flex flex-col items-center justify-center text-center",
+            isNative() &&
+              "flex flex-col items-center justify-center text-center",
           )}
         >
           بلد نیستم
-          {isNative() && <span className="text-[7px] leading-tight">(اصلاً یادم نیامد)</span>}
+          {isNative() && (
+            <span className="text-[7px] leading-tight">(اصلاً یادم نیامد)</span>
+          )}
         </button>
       </Tooltip>
       <Tooltip label="به سختی یادم آمد" className="flex-1">
@@ -236,11 +239,14 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
           className={cn(
             btn,
             "border-amber-300 text-amber-700 hover:bg-amber-50 focus-visible:ring-amber-400 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/40",
-            isNative() && "flex flex-col items-center justify-center text-center",
+            isNative() &&
+              "flex flex-col items-center justify-center text-center",
           )}
         >
           سخت
-          {isNative() && <span className="text-[7px] leading-tight">(به سختی یادم آمد)</span>}
+          {isNative() && (
+            <span className="text-[7px] leading-tight">(به سختی یادم آمد)</span>
+          )}
         </button>
       </Tooltip>
       <Tooltip label="به‌راحتی یادم آمد" className="flex-1">
@@ -249,12 +255,15 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
           className={cn(
             btn,
             "border-green-300 text-green-700 hover:bg-green-50 focus-visible:ring-green-400 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950/40",
-            isNative() && "flex flex-col items-center justify-center text-center",
+            isNative() &&
+              "flex flex-col items-center justify-center text-center",
           )}
         >
           بلدم
           {isNative() && (
-            <span className="text-[7px] leading-tight">(به‌راحتی یادم آمد)</span>
+            <span className="text-[7px] leading-tight">
+              (به‌راحتی یادم آمد)
+            </span>
           )}
         </button>
       </Tooltip>
@@ -264,11 +273,14 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
           className={cn(
             btn,
             "max-w-[4.5rem] border-dashed border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring",
-            isNative() && "flex flex-col items-center justify-center text-center",
+            isNative() &&
+              "flex flex-col items-center justify-center text-center",
           )}
         >
           رد
-          {isNative() && <span className="text-[7px] leading-tight">(فعلاً رد کن)</span>}
+          {isNative() && (
+            <span className="text-[7px] leading-tight">(فعلاً رد کن)</span>
+          )}
         </button>
       </Tooltip>
     </div>
@@ -339,6 +351,9 @@ export function StudySessionPage() {
   const [muted, setMuted] = useState<boolean>(loadMuted);
   const [summary, setSummary] = useState<SessionStats | null>(null);
   const [saving, setSaving] = useState(false);
+  const [answerSaving, setAnswerSaving] = useState(false);
+  const [answerError, setAnswerError] = useState("");
+  const answerInFlight = useRef(false);
 
   const startedAtRef = useRef<Date>(new Date());
   // Completion/practice metadata must be fetched after the last answer is saved.
@@ -657,18 +672,42 @@ export function StudySessionPage() {
   }, [queryClient, totalActiveMs]);
 
   const handleAnswer = useCallback(
-    (a: StudyAnswer) => {
-      if (!current || !queue) return;
+    async (a: StudyAnswer) => {
+      if (!current || !queue || answerInFlight.current) return;
       const cur = current;
       lastActiveRef.current = Date.now();
 
-      // Persist (fire-and-forget; SKIP is a no-op server-side).
+      // Native answers and trial consumption commit together. Do not advance
+      // the card or session totals when that commit fails (including loss of
+      // access at a deadline). Preserve the existing web request flow.
       if (a !== "SKIP") {
-        const pending = studyService
-          .answer(cur.word.id, a)
-          .catch((e) => console.error("answer failed", e));
-        pendingAnswers.current.add(pending);
-        void pending.finally(() => pendingAnswers.current.delete(pending));
+        if (isNative()) {
+          answerInFlight.current = true;
+          setAnswerSaving(true);
+          setAnswerError("");
+          try {
+            await studyService.answer(cur.word.id, a);
+          } catch (error) {
+            setAnswerError(
+              error instanceof Error
+                ? error.message
+                : "پاسخ ذخیره نشد؛ دوباره تلاش کنید.",
+            );
+            void queryClient.invalidateQueries({
+              queryKey: ["subscription", "entitlement"],
+            });
+            return;
+          } finally {
+            answerInFlight.current = false;
+            setAnswerSaving(false);
+          }
+        } else {
+          const pending = studyService
+            .answer(cur.word.id, a)
+            .catch((e) => console.error("answer failed", e));
+          pendingAnswers.current.add(pending);
+          void pending.finally(() => pendingAnswers.current.delete(pending));
+        }
       }
 
       // Recomputed here (not read off the render-scoped `isFirstExposure`) so the
@@ -706,7 +745,7 @@ export function StudySessionPage() {
         persist(nextQueue, nextIndex);
       }
     },
-    [current, queue, index, finish, persist],
+    [current, queue, index, finish, persist, queryClient],
   );
 
   const toggleFlip = useCallback(() => {
@@ -966,28 +1005,43 @@ export function StudySessionPage() {
             showExamples={showExamples}
           />
 
-          {flipped ? (
-            isFirstExposure ? (
-              <ReadBar onAnswer={handleAnswer} />
+          <fieldset disabled={answerSaving} className="contents">
+            {flipped ? (
+              isFirstExposure ? (
+                <ReadBar onAnswer={handleAnswer} />
+              ) : (
+                <AnswerBar onAnswer={handleAnswer} />
+              )
             ) : (
-              <AnswerBar onAnswer={handleAnswer} />
-            )
-          ) : (
-            <div className="flex items-center justify-center gap-2">
-              <Button
-                variant="outline"
-                className="min-w-[10rem]"
-                onClick={toggleFlip}
-              >
-                نمایش پاسخ
-              </Button>
-              <button
-                onClick={() => handleAnswer("SKIP")}
-                className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-              >
-                رد
-              </button>
-            </div>
+              <div className="flex items-center justify-center gap-2">
+                <Button
+                  variant="outline"
+                  className="min-w-[10rem]"
+                  onClick={toggleFlip}
+                >
+                  نمایش پاسخ
+                </Button>
+                <button
+                  onClick={() => handleAnswer("SKIP")}
+                  className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                >
+                  رد
+                </button>
+              </div>
+            )}
+          </fieldset>
+          {answerSaving && (
+            <p
+              role="status"
+              className="text-center text-xs text-muted-foreground"
+            >
+              در حال ذخیره پاسخ…
+            </p>
+          )}
+          {answerError && (
+            <p role="alert" className="text-center text-sm text-destructive">
+              {answerError}
+            </p>
           )}
 
           {/* Keyboard hint (web only) */}

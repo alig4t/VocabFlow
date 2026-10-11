@@ -2,8 +2,8 @@ import { create } from "zustand";
 import { User } from "../types";
 import { isNative } from "../lib/platform";
 
-// Offline (native) build has no server/login: every install is a fully-featured
-// local ADMIN so all pages (browse, review, edit) are reachable without auth.
+// Native has no server/login: every install has a local ADMIN identity.
+// Premium access is a separate trial/subscription/developer entitlement.
 const LOCAL_USER: User = {
   id: "local",
   email: "local@vocabflow.app",
