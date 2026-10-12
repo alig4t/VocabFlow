@@ -166,8 +166,6 @@ export function StudyTodayHero({
                 <Skeleton className="dashboard-hero-skeleton mt-3 h-14 w-44" />
                 <Skeleton className="dashboard-hero-skeleton mt-1 h-8 w-52" />
                 <Skeleton className="dashboard-hero-skeleton mt-3 h-5 w-48" />
-                <Skeleton className="dashboard-hero-skeleton mt-5 h-[52px] w-full rounded-2xl sm:max-w-64" />
-                <Skeleton className="dashboard-hero-skeleton mt-3 h-4 w-48" />
               </div>
             ) : (
               <>
@@ -238,38 +236,6 @@ export function StudyTodayHero({
                       : "از کتابخانه انتخاب کن؛ برنامه روزانه‌ات را ما می‌چینیم."}
                   </p>
                 )}
-                <div className="dashboard-hero-actions">
-                  <Button
-                    className="dashboard-hero-cta"
-                    onClick={() =>
-                      failed
-                        ? void refetch()
-                        : navigate(
-                            !hasPlans
-                              ? "/library"
-                              : done
-                                ? "/statistics"
-                                : "/study",
-                          )
-                    }
-                  >
-                    {failed
-                      ? "تلاش دوباره"
-                      : !hasPlans
-                        ? "انتخاب اولین کتاب"
-                        : done
-                          ? "مشاهده پیشرفت"
-                          : reviewed > 0
-                            ? "ادامه مطالعه"
-                            : "شروع مطالعه"}
-                    <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                  </Button>
-                  {lessonLabel && hasPlans && !done && (
-                    <p className="dashboard-hero-lesson" title={lessonLabel}>
-                      {lessonLabel}
-                    </p>
-                  )}
-                </div>
               </>
             )}
           </div>
@@ -333,6 +299,47 @@ export function StudyTodayHero({
           wordsInMemory={wordsInMemory}
           loadingStats={isLoading || loadingStats}
         />
+        <div className="dashboard-hero-actions">
+          {isLoading ? (
+            <>
+              <Skeleton className="dashboard-hero-skeleton h-[52px] w-full rounded-2xl sm:max-w-64" />
+              <Skeleton className="dashboard-hero-skeleton mt-2.5 h-4 w-48" />
+            </>
+          ) : (
+            <>
+              <Button
+                className="dashboard-hero-cta"
+                onClick={() =>
+                  failed
+                    ? void refetch()
+                    : navigate(
+                        !hasPlans
+                          ? "/library"
+                          : done
+                            ? "/statistics"
+                            : "/study",
+                      )
+                }
+              >
+                {failed
+                  ? "تلاش دوباره"
+                  : !hasPlans
+                    ? "انتخاب اولین کتاب"
+                    : done
+                      ? "مشاهده پیشرفت"
+                      : reviewed > 0
+                        ? "ادامه مطالعه"
+                        : "شروع مطالعه"}
+                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+              </Button>
+              {lessonLabel && hasPlans && !done && (
+                <p className="dashboard-hero-lesson" title={lessonLabel}>
+                  {lessonLabel}
+                </p>
+              )}
+            </>
+          )}
+        </div>
       </div>
       <svg
         aria-hidden="true"

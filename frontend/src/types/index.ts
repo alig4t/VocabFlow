@@ -409,6 +409,7 @@ export interface StudyToday {
     dueCount: number;
     newCount: number;
     dailyGoal: number;
+    /** Distinct words completed today in the active plans and study direction. */
     reviewedToday: number;
     /** New words already met today — the size of today's practice pool. */
     introducedToday: number;

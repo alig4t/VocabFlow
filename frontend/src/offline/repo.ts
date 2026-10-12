@@ -1634,7 +1634,29 @@ export async function getStudyToday(now = new Date()): Promise<StudyToday> {
   const orderedNew =
     settings.cardOrder === "RANDOM" ? shuffle(newWords) : newWords;
 
-  const todayTotals = await sessionTotalsBetween(dayStartIso, dayEndIso);
+  // Live progress cannot wait for a completed study_sessions row. Count each
+  // answered word once, excluding AGAIN words still due in today's queue.
+  const completedRows =
+    plans.length > 0
+      ? await query<{ c: number }>(
+          `SELECT COUNT(*) AS c FROM progress p
+         JOIN words w ON p.word_id=w.id JOIN lessons l ON w.lesson_id=l.id
+         WHERE p.review_mode=? AND p.introduced_at IS NOT NULL AND p.next_review_at>?
+           AND l.volume_id IN (${plans.map(() => "?").join(",")})
+           AND p.word_id IN (
+             SELECT word_id FROM review_events
+             WHERE review_mode=? AND reviewed_at>=? AND reviewed_at<=?
+           )`,
+          [
+            mode,
+            dayEndIso,
+            ...plans.map((p) => p.volume_id),
+            mode,
+            dayStartIso,
+            dayEndIso,
+          ],
+        )
+      : [];
   const hardTodayCount =
     plans.length > 0 && due.length === 0 && newWords.length === 0
       ? (await hardTodayWordIds(mode, dayStartIso, dayEndIso)).length
@@ -1647,7 +1669,7 @@ export async function getStudyToday(now = new Date()): Promise<StudyToday> {
       dueCount: due.length,
       newCount: newWords.length,
       dailyGoal: plans.reduce((s, p) => s + p.daily_goal, 0),
-      reviewedToday: todayTotals.reviewedCount,
+      reviewedToday: completedRows[0]?.c ?? 0,
       introducedToday: introducedTodayTotal,
       hardTodayCount,
       hasPlans: plans.length > 0,

@@ -97,6 +97,37 @@ export class StudyRepository {
     return rows.map((r) => r.word)
   }
 
+  /** Distinct active-plan words answered today and no longer due today. */
+  async countCompletedTodayWords(
+    userId: string,
+    mode: ReviewMode,
+    volumeIds: string[],
+    dayStart: Date,
+    dayEnd: Date,
+  ): Promise<number> {
+    if (volumeIds.length === 0) return 0
+    return prisma.word.count({
+      where: {
+        lesson: { volumeId: { in: volumeIds } },
+        progress: {
+          some: {
+            userId,
+            reviewMode: mode,
+            introducedAt: { not: null },
+            nextReviewAt: { gt: dayEnd },
+          },
+        },
+        reviewEvents: {
+          some: {
+            userId,
+            reviewMode: mode,
+            reviewedAt: { gte: dayStart, lte: dayEnd },
+          },
+        },
+      },
+    })
+  }
+
   /** Not-yet-introduced words in a volume, in learning order, capped at `take`. */
   async getNewWords(userId: string, mode: ReviewMode, volumeId: string, take: number) {
     if (take <= 0) return []

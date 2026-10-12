@@ -36,6 +36,7 @@ export interface StudyToday {
     dueCount: number
     newCount: number
     dailyGoal: number
+    /** Distinct words completed today in the active plans and study direction. */
     reviewedToday: number
     /** New words already met today — the size of the "practice" pool on Home. */
     introducedToday: number
@@ -79,7 +80,6 @@ export class StudyService {
 
     const dayStart = startOfDay(now)
     const dayEnd = endOfDay(now)
-    const todayTotals = await this.repo.getTodaySessionTotals(userId, dayStart, dayEnd)
 
     // Due reviews are capped per volume by that plan's own dailyGoal (oldest-due
     // first, so a cap only ever defers the least-urgent words). Without this cap
@@ -136,6 +136,12 @@ export class StudyService {
     const orderedDue = cardOrder === CardOrder.RANDOM ? shuffle(dueWords) : dueWords
     const orderedNew = cardOrder === CardOrder.RANDOM ? shuffle(newWords) : newWords
 
+    // Answers persist before a session finishes (including when leaving midway).
+    // Count completed words once; AGAIN words still due belong only to the queue.
+    const reviewedToday = await this.repo.countCompletedTodayWords(
+      userId, mode, plans.map((p) => p.volume.id), dayStart, dayEnd,
+    )
+
     const hardTodayCount =
       plans.length > 0 && dueWords.length === 0 && newWords.length === 0
         ? await this.repo.countHardTodayWords(
@@ -150,7 +156,7 @@ export class StudyService {
         dueCount: dueWords.length,
         newCount: newWords.length,
         dailyGoal: plans.reduce((s, p) => s + p.dailyGoal, 0),
-        reviewedToday: todayTotals.reviewedCount,
+        reviewedToday,
         introducedToday: introducedTodayTotal,
         hardTodayCount,
         hasPlans: plans.length > 0,

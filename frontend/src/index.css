@@ -1063,9 +1063,11 @@
   }
   .dashboard-hero-actions {
     display: flex;
+    max-width: 36rem;
     flex-direction: column;
     align-items: center;
-    margin-top: 1.25rem;
+    margin-inline: auto;
+    margin-top: 1.5rem;
   }
   .dashboard-today-hero .dashboard-hero-cta {
     position: relative;
