@@ -1,37 +1,87 @@
+import type { ReactNode } from "react";
+import { OnboardingBackground } from "./OnboardingBackground";
+import { faNum } from "@/lib/format";
 interface OnboardingSlideProps {
-  headline: string;
-  subtitle: string;
+  headline: string[];
+  eyebrow: string;
   body: string;
   imgSrc: string;
+  step: number;
+  onSkip: () => void;
+  children: ReactNode;
 }
-
-/**
- * One text-only onboarding slide, positioned like the reference design:
- * brand line, big heading and description in the upper-middle, right-aligned.
- * Sizes are container units of the card, so they scale with it.
- */
 export function OnboardingSlide({
   headline,
-  subtitle,
+  eyebrow,
   body,
   imgSrc,
+  step,
+  onSkip,
+  children,
 }: OnboardingSlideProps) {
   return (
-    <div className="relative h-full w-full shrink-0">
-      <img src={imgSrc} className={"mx-auto mt-16 max-w-[60%] mb-6"} />
-
-      {/*<p className="absolute right-[8%] top-[24.8%] text-[4.5cqw] font-bold text-[#111111]">
-        VocabFlow
-      </p>*/}
-      <h1 className="absolute right-[8%] top-[43.1%] text-[10cqw] font-bold leading-[1.15] text-[#111111] font-anjoman-bold">
-        {headline}
-      </h1>
-      <p className="absolute right-[8%] top-[59%] max-w-[80%] text-[5.5cqw] font-bold leading-[1.6] text-[#111111]">
-        {subtitle}
-      </p>
-      <p className="absolute right-[8%] top-[68%] max-w-[80%] text-[5cqw] leading-[1.6] text-[#6F663D]">
-        {body}
-      </p>
+    <div className="onboarding-shell">
+      <div className="onboarding-art">
+        <OnboardingBackground className="pointer-events-none absolute inset-0 h-full w-full" />
+        <header className="onboarding-brand">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm">
+              <img
+                src="/logo/logo-flow-192.png"
+                alt=""
+                className="h-9 w-9 object-contain"
+              />
+            </span>
+            <span className="text-base font-bold">وکب فلو</span>
+          </div>
+          <button
+            type="button"
+            onClick={onSkip}
+            className="onboarding-skip"
+            aria-label="رد کردن معرفی و ورود به برنامه"
+          >
+            بعداً
+          </button>
+        </header>
+        <div className="onboarding-illustration">
+          <img
+            key={imgSrc}
+            src={imgSrc}
+            alt=""
+            draggable={false}
+            className="onboarding-image"
+          />
+        </div>
+        <span className="onboarding-art-caption" dir="ltr">
+          A little every day. A lot over time.
+        </span>
+      </div>
+      <div className="onboarding-content">
+        <div
+          key={eyebrow}
+          className="onboarding-copy"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          <p className="mb-4 flex items-center gap-3 text-xs font-semibold text-accent-foreground">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent tabular-nums">
+              {faNum(step).padStart(2, "۰")}
+            </span>
+            {eyebrow}
+          </p>
+          <h1 className="onboarding-headline">
+            {headline.map((line) => (
+              <span key={line} className="block">
+                {line}
+              </span>
+            ))}
+          </h1>
+          <p className="mt-5 max-w-sm text-sm leading-7 text-muted-foreground sm:text-base sm:leading-8">
+            {body}
+          </p>
+        </div>
+        <footer className="onboarding-controls">{children}</footer>
+      </div>
     </div>
   );
 }

@@ -9,7 +9,8 @@ import {
   GalleryVerticalEnd,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useStudyToday } from "@/hooks/useStudy";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { StudyToday } from "@/types";
 import { cn } from "@/lib/utils";
 import { faNum } from "@/lib/format";
 
@@ -64,8 +65,49 @@ function PracticeHeading({
  * translucent panel sitting on the cream produced a stray gold wedge showing
  * through the box; the surface below is opaque for the same reason.
  */
-function PracticeSection({ children }: { children: ReactNode }) {
-  return <section className="mt-10 sm:mt-14">{children}</section>;
+function PracticeSection({
+  children,
+  loading = false,
+}: {
+  children: ReactNode;
+  loading?: boolean;
+}) {
+  return (
+    <section
+      className="mt-10 sm:mt-14"
+      aria-busy={loading || undefined}
+      aria-label={loading ? "در حال بارگذاری تمرین امروز" : undefined}
+      role={loading ? "status" : undefined}
+    >
+      {children}
+    </section>
+  );
+}
+
+/** Mirrors the practice heading and two choices during initial dashboard loading. */
+export function TodayPracticeSkeleton() {
+  return (
+    <PracticeSection loading>
+      <div aria-hidden="true">
+        <div className="flex items-center gap-2 pb-3 ps-1">
+          <Skeleton className="h-9 w-9 rounded-xl" />
+          <Skeleton className="h-5 w-24" />
+          <Skeleton className="h-4 w-9 rounded-full" />
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          {[0, 1].map((i) => (
+            <div
+              key={i}
+              className="surface rounded-3xl border border-dashed border-border p-4 sm:p-5"
+            >
+              <Skeleton className="h-5 w-3/4" />
+              <Skeleton className="mt-1 h-4 w-full" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </PracticeSection>
+  );
 }
 
 function PracticeTitle({ title }: { title: string }) {
@@ -89,14 +131,24 @@ function PracticeTitle({ title }: { title: string }) {
 /**
  * "تمرین: مرور مجدد واژگان جدید امروز" — the reward section on Home.
  *
- * Both practice choices use the hero's queue metadata and stay locked until
+ * Both practice choices share the dashboard's queue metadata and stay locked until
  * the whole queue is empty.
  */
-export function TodayPracticeCard() {
+export function TodayPracticeCard({
+  study,
+}: {
+  study: {
+    data?: StudyToday;
+    isLoading: boolean;
+    isFetching: boolean;
+    isError: boolean;
+  };
+}) {
   const navigate = useNavigate();
-  const { data, isLoading, isFetching, isError } = useStudyToday();
+  const { data, isLoading, isFetching, isError } = study;
 
-  if (isLoading || isFetching || isError || !data) return null;
+  if (isLoading) return <TodayPracticeSkeleton />;
+  if (isError || !data) return null;
 
   const { dueCount, newCount, introducedToday, hardTodayCount, hasPlans } =
     data.meta;
@@ -250,6 +302,7 @@ export function TodayPracticeCard() {
 
                 <Button
                   size="lg"
+                  disabled={isFetching}
                   className={cn(
                     "mt-auto w-full shrink-0 gap-2 text-base font-bold shadow-sm",
                     choices.length === 1 && "sm:mt-0 sm:w-auto",

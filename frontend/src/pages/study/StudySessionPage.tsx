@@ -1005,7 +1005,12 @@ export function StudySessionPage() {
             showExamples={showExamples}
           />
 
-          <fieldset disabled={answerSaving} className="contents">
+          <fieldset
+            disabled={answerSaving}
+            aria-busy={answerSaving}
+            aria-label="کنترل‌های مطالعه"
+            className="min-w-0 border-0 p-0"
+          >
             {flipped ? (
               isFirstExposure ? (
                 <ReadBar onAnswer={handleAnswer} />
@@ -1030,14 +1035,6 @@ export function StudySessionPage() {
               </div>
             )}
           </fieldset>
-          {answerSaving && (
-            <p
-              role="status"
-              className="text-center text-xs text-muted-foreground"
-            >
-              در حال ذخیره پاسخ…
-            </p>
-          )}
           {answerError && (
             <p role="alert" className="text-center text-sm text-destructive">
               {answerError}

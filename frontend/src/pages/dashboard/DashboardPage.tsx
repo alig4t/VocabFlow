@@ -12,7 +12,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { GlobalStats } from "@/components/dashboard/GlobalStats";
 import { SectionHeading } from "@/components/dashboard/SectionHeading";
 import { StudyTodayHero } from "@/components/dashboard/StudyTodayHero";
-import { TodayPracticeCard } from "@/components/dashboard/TodayPracticeCard";
+import {
+  TodayPracticeCard,
+  TodayPracticeSkeleton,
+} from "@/components/dashboard/TodayPracticeCard";
 import { WatchlistBookCard } from "@/components/dashboard/WatchlistBookCard";
 import { ContinueLearning } from "@/components/dashboard/ContinueLearning";
 import { ActivityHeatmap } from "@/components/dashboard/ActivityHeatmap";
@@ -21,12 +24,13 @@ import { MemoryOverview } from "@/components/dashboard/MemoryOverview";
 import { UpcomingReviews } from "@/components/dashboard/UpcomingReviews";
 import { HardWords } from "@/components/dashboard/HardWords";
 import { useDashboard } from "@/hooks/useDashboard";
+import { useStudyToday } from "@/hooks/useStudy";
 import { PremiumContent } from "../../components/subscription/PremiumGate";
 
 function DashboardSkeleton() {
   return (
     <div className="space-y-10">
-      <Skeleton className="h-24 rounded-3xl" />
+      <TodayPracticeSkeleton />
       <Skeleton className="h-80 rounded-3xl" />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {[...Array(3)].map((_, i) => (
@@ -40,12 +44,13 @@ function DashboardSkeleton() {
 export function DashboardPage() {
   const navigate = useNavigate();
   const { data, isLoading, isError } = useDashboard();
+  const study = useStudyToday();
 
   return (
-    <div dir="rtl" className="page-atmosphere font-persian">
+    <div dir="rtl" className="dashboard-page page-atmosphere font-persian">
       {/*
         ① امروز چه کار کنم؟ — the single primary action on the page. A
-        full-bleed violet band merged with the navbar (Layout renders the bar
+        full-bleed gold band merged with the navbar (Layout renders the bar
         inside <main> directly above it). Renders in every state (loading, no
         plans, done) because it carries the greeting.
       */}
@@ -53,6 +58,7 @@ export function DashboardPage() {
         streak={data?.stats.currentStreak ?? 0}
         accuracy={data?.stats.accuracyRate ?? 0}
         wordsInMemory={data?.memory.total ?? 0}
+        loadingStats={isLoading}
       />
 
       {/*
@@ -63,7 +69,7 @@ export function DashboardPage() {
         wave that dissolves into the page — the first card starts below it.
       */}
       <div className="mx-auto max-w-6xl space-y-10 pt-6">
-        {isLoading ? (
+        {isLoading || study.isLoading ? (
           <DashboardSkeleton />
         ) : isError || !data ? (
           <div className="surface rounded-3xl px-6 py-12 text-center">
@@ -77,7 +83,7 @@ export function DashboardPage() {
         ) : (
           <>
             {/* Practice — unlocks once today's session is finished */}
-            <TodayPracticeCard />
+            <TodayPracticeCard study={study} />
 
             {/* ② چقدر پیشرفت کرده‌ام؟ — this card carries its own accent heading */}
             <MemoryOverview

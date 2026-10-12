@@ -1,116 +1,98 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { OnboardingBackground } from "./components/OnboardingBackground";
 import { PaginationDots } from "./components/PaginationDots";
 import { OnboardingButton } from "./components/OnboardingButton";
 import { OnboardingSlide } from "./components/OnboardingSlide";
-import { completeOnboarding } from "../../lib/onboarding";
-import { ArrowLeft } from "lucide-react";
-
+import { completeOnboarding } from "@/lib/onboarding";
 const SLIDES = [
   {
-    headline: "یاد بگیر",
-    subtitle: "کتاب‌های کاربردی انگلیسی",
-    body: "کلمات جدید را از منابع معتبر یاد بگیر.",
+    eyebrow: "کشف واژه‌ها",
+    headline: ["واژه‌های تازه،", "دنیای بزرگ‌تر."],
+    body: "از کتاب‌های معتبر انگلیسی شروع کن و واژه‌ها را همراه با معنی، مثال و تلفظ یاد بگیر.",
     imgSrc: "/vector/step1-newbg.png",
   },
   {
-    headline: "فراموش نکن",
-    subtitle: "مرور هوشمند",
-    body: "VocabFlow زمان مناسب مرور هر واژه را تشخیص می‌دهد.",
+    eyebrow: "مرور هوشمند",
+    headline: ["یاد بگیر،", "در خاطرت نگه دار."],
+    body: "هر واژه در زمان مناسب به تو برمی‌گردد؛ مرورهای کوتاه کمک می‌کنند آموخته‌ها ماندگار شوند.",
     imgSrc: "/vector/step2-removebg-preview.png",
   },
   {
-    headline: "ادامه بده",
-    subtitle: "عادت روزانه",
-    body: "هر روز کمی پیشرفت کن و دایره واژگانت را گسترده‌تر کن.",
+    eyebrow: "عادت روزانه",
+    headline: ["قدم‌های کوچک،", "پیشرفت ماندگار."],
+    body: "یک کتاب انتخاب کن، برنامه‌ات را بساز و هر روز یک قدم به دایره واژگان بزرگ‌تر نزدیک‌تر شو.",
     imgSrc: "/vector/step3-cut.png",
   },
 ];
-/**
- * Three-slide first-launch onboarding (RTL, swipeable). Recreates the
- * reference design: warm-yellow card on a light gray page, organic SVG
- * line-art background, text-only slides, dots at bottom-left and a round
- * black "next" button at bottom-right.
- */
+/** First-launch introduction, with RTL swipes and hardware keyboard support. */
 export default function OnboardingPage() {
   const navigate = useNavigate();
   const [index, setIndex] = useState(0);
-  const touchStartX = useRef<number | null>(null);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
   const isLast = index === SLIDES.length - 1;
-
   const finish = useCallback(() => {
     completeOnboarding();
     navigate("/dashboard", { replace: true });
   }, [navigate]);
-
   const next = useCallback(() => {
     if (isLast) finish();
     else setIndex((i) => Math.min(i + 1, SLIDES.length - 1));
   }, [isLast, finish]);
-
-  const prev = useCallback(() => {
-    setIndex((i) => Math.max(i - 1, 0));
-  }, []);
-
-  // Keyboard navigation (web / hardware keyboards)
+  const prev = useCallback(() => setIndex((i) => Math.max(i - 1, 0)), []);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowLeft") next();
-      if (e.key === "ArrowRight") prev();
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        next();
+      }
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        prev();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [next, prev]);
-
   const onTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
+    if (e.touches.length !== 1) {
+      touchStart.current = null;
+      return;
+    }
+    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
   };
-
   const onTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX.current === null) return;
-    const delta = e.changedTouches[0].clientX - touchStartX.current;
-    // RTL carousel: the next slide sits to the LEFT, so dragging content to
-    // the right (positive delta) reveals it.
-    if (delta > 50) next();
-    else if (delta < -50) prev();
-    touchStartX.current = null;
+    const start = touchStart.current;
+    touchStart.current = null;
+    if (!start) return;
+    const dx = e.changedTouches[0].clientX - start.x;
+    const dy = e.changedTouches[0].clientY - start.y;
+    // Leave vertical scrolling alone on small screens and enlarged text.
+    if (Math.abs(dx) < 50 || Math.abs(dx) <= Math.abs(dy) * 1.5) return;
+    if (dx > 0 && !isLast) next();
+    else if (dx < 0) prev();
   };
-
   return (
-    <div
+    <main
       dir="rtl"
-      className="font-persian flex h-[100dvh] w-full items-center justify-center bg-[#F4F4F4]"
+      className="onboarding-page font-persian"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
+      onTouchCancel={() => {
+        touchStart.current = null;
+      }}
     >
-      {/* Mobile card — reference ratio 201:435, full-bleed on phones.
-          Sizing via container units keeps the design proportional. */}
-      <div className="relative h-[100dvh] w-full overflow-hidden bg-[#F9D040]">
-        {/* Decorative background (SVG, clipped by the card) */}
-        <OnboardingBackground className="pointer-events-none absolute inset-0 h-full w-full" />
-
-        {/* Sliding track (RTL flex overflows to the LEFT, so the track must
-            translate rightward — positive X — to reveal  the next slide) */}
-        <div
-          className="absolute inset-0 flex transition-transform duration-300 ease-out"
-          style={{ transform: `translateX(${index * 100}%)` }}
-        >
-          {SLIDES.map((s) => (
-            <OnboardingSlide key={s.headline} {...s} />
-          ))}
-        </div>
-
-        {/* Bottom controls — dots at bottom-right, next button at bottom-left
-            (in RTL the first flex child is laid out on the RIGHT) */}
-        <div className="absolute inset-x-0 bottom-[7%] flex items-center justify-between px-[7.5%]">
-          <PaginationDots count={SLIDES.length} active={index} />
-          <OnboardingButton
-            label={isLast ? "شروع" : <ArrowLeft />}
-            onClick={next}
-          />
-        </div>
-      </div>
-    </div>
+      <OnboardingSlide {...SLIDES[index]} step={index + 1} onSkip={finish}>
+        <PaginationDots
+          count={SLIDES.length}
+          active={index}
+          onSelect={setIndex}
+        />
+        <OnboardingButton
+          label={isLast ? "شروع یادگیری" : "بعدی"}
+          onClick={next}
+        />
+      </OnboardingSlide>
+    </main>
   );
 }

@@ -43,7 +43,7 @@ export function ContinueLearning({ queue }: ContinueLearningProps) {
             {queue.map((q) => (
               <li
                 key={q.bookId}
-                className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground"
+                className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground"
               >
                 <span className="truncate max-w-[14rem]">{q.title}</span>
                 <span className="font-bold tabular-nums text-foreground">

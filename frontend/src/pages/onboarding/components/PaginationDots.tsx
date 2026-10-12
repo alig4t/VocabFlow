@@ -1,19 +1,26 @@
 interface PaginationDotsProps {
   count: number;
   active: number;
+  onSelect: (index: number) => void;
 }
-
-/** Three tiny dots; the active one is solid dark. */
-export function PaginationDots({ count, active }: PaginationDotsProps) {
+export function PaginationDots({
+  count,
+  active,
+  onSelect,
+}: PaginationDotsProps) {
   return (
-    <div className="flex items-center gap-[2cqw]" aria-hidden>
+    <div className="flex items-center" aria-label="مراحل معرفی">
       {Array.from({ length: count }, (_, i) => (
-        <span
+        <button
           key={i}
-          className={`h-[1.9cqw] w-[1.9cqw] rounded-full ${
-            i === active ? "bg-[#111111]" : "bg-[#6F663D]/40"
-          }`}
-        />
+          type="button"
+          className="onboarding-dot"
+          onClick={() => onSelect(i)}
+          aria-label={`رفتن به مرحله ${i + 1}`}
+          aria-current={i === active ? "step" : undefined}
+        >
+          <span className={i === active ? "onboarding-dot-active" : ""} />
+        </button>
       ))}
     </div>
   );
