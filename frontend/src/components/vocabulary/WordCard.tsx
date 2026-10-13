@@ -1,11 +1,10 @@
-import { useState, useCallback } from "react";
+import { useState, useId } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ChevronDown,
   ChevronUp,
   BookOpen,
   Sparkles,
-  Volume2,
   SquarePen,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +13,6 @@ import { cn } from "@/lib/utils";
 import { useWordStatus } from "@/hooks/useProgress";
 import { useAuthStore } from "@/store/authStore";
 import { synonymService } from "@/services/synonym.service";
-import { playPronunciation } from "@/lib/pronounce";
 import { collectExamples, hasExamples } from "@/lib/word-examples";
 import { SpeakButton } from "./SpeakButton";
 import { WordDescription } from "./WordDescription";
@@ -23,47 +21,57 @@ import type { Word, ReviewMode, SynonymResult } from "@/types";
 interface WordCardProps {
   word: Word;
   mode: ReviewMode;
+  showBook?: boolean;
 }
 
 function StatusBadge({ status }: { status: string }) {
   if (status === "KNOWN") {
     return (
       <Badge className="border-transparent bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">
-        یاد گرفتم
+        بلدم
       </Badge>
     );
   }
   if (status === "NOT_KNOWN") {
     return (
       <Badge className="border-transparent bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400">
-        یاد نگرفتم
+        بلد نیستم
       </Badge>
     );
   }
   return (
     <Badge variant="secondary" className="text-muted-foreground">
-      نخوانده
+      بدون علامت
     </Badge>
   );
 }
 
-export function WordCard({ word, mode }: WordCardProps) {
+export function WordCard({ word, mode, showBook = true }: WordCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [synonymsOpen, setSynonymsOpen] = useState(false);
   const [synonyms, setSynonyms] = useState<SynonymResult[] | null>(null);
   const [loadingSynonyms, setLoadingSynonyms] = useState(false);
+  const [synonymsError, setSynonymsError] = useState(false);
+  const synonymsId = useId();
+  const examplesId = useId();
 
   const navigate = useNavigate();
   const isAdmin = useAuthStore((s) => s.user?.role === "ADMIN");
 
   const status = useWordStatus(word, mode);
 
-  const handleSpeak = useCallback(() => {
-    playPronunciation({
-      eng: word.eng,
-      pronunciationAudio: word.pronunciationAudio,
-    });
-  }, [word.eng, word.pronunciationAudio]);
+  async function loadSynonyms() {
+    if (loadingSynonyms) return;
+    setLoadingSynonyms(true);
+    setSynonymsError(false);
+    try {
+      setSynonyms(await synonymService.getSynonyms(word.id));
+    } catch {
+      setSynonymsError(true);
+    } finally {
+      setLoadingSynonyms(false);
+    }
+  }
 
   async function handleSynonymsToggle() {
     if (synonymsOpen) {
@@ -72,15 +80,7 @@ export function WordCard({ word, mode }: WordCardProps) {
     }
     setSynonymsOpen(true);
     if (synonyms === null) {
-      setLoadingSynonyms(true);
-      try {
-        const data = await synonymService.getSynonyms(word.id);
-        setSynonyms(data);
-      } catch {
-        setSynonyms([]);
-      } finally {
-        setLoadingSynonyms(false);
-      }
+      await loadSynonyms();
     }
   }
 
@@ -90,23 +90,26 @@ export function WordCard({ word, mode }: WordCardProps) {
 
   const lessonInfo = word.lesson;
   const locationBadge = lessonInfo
-    ? `${lessonInfo.volume.book.title} · جلد ${lessonInfo.volume.volumeNumber} · درس ${lessonInfo.lessonNumber}`
+    ? `${showBook ? `${lessonInfo.volume.book.title} · ` : ""}جلد ${lessonInfo.volume.volumeNumber.toLocaleString("fa-IR")} · درس ${lessonInfo.lessonNumber.toLocaleString("fa-IR")}`
     : word.chapter != null || word.unit != null
       ? `${word.chapter != null ? `فصل ${word.chapter}` : ""}${word.chapter != null && word.unit != null ? " · " : ""}${word.unit != null ? `درس ${word.unit}` : ""}`
       : null;
 
   return (
-    <Card className="overflow-hidden transition-shadow hover:shadow-md dark:hover:shadow-none dark:hover:border-border/80">
+    <Card
+      data-word-id={word.id}
+      className="overflow-hidden rounded-xl transition-shadow hover:shadow-md dark:hover:shadow-none dark:hover:border-border/80"
+    >
       <CardContent className="p-4">
         {/* Header row */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             {/* Primary word (bold, on top): English in EN→FA, Persian in FA→EN */}
-            <div className="flex items-baseline gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
               <span
                 dir={mode === "FA_TO_EN" ? "rtl" : "ltr"}
                 className={cn(
-                  "text-xl font-bold text-foreground",
+                  "text-xl font-bold text-foreground break-words [overflow-wrap:anywhere]",
                   mode === "FA_TO_EN" ? "rtl" : "tracking-tight",
                 )}
               >
@@ -117,7 +120,7 @@ export function WordCard({ word, mode }: WordCardProps) {
               {engIsPrimary && phonetic && (
                 <span
                   dir="ltr"
-                  className="font-ipa text-xs text-muted-foreground/60"
+                  className="font-ipa text-sm text-muted-foreground"
                 >
                   {phonetic}
                 </span>
@@ -125,28 +128,11 @@ export function WordCard({ word, mode }: WordCardProps) {
 
               {/* Part of speech (noun/verb/…) from the data */}
               {pos && (
-                <span className="rounded-full border border-border px-1.5 py-0 text-[10px] font-medium text-muted-foreground/70">
-                  {pos}
-                </span>
-              )}
-
-              {/* Audio pronunciation button — sits beside the English word, so
-                  only in the top row when English is the primary word (EN→FA).
-                  In FA→EN it moves down next to the English (secondary) line. */}
-              {engIsPrimary && (
-                <button
-                  onClick={handleSpeak}
-                  className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
-                  title="تلفظ"
+                <span
+                  dir="ltr"
+                  className="rounded-full border border-border px-1.5 py-0 text-xs font-medium text-muted-foreground"
                 >
-                  <Volume2 className="h-3.5 w-3.5" />
-                </button>
-              )}
-
-              {/* Location badge */}
-              {locationBadge && (
-                <span className="max-w-full truncate text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full whitespace-nowrap">
-                  {locationBadge}
+                  {pos}
                 </span>
               )}
             </div>
@@ -156,7 +142,7 @@ export function WordCard({ word, mode }: WordCardProps) {
               <p
                 dir={mode === "FA_TO_EN" ? "ltr" : "rtl"}
                 className={cn(
-                  "text-base text-muted-foreground font-medium",
+                  "text-base text-foreground/80 font-medium break-words [overflow-wrap:anywhere]",
                   mode === "FA_TO_EN" ? "" : "rtl",
                 )}
               >
@@ -164,44 +150,44 @@ export function WordCard({ word, mode }: WordCardProps) {
                 {!engIsPrimary && phonetic && (
                   <span
                     dir="ltr"
-                    className="ms-2 font-ipa text-xs text-muted-foreground/50"
+                    className="ms-2 font-ipa text-sm text-muted-foreground"
                   >
                     {phonetic}
                   </span>
                 )}
               </p>
-
-              {/* In FA→EN the English word lives here — attach its play button. */}
-              {!engIsPrimary && (
-                <button
-                  onClick={handleSpeak}
-                  className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
-                  title="تلفظ"
-                >
-                  <Volume2 className="h-3.5 w-3.5" />
-                </button>
-              )}
             </div>
-
-            {/* Definition gloss — clamped so the list stays scannable */}
-            <WordDescription word={word} variant="compact" />
           </div>
 
           {/* Status badge */}
-          <div className="flex-shrink-0 pt-0.5">
+          <div
+            className="flex flex-shrink-0 flex-col items-center gap-2 pt-0.5"
+            title="وضعیت در مرور آزاد"
+          >
             <StatusBadge status={status} />
+            <SpeakButton
+              text={word.eng}
+              audioUrl={word.pronunciationAudio}
+              label={`تلفظ ${word.eng}`}
+              className="h-11 w-11"
+            />
           </div>
         </div>
 
-        {/* Action row (browse-only: marking happens on the Review page) */}
-        <div className="mt-3 flex items-center gap-2 flex-wrap">
-          <div className="flex-1" />
+        <WordDescription word={word} variant="compact" />
 
+        {/* Action row (browse-only: marking happens on the Review page) */}
+        {locationBadge && (
+          <p className="mt-3 break-words text-xs leading-6 text-muted-foreground">
+            {locationBadge}
+          </p>
+        )}
+        <div className="mt-2 flex items-center justify-end gap-1 flex-wrap">
           {/* Edit word (admins / offline app) */}
           {isAdmin && (
             <button
               onClick={() => navigate(`/admin/words/${word.id}/edit`)}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              className="flex min-h-11 items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
             >
               <SquarePen className="h-3.5 w-3.5" />
               ویرایش
@@ -211,7 +197,9 @@ export function WordCard({ word, mode }: WordCardProps) {
           {/* Synonyms button */}
           <button
             onClick={handleSynonymsToggle}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            aria-expanded={synonymsOpen}
+            aria-controls={synonymsId}
+            className="flex min-h-11 items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Sparkles className="h-3.5 w-3.5" />
             {synonymsOpen ? "پنهان کردن مترادف‌ها" : "مترادف‌ها"}
@@ -221,7 +209,9 @@ export function WordCard({ word, mode }: WordCardProps) {
           {hasExamples(word) && (
             <button
               onClick={() => setExpanded((v) => !v)}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              aria-expanded={expanded}
+              aria-controls={examplesId}
+              className="flex min-h-11 items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
             >
               <BookOpen className="h-3.5 w-3.5" />
               {expanded ? (
@@ -239,6 +229,8 @@ export function WordCard({ word, mode }: WordCardProps) {
 
         {/* Synonyms section */}
         <div
+          id={synonymsId}
+          aria-busy={loadingSynonyms}
           className={cn(
             "overflow-hidden transition-all duration-300 ease-in-out",
             synonymsOpen ? "max-h-64 mt-3 overflow-y-auto" : "max-h-0",
@@ -257,6 +249,19 @@ export function WordCard({ word, mode }: WordCardProps) {
                       className="h-6 w-16 rounded-full bg-muted animate-pulse"
                     />
                   ))}
+                </div>
+              ) : synonymsError ? (
+                <div role="alert" className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm text-destructive">
+                    مترادف‌ها بارگذاری نشدند.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => void loadSynonyms()}
+                    className="min-h-11 rounded-lg border border-border px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    تلاش مجدد
+                  </button>
                 </div>
               ) : synonyms && synonyms.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
@@ -283,6 +288,7 @@ export function WordCard({ word, mode }: WordCardProps) {
 
         {/* Examples section */}
         <div
+          id={examplesId}
           className={cn(
             "overflow-hidden transition-all duration-300 ease-in-out",
             expanded ? "max-h-[70vh] mt-3 overflow-y-auto" : "max-h-0",
@@ -297,7 +303,7 @@ export function WordCard({ word, mode }: WordCardProps) {
                     <SpeakButton
                       text={ex.eng}
                       label="پخش تلفظ مثال"
-                      className="mt-0.5"
+                      className="mt-0.5 h-11 w-11"
                     />
                     <p className="flex-1 text-start text-sm text-foreground leading-relaxed italic">
                       "{ex.eng}"

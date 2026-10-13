@@ -1,4 +1,6 @@
 import { PrismaClient, ReviewMode, WordStatus } from '@prisma/client'
+import { WordScopeFilters } from '../../shared/types'
+import { wordScopeWhere } from '../../shared/utils/word-scope'
 
 const prisma = new PrismaClient()
 
@@ -7,6 +9,7 @@ export interface ProgressStats {
   KNOWN: number
   NOT_KNOWN: number
   NOT_READ: number
+  total: number
 }
 
 export class ProgressRepository {
@@ -40,12 +43,20 @@ export class ProgressRepository {
     })
   }
 
-  async getProgressStats(userId: string): Promise<ProgressStats[]> {
-    const rows = await prisma.userWordProgress.groupBy({
+  async getProgressStats(
+    userId: string,
+    filters: WordScopeFilters = {},
+  ): Promise<ProgressStats[]> {
+    const where = wordScopeWhere(filters)
+    const grouped = prisma.userWordProgress.groupBy({
       by: ['reviewMode', 'manualStatus'],
-      where: { userId },
+      where: { userId, word: where },
       _count: { manualStatus: true },
     })
+    const [total, rows] = await prisma.$transaction([
+      prisma.word.count({ where }),
+      grouped,
+    ])
 
     const modes = Object.values(ReviewMode)
     const statsMap: Record<ReviewMode, ProgressStats> = {} as Record<
@@ -54,11 +65,24 @@ export class ProgressRepository {
     >
 
     for (const mode of modes) {
-      statsMap[mode] = { reviewMode: mode, KNOWN: 0, NOT_KNOWN: 0, NOT_READ: 0 }
+      statsMap[mode] = {
+        reviewMode: mode,
+        KNOWN: 0,
+        NOT_KNOWN: 0,
+        NOT_READ: total,
+        total,
+      }
     }
 
     for (const row of rows) {
-      statsMap[row.reviewMode][row.manualStatus] = row._count.manualStatus
+      if (row.manualStatus !== 'NOT_READ') {
+        statsMap[row.reviewMode][row.manualStatus] = row._count.manualStatus
+      }
+    }
+
+    for (const mode of modes) {
+      statsMap[mode].NOT_READ =
+        total - statsMap[mode].KNOWN - statsMap[mode].NOT_KNOWN
     }
 
     return Object.values(statsMap)

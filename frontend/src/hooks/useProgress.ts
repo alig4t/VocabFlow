@@ -6,12 +6,13 @@ import type {
   ProgressStats,
   Word,
   UserWordProgress,
+  WordScopeFilters,
 } from "@/types";
 
-export function useProgressStats() {
+export function useProgressStats(filters: WordScopeFilters = {}) {
   return useQuery<ProgressStats, Error>({
-    queryKey: ["progress", "stats"],
-    queryFn: () => progressService.getStats(),
+    queryKey: ["progress", "stats", filters],
+    queryFn: () => progressService.getStats(filters),
   });
 }
 

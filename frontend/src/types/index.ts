@@ -171,6 +171,11 @@ export interface WordFilters {
   search?: string;
 }
 
+export type WordScopeFilters = Pick<
+  WordFilters,
+  "chapter" | "unit" | "lessonId" | "volumeId" | "bookId" | "search"
+>;
+
 export interface PaginatedWords {
   data: Word[];
   meta: {

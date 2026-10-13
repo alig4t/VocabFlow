@@ -1,6 +1,13 @@
-import { useRef, useEffect, useState } from "react";
-import { X, RotateCcw } from "lucide-react";
+import { useRef, useEffect, useState, useId } from "react";
+import {
+  X,
+  RotateCcw,
+  Search,
+  SlidersHorizontal,
+  ChevronDown,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BottomSelect } from "@/components/ui/bottom-select";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
@@ -12,307 +19,408 @@ import {
   DEFAULT_VOCAB_FILTERS,
   type WordFiltersState,
 } from "@/lib/vocabFilters";
-import type { WordStatus } from "@/types";
+import type { WordStatus, ProgressStats } from "@/types";
 
 export type { WordFiltersState };
 
 interface WordFiltersProps {
   filters: WordFiltersState;
   onChange: (filters: WordFiltersState) => void;
+  counts?: ProgressStats["EN_TO_FA"];
+  countsLoading?: boolean;
+  countsError?: boolean;
+  onRetryCounts?: () => void;
   className?: string;
 }
 
 const STATUS_OPTIONS: { label: string; value: WordStatus | "ALL" }[] = [
   { label: "همه", value: "ALL" },
-  { label: "یاد گرفتم", value: "KNOWN" },
-  { label: "یاد نگرفتم", value: "NOT_KNOWN" },
-  { label: "نخوانده", value: "NOT_READ" },
+  { label: "بلدم", value: "KNOWN" },
+  { label: "بلد نیستم", value: "NOT_KNOWN" },
+  { label: "بدون علامت", value: "NOT_READ" },
 ];
-
-const SORT_OPTIONS: { label: string; value: "chapter" | "eng" | "per" }[] = [
+const SORT_OPTIONS = [
   { label: "بر اساس فصل", value: "chapter" },
   { label: "انگلیسی الفبایی", value: "eng" },
   { label: "فارسی الفبایی", value: "per" },
-];
-
+] as const;
 const CHAPTERS = Array.from({ length: 30 }, (_, i) => i + 1);
-
-// Cap the width so long book titles truncate instead of overflowing the card.
-const SELECT_CLASS =
-  "select-field w-auto min-w-[9rem] max-w-[13rem] cursor-pointer";
 
 export function WordFilters({
   filters,
   onChange,
+  counts,
+  countsLoading,
+  countsError,
+  onRetryCounts,
   className,
 }: WordFiltersProps) {
-  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Local mirror of the search text so typing stays responsive while the URL
-  // update is debounced; re-syncs when filters.search changes (URL restore/reset).
+  const panelId = useId();
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [searchValue, setSearchValue] = useState(filters.search);
-  useEffect(() => {
-    setSearchValue(filters.search);
-  }, [filters.search]);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const filtersRef = useRef(filters);
+  const onChangeRef = useRef(onChange);
+  filtersRef.current = filters;
+  onChangeRef.current = onChange;
 
-  const { data: books } = useBooksSimple();
-  const { data: volumes } = useVolumesSimple(filters.bookId ?? "");
-  const { data: lessons } = useLessonsSimple(
+  function cancelSearch() {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = null;
+  }
+
+  useEffect(() => {
+    cancelSearch();
+    setSearchValue(filters.search);
+  }, [
+    filters.mode,
+    filters.status,
+    filters.sort,
+    filters.chapter,
+    filters.search,
+    filters.bookId,
+    filters.volumeId,
+    filters.lessonId,
+  ]);
+  useEffect(() => () => cancelSearch(), []);
+
+  const booksQuery = useBooksSimple();
+  const volumesQuery = useVolumesSimple(filters.bookId ?? "");
+  const lessonsQuery = useLessonsSimple(
     filters.bookId ?? "",
     filters.volumeId ?? "",
   );
-
-  useEffect(() => {
-    return () => {
-      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    };
-  }, []);
+  const { data: books } = booksQuery;
+  const { data: volumes } = volumesQuery;
+  const { data: lessons } = lessonsQuery;
 
   function update(partial: Partial<WordFiltersState>) {
-    onChange({ ...filters, ...partial });
-  }
-
-  function handleBookChange(bookId: string) {
-    update({
-      bookId: bookId || undefined,
-      volumeId: undefined,
-      lessonId: undefined,
-    });
-  }
-
-  function handleVolumeChange(volumeId: string) {
-    update({ volumeId: volumeId || undefined, lessonId: undefined });
+    cancelSearch();
+    const next = { ...filtersRef.current, search: searchValue, ...partial };
+    filtersRef.current = next;
+    onChangeRef.current(next);
   }
 
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value;
     setSearchValue(val);
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    searchTimeoutRef.current = setTimeout(() => {
-      update({ search: val });
+    cancelSearch();
+    timeoutRef.current = setTimeout(() => {
+      timeoutRef.current = null;
+      onChangeRef.current({ ...filtersRef.current, search: val });
     }, 350);
   }
 
-  function clearSearch() {
-    setSearchValue("");
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    update({ search: "" });
-  }
-
   function resetAll() {
+    cancelSearch();
     setSearchValue("");
-    onChange({ ...DEFAULT_VOCAB_FILTERS });
+    const next = { ...DEFAULT_VOCAB_FILTERS };
+    filtersRef.current = next;
+    onChangeRef.current(next);
   }
 
-  const isDefaultState =
-    filters.mode === "EN_TO_FA" &&
-    filters.status === "ALL" &&
-    filters.sort === "chapter" &&
-    filters.chapter === undefined &&
-    filters.search === "" &&
-    filters.bookId === undefined &&
-    filters.volumeId === undefined &&
-    filters.lessonId === undefined;
+  const advancedCount = [
+    filters.bookId,
+    filters.volumeId,
+    filters.lessonId,
+    filters.chapter,
+    filters.sort !== "chapter",
+    filters.mode !== "EN_TO_FA",
+  ].filter(Boolean).length;
+  const hasFilters =
+    advancedCount > 0 || filters.status !== "ALL" || searchValue !== "";
+  const selectedVolume = volumes?.find((v) => v.id === filters.volumeId);
+  const selectedLesson = lessons?.find((l) => l.id === filters.lessonId);
+  const scopeText = [
+    filters.volumeId
+      ? (selectedVolume?.title ??
+        `جلد ${selectedVolume?.volumeNumber ?? "انتخاب‌شده"}`)
+      : undefined,
+    filters.lessonId
+      ? (selectedLesson?.title ??
+        `درس ${selectedLesson?.lessonNumber ?? "انتخاب‌شده"}`)
+      : undefined,
+    filters.chapter
+      ? `فصل ${filters.chapter.toLocaleString("fa-IR")}`
+      : undefined,
+    filters.sort !== "chapter"
+      ? SORT_OPTIONS.find((s) => s.value === filters.sort)?.label
+      : undefined,
+    filters.mode === "FA_TO_EN" ? "فارسی به انگلیسی" : undefined,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
-    <div className={cn("space-y-4", className)}>
-      {/* Row 1: Review Mode + Status filter */}
-      <div className="flex flex-wrap gap-4 items-center">
-        {/* Review Mode toggle */}
-        <div className="flex items-center gap-1 bg-muted rounded-full p-1">
+    <div className={cn("space-y-3", className)}>
+      <div className="relative">
+        <Search
+          aria-hidden
+          className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+        />
+        <Input
+          aria-label="جستجو در واژگان انگلیسی و فارسی"
+          type="search"
+          placeholder="جستجوی واژهٔ انگلیسی یا فارسی…"
+          value={searchValue}
+          onChange={handleSearchChange}
+          className="h-12 rounded-xl pr-10 pl-12 text-base [&::-webkit-search-cancel-button]:appearance-none"
+        />
+        {searchValue && (
           <button
-            onClick={() => update({ mode: "EN_TO_FA" })}
-            className={cn(
-              "px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200",
-              filters.mode === "EN_TO_FA"
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-            )}
+            type="button"
+            aria-label="پاک کردن جستجو"
+            onClick={() => {
+              setSearchValue("");
+              update({ search: "" });
+            }}
+            className="absolute left-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
           >
-            EN → FA
+            <X className="h-4 w-4" />
           </button>
-          <button
-            onClick={() => update({ mode: "FA_TO_EN" })}
-            className={cn(
-              "px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200",
-              filters.mode === "FA_TO_EN"
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            FA → EN
-          </button>
-        </div>
+        )}
+      </div>
 
-        {/* Status filter buttons */}
-        <div className="flex items-center gap-1 flex-wrap">
-          {STATUS_OPTIONS.map((opt) => (
+      <div className="flex items-center justify-between gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => setAdvancedOpen((open) => !open)}
+          aria-expanded={advancedOpen}
+          aria-controls={panelId}
+          className="h-11 gap-2 px-2 text-muted-foreground"
+        >
+          <SlidersHorizontal className="h-4 w-4" />
+          فیلترهای بیشتر
+          {advancedCount > 0 && (
+            <span className="rounded-full bg-primary/15 px-1.5 text-xs text-foreground">
+              {advancedCount.toLocaleString("fa-IR")}
+            </span>
+          )}
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 transition-transform motion-reduce:transition-none",
+              advancedOpen && "rotate-180",
+            )}
+          />
+        </Button>
+        {hasFilters && (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={resetAll}
+            className="h-11 gap-1.5 px-2 text-xs text-muted-foreground"
+          >
+            <RotateCcw className="h-4 w-4" />
+            بازنشانی
+          </Button>
+        )}
+      </div>
+      {!advancedOpen && scopeText && (
+        <p className="text-xs leading-6 text-muted-foreground break-words">
+          {scopeText}
+        </p>
+      )}
+
+      <div
+        id={panelId}
+        hidden={!advancedOpen}
+        className="space-y-3 border-t border-border pt-3"
+      >
+        <div
+          role="group"
+          aria-label="جهت مرور"
+          className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1 sm:max-w-xs"
+        >
+          {(["EN_TO_FA", "FA_TO_EN"] as const).map((mode) => (
             <button
-              key={opt.value}
-              onClick={() => update({ status: opt.value })}
+              key={mode}
+              type="button"
+              aria-pressed={filters.mode === mode}
+              onClick={() => update({ mode })}
               className={cn(
-                "px-3 py-1.5 rounded-md text-sm font-medium border transition-all duration-200",
-                filters.status === opt.value
-                  ? opt.value === "KNOWN"
-                    ? "bg-green-500 text-white border-green-500 shadow-sm"
-                    : opt.value === "NOT_KNOWN"
-                      ? "bg-red-500 text-white border-red-500 shadow-sm"
-                      : opt.value === "NOT_READ"
-                        ? "bg-secondary text-secondary-foreground border-border shadow-sm"
-                        : "bg-primary text-primary-foreground border-primary shadow-sm"
-                  : "bg-background text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground",
+                "min-h-11 rounded-lg px-2 text-sm focus-visible:ring-2 focus-visible:ring-ring",
+                filters.mode === mode
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground",
               )}
             >
-              {opt.label}
+              {mode === "EN_TO_FA" ? "انگلیسی به فارسی" : "فارسی به انگلیسی"}
             </button>
           ))}
         </div>
-      </div>
-
-      {/* Row 2: Book → Volume → Lesson cascaded filters */}
-      {books && books.length > 0 && (
-        <div className="flex flex-wrap gap-3 items-center">
-          {/* Book filter */}
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground whitespace-nowrap">
-              کتاب:
-            </label>
-            <select
-              value={filters.bookId ?? ""}
-              onChange={(e) => handleBookChange(e.target.value)}
-              className={SELECT_CLASS}
-            >
-              <option value="">همه کتاب‌ها</option>
-              {books.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.title}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Volume filter — only when book is selected */}
-          {filters.bookId && volumes && volumes.length > 0 && (
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-muted-foreground whitespace-nowrap">
-                جلد:
-              </label>
-              <select
-                value={filters.volumeId ?? ""}
-                onChange={(e) => handleVolumeChange(e.target.value)}
-                className={SELECT_CLASS}
-              >
-                <option value="">همه جلدها</option>
-                {volumes.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.title ?? `جلد ${v.volumeNumber}`}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Lesson filter — only when volume is selected */}
-          {filters.volumeId && lessons && lessons.length > 0 && (
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-muted-foreground whitespace-nowrap">
-                درس:
-              </label>
-              <select
-                value={filters.lessonId ?? ""}
-                onChange={(e) =>
-                  update({ lessonId: e.target.value || undefined })
-                }
-                className={SELECT_CLASS}
-              >
-                <option value="">همه درس‌ها</option>
-                {lessons.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.title ?? `درس ${l.lessonNumber}`}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Row 3: Sort + Chapter + Search + Reset */}
-      <div className="flex flex-wrap gap-3 items-center">
-        {/* Sort dropdown */}
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-muted-foreground whitespace-nowrap">
-            مرتب‌سازی:
-          </label>
-          <select
-            value={filters.sort}
-            onChange={(e) =>
-              update({ sort: e.target.value as "chapter" | "eng" | "per" })
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <BottomSelect
+            label="کتاب"
+            value={filters.bookId ?? ""}
+            disabled={booksQuery.isLoading || booksQuery.isError}
+            onValueChange={(value) =>
+              update({
+                bookId: value || undefined,
+                volumeId: undefined,
+                lessonId: undefined,
+                chapter: undefined,
+              })
             }
-            className={SELECT_CLASS}
-          >
-            {SORT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Chapter filter (legacy for old words not in book system) */}
-        {!filters.bookId && (
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground whitespace-nowrap">
-              فصل:
-            </label>
-            <select
-              value={filters.chapter ?? ""}
-              onChange={(e) =>
-                update({
-                  chapter: e.target.value ? Number(e.target.value) : undefined,
-                })
+            options={[
+              {
+                value: "",
+                label: booksQuery.isLoading
+                  ? "در حال دریافت کتاب‌ها…"
+                  : "همه کتاب‌ها",
+              },
+              ...(books?.map((book) => ({
+                value: book.id,
+                label: book.title,
+              })) ?? []),
+            ]}
+          />
+          {filters.bookId && (
+            <BottomSelect
+              label="جلد"
+              value={filters.volumeId ?? ""}
+              disabled={volumesQuery.isLoading || volumesQuery.isError}
+              onValueChange={(value) =>
+                update({ volumeId: value || undefined, lessonId: undefined })
               }
-              className={SELECT_CLASS}
+              options={[
+                {
+                  value: "",
+                  label: volumesQuery.isLoading
+                    ? "در حال دریافت جلدها…"
+                    : "همه جلدها",
+                },
+                ...(volumes?.map((volume) => ({
+                  value: volume.id,
+                  label: volume.title ?? `جلد ${volume.volumeNumber}`,
+                })) ?? []),
+              ]}
+            />
+          )}
+          {filters.volumeId && (
+            <BottomSelect
+              label="درس"
+              value={filters.lessonId ?? ""}
+              disabled={lessonsQuery.isLoading || lessonsQuery.isError}
+              onValueChange={(value) =>
+                update({ lessonId: value || undefined })
+              }
+              options={[
+                {
+                  value: "",
+                  label: lessonsQuery.isLoading
+                    ? "در حال دریافت درس‌ها…"
+                    : "همه درس‌ها",
+                },
+                ...(lessons?.map((lesson) => ({
+                  value: lesson.id,
+                  label: lesson.title ?? `درس ${lesson.lessonNumber}`,
+                })) ?? []),
+              ]}
+            />
+          )}
+          {filters.bookId && (
+            <BottomSelect
+              label="فصل"
+              value={filters.chapter?.toString() ?? ""}
+              onValueChange={(value) =>
+                update({ chapter: value ? Number(value) : undefined })
+              }
+              options={[
+                { value: "", label: "همه فصل‌ها" },
+                ...CHAPTERS.map((chapter) => ({
+                  value: chapter.toString(),
+                  label: `فصل ${chapter.toLocaleString("fa-IR")}`,
+                })),
+              ]}
+            />
+          )}
+          <BottomSelect<WordFiltersState["sort"]>
+            label="مرتب‌سازی"
+            value={filters.sort}
+            onValueChange={(sort) => update({ sort })}
+            options={SORT_OPTIONS}
+          />
+        </div>
+        {(booksQuery.isError ||
+          (filters.bookId && volumesQuery.isError) ||
+          (filters.volumeId && lessonsQuery.isError)) && (
+          <div
+            role="alert"
+            className="flex flex-wrap items-center gap-2 text-xs text-destructive"
+          >
+            <span>فیلترهای کتاب بارگذاری نشدند.</span>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                if (booksQuery.isError) void booksQuery.refetch();
+                if (volumesQuery.isError) void volumesQuery.refetch();
+                if (lessonsQuery.isError) void lessonsQuery.refetch();
+              }}
             >
-              <option value="">همه فصل‌ها</option>
-              {CHAPTERS.map((ch) => (
-                <option key={ch} value={ch}>
-                  فصل {ch}
-                </option>
-              ))}
-            </select>
+              تلاش مجدد
+            </Button>
           </div>
         )}
+      </div>
 
-        {/* Search input */}
-        <div className="relative flex-1 min-w-[200px]">
-          <Input
-            type="text"
-            placeholder="جستجو در واژگان..."
-            value={searchValue}
-            onChange={handleSearchChange}
-            className="pr-8"
-          />
-          {searchValue && (
+      <div className="space-y-2 border-t border-border pt-3">
+        <p className="text-[11px] leading-5 text-muted-foreground">
+          علامت‌های مرور آزاد؛ مستقل از مطالعهٔ روزانه
+        </p>
+        <div
+          role="group"
+          aria-label="وضعیت در مرور آزاد"
+          className="grid grid-cols-4 gap-1.5"
+        >
+          {STATUS_OPTIONS.map((opt) => (
             <button
-              onClick={clearSearch}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              key={opt.value}
+              type="button"
+              aria-pressed={filters.status === opt.value}
+              onClick={() => update({ status: opt.value })}
+              className={cn(
+                "flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-lg border px-1 py-2 text-xs focus-visible:ring-2 focus-visible:ring-ring",
+                filters.status === opt.value
+                  ? "border-primary bg-primary/10 text-foreground"
+                  : "border-border bg-background text-muted-foreground",
+                opt.value === "KNOWN" && "text-green-700 dark:text-green-400",
+                opt.value === "NOT_KNOWN" && "text-red-700 dark:text-red-400",
+              )}
             >
-              <X className="h-4 w-4" />
+              <span>{opt.label}</span>
+              {countsLoading ? (
+                <span
+                  aria-label="در حال شمارش"
+                  className="h-4 w-9 animate-pulse rounded bg-muted"
+                />
+              ) : counts && !countsError ? (
+                <span className="text-sm font-bold tabular-nums" dir="ltr">
+                  {(opt.value === "ALL"
+                    ? counts.total
+                    : counts[opt.value]
+                  ).toLocaleString("fa-IR")}
+                </span>
+              ) : null}
             </button>
-          )}
+          ))}
         </div>
-
-        {/* Reset button */}
-        {!isDefaultState && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={resetAll}
-            className="gap-1.5 text-muted-foreground"
+        {countsError && (
+          <div
+            role="alert"
+            className="flex items-center justify-between gap-2 text-xs text-destructive"
           >
-            <RotateCcw className="h-3.5 w-3.5" />
-            بازنشانی
-          </Button>
+            <span>آمار مرور آزاد بارگذاری نشد.</span>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onRetryCounts}
+              className="h-11 px-2 text-xs"
+            >
+              تلاش مجدد
+            </Button>
+          </div>
         )}
       </div>
     </div>

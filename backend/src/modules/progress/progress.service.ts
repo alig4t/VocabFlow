@@ -1,5 +1,6 @@
 import { ReviewMode, WordStatus } from '@prisma/client'
 import { ProgressRepository } from './progress.repository'
+import { WordScopeFilters } from '../../shared/types'
 
 export class ProgressService {
   private readonly repository: ProgressRepository
@@ -17,8 +18,8 @@ export class ProgressService {
     return this.repository.upsertProgress(userId, wordId, reviewMode, status)
   }
 
-  async getStats(userId: string) {
-    return this.repository.getProgressStats(userId)
+  async getStats(userId: string, filters: WordScopeFilters = {}) {
+    return this.repository.getProgressStats(userId, filters)
   }
 
   async resetProgress(userId: string, reviewMode?: ReviewMode) {

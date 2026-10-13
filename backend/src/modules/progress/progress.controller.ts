@@ -15,6 +15,15 @@ const resetSchema = z.object({
   reviewMode: z.nativeEnum(ReviewMode).optional(),
 })
 
+const statsScopeSchema = z.object({
+  bookId: z.string().min(1).optional(),
+  volumeId: z.string().min(1).optional(),
+  lessonId: z.string().min(1).optional(),
+  chapter: z.coerce.number().int().positive().optional(),
+  unit: z.coerce.number().int().positive().optional(),
+  search: z.string().trim().optional(),
+})
+
 export async function updateStatus(req: Request, res: Response): Promise<void> {
   if (!req.user) throw new UnauthorizedError()
 
@@ -42,7 +51,13 @@ export async function updateStatus(req: Request, res: Response): Promise<void> {
 export async function getStats(req: Request, res: Response): Promise<void> {
   if (!req.user) throw new UnauthorizedError()
 
-  const stats = await progressService.getStats(req.user.sub)
+  const parsed = statsScopeSchema.safeParse(req.query)
+  if (!parsed.success) {
+    throw new ValidationError(
+      parsed.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join('; '),
+    )
+  }
+  const stats = await progressService.getStats(req.user.sub, parsed.data)
 
   res.json({ success: true, data: stats })
 }

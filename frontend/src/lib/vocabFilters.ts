@@ -46,10 +46,16 @@ export function parseVocabParams(sp: URLSearchParams): {
   const chapterRaw = sp.get("chapter");
   const pageRaw = sp.get("page");
   const chapter =
-    chapterRaw && Number.isFinite(Number(chapterRaw))
+    sp.get("bookId") &&
+    chapterRaw &&
+    Number.isInteger(Number(chapterRaw)) &&
+    Number(chapterRaw) > 0
       ? Number(chapterRaw)
       : undefined;
-  const page = pageRaw && Number(pageRaw) > 0 ? Math.floor(Number(pageRaw)) : 1;
+  const page =
+    pageRaw && Number.isFinite(Number(pageRaw)) && Number(pageRaw) >= 1
+      ? Math.floor(Number(pageRaw))
+      : 1;
 
   return {
     filters: {
@@ -65,8 +71,11 @@ export function parseVocabParams(sp: URLSearchParams): {
       chapter,
       search: sp.get("search") ?? "",
       bookId: sp.get("bookId") || undefined,
-      volumeId: sp.get("volumeId") || undefined,
-      lessonId: sp.get("lessonId") || undefined,
+      volumeId: sp.get("bookId") ? sp.get("volumeId") || undefined : undefined,
+      lessonId:
+        sp.get("bookId") && sp.get("volumeId")
+          ? sp.get("lessonId") || undefined
+          : undefined,
     },
     page,
   };
@@ -82,12 +91,23 @@ export function serializeVocabParams(
   sp.set("mode", filters.mode);
   if (filters.status !== "ALL") sp.set("status", filters.status);
   if (filters.sort !== "chapter") sp.set("sort", filters.sort);
-  if (filters.chapter !== undefined) sp.set("chapter", String(filters.chapter));
+  if (filters.bookId && filters.chapter !== undefined)
+    sp.set("chapter", String(filters.chapter));
   if (filters.search.trim()) sp.set("search", filters.search.trim());
   if (filters.bookId) sp.set("bookId", filters.bookId);
   if (filters.volumeId) sp.set("volumeId", filters.volumeId);
   if (filters.lessonId) sp.set("lessonId", filters.lessonId);
   if (page > 1) sp.set("page", String(page));
+  return sp;
+}
+
+/** Explicit defaults prevent the review page's saved scope from overriding this list. */
+export function serializeReviewParams(
+  filters: WordFiltersState,
+): URLSearchParams {
+  const sp = serializeVocabParams(filters, 1);
+  sp.set("source", "vocabulary");
+  sp.set("status", filters.status);
   return sp;
 }
 
@@ -105,7 +125,7 @@ export function toApiFilters(
       filters.status === "ALL" ? undefined : (filters.status as WordStatus),
     sort: filters.sort,
     order: "asc" as const,
-    chapter: filters.chapter,
+    chapter: filters.bookId ? filters.chapter : undefined,
     search: filters.search.trim() || undefined,
     bookId: filters.bookId,
     volumeId: filters.volumeId,

@@ -9,6 +9,7 @@ import { schedule, startOfDay, endOfDay } from "./srs";
 import type {
   Word,
   WordFilters,
+  WordScopeFilters,
   PaginatedWords,
   ProgressStats,
   BookSimple,
@@ -488,10 +489,25 @@ export async function resetProgress(reviewMode?: ReviewMode): Promise<void> {
   else await run(`UPDATE progress SET manual_status = 'NOT_READ'`, []);
 }
 
-export async function getStats(): Promise<ProgressStats> {
+export async function getStats(
+  filters: WordScopeFilters = {},
+): Promise<ProgressStats> {
+  const { chapter, unit, lessonId, volumeId, bookId, search } = filters;
+  // Count the whole content scope even if a caller passes list-only options.
+  const { clause, params } = buildWhere({
+    chapter,
+    unit,
+    lessonId,
+    volumeId,
+    bookId,
+    search,
+  });
+  const scopedWords = `SELECT w.id FROM words w
+    LEFT JOIN lessons l ON w.lesson_id = l.id
+    LEFT JOIN volumes v ON l.volume_id = v.id ${clause}`;
   const totalRow = await query<{ c: number }>(
-    "SELECT COUNT(*) AS c FROM words",
-    [],
+    `SELECT COUNT(*) AS c FROM (${scopedWords})`,
+    params,
   );
   const total = totalRow[0]?.c ?? 0;
   const counts = await query<{
@@ -499,8 +515,9 @@ export async function getStats(): Promise<ProgressStats> {
     manual_status: WordStatus;
     c: number;
   }>(
-    "SELECT review_mode, manual_status, COUNT(*) AS c FROM progress GROUP BY review_mode, manual_status",
-    [],
+    `SELECT review_mode, manual_status, COUNT(*) AS c FROM progress
+     WHERE word_id IN (${scopedWords}) GROUP BY review_mode, manual_status`,
+    params,
   );
   const mk = (mode: ReviewMode) => {
     const known =

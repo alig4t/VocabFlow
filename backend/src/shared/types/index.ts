@@ -37,6 +37,11 @@ export interface WordFilters extends PaginationQuery {
   search?: string
 }
 
+export type WordScopeFilters = Pick<
+  WordFilters,
+  'chapter' | 'unit' | 'lessonId' | 'volumeId' | 'bookId' | 'search'
+>
+
 export interface ApiResponse<T = void> {
   success: boolean
   data?: T

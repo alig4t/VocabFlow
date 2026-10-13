@@ -30,7 +30,7 @@ export function WordDescription({
         {eng && (
           <p
             dir="ltr"
-            className="line-clamp-1 text-start text-xs leading-snug text-muted-foreground"
+            className="line-clamp-2 text-start text-sm leading-relaxed text-muted-foreground"
           >
             {eng}
           </p>
@@ -38,7 +38,7 @@ export function WordDescription({
         {per && (
           <p
             dir="rtl"
-            className="rtl line-clamp-1 text-start text-xs leading-snug text-muted-foreground/80"
+            className="rtl line-clamp-2 text-start text-sm leading-relaxed text-muted-foreground"
           >
             {per}
           </p>

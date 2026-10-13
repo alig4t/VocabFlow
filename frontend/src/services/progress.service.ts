@@ -2,7 +2,12 @@ import api from "@/lib/axios";
 import { API_ENDPOINTS } from "@/config/api";
 import { isNative } from "@/lib/platform";
 import { subscriptionService } from "./subscription.service";
-import type { ReviewMode, WordStatus, ProgressStats } from "@/types";
+import type {
+  ReviewMode,
+  WordStatus,
+  ProgressStats,
+  WordScopeFilters,
+} from "@/types";
 
 const off = () => import("@/offline/repo");
 
@@ -22,9 +27,20 @@ export const progressService = {
       .then((res) => res.data);
   },
 
-  getStats(): Promise<ProgressStats> {
-    if (isNative()) return off().then((o) => o.getStats());
-    return api.get(API_ENDPOINTS.progress.stats).then((res) => res.data);
+  getStats(filters: WordScopeFilters = {}): Promise<ProgressStats> {
+    if (isNative()) return off().then((o) => o.getStats(filters));
+    // The API keeps its array response; both platforms expose a map to hooks.
+    return api
+      .get<Array<ProgressStats[ReviewMode] & { reviewMode: ReviewMode }>>(
+        API_ENDPOINTS.progress.stats,
+        { params: filters },
+      )
+      .then(
+        (res) =>
+          Object.fromEntries(
+            res.data.map(({ reviewMode, ...counts }) => [reviewMode, counts]),
+          ) as unknown as ProgressStats,
+      );
   },
 
   resetProgress(reviewMode?: ReviewMode): Promise<void> {

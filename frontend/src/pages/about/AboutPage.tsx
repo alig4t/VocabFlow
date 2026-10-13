@@ -1,4 +1,4 @@
-import { Mail, Github } from "lucide-react";
+import { Mail, Github, Send } from "lucide-react";
 import { useRef, useState } from "react";
 import { isNative } from "../../lib/platform";
 import { SUBSCRIPTION_POLICY } from "../../config/subscription";
@@ -79,6 +79,16 @@ export function AboutPage() {
             alig4t
           </a>
         </div>
+        <a
+          dir="ltr"
+          href="https://t.me/AliGhasemi_dev"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 inline-flex items-center gap-1.5 text-xs text-muted-foreground/40 transition-colors hover:text-muted-foreground"
+        >
+          <Send className="h-3.5 w-3.5" />
+          @AliGhasemi_dev
+        </a>
       </div>
       {isNative() && (
         <DeveloperAccessSheet

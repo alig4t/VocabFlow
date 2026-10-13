@@ -1,5 +1,6 @@
 import { PrismaClient, Prisma } from '@prisma/client'
 import { WordFilters } from '../../shared/types'
+import { wordScopeWhere } from '../../shared/utils/word-scope'
 import { CreateWordDto } from './dto/create-word.dto'
 import { CreateExampleDto, UpdateWordDto } from './dto/update-word.dto'
 
@@ -31,43 +32,16 @@ export class WordRepository {
     const {
       page = 1,
       limit = 20,
-      chapter,
-      unit,
-      lessonId,
-      volumeId,
-      bookId,
-      bookIds,
       status,
       mode,
       sort = 'chapter',
       order = 'asc',
-      search,
     } = filters
 
     const skip = (page - 1) * limit
 
     const where: Prisma.WordWhereInput = {
-      ...(chapter !== undefined && { chapter }),
-      ...(unit !== undefined && { unit }),
-      ...(lessonId !== undefined && { lessonId }),
-      ...((volumeId !== undefined ||
-        bookId !== undefined ||
-        (bookIds !== undefined && bookIds.length > 0)) && {
-        lesson: {
-          ...(volumeId !== undefined && { volumeId }),
-          ...(bookId !== undefined
-            ? { volume: { bookId } }
-            : bookIds !== undefined && bookIds.length > 0
-              ? { volume: { bookId: { in: bookIds } } }
-              : {}),
-        },
-      }),
-      ...(search && {
-        OR: [
-          { eng: { contains: search, mode: 'insensitive' } },
-          { per: { contains: search, mode: 'insensitive' } },
-        ],
-      }),
+      ...wordScopeWhere(filters),
       ...(status !== undefined &&
         userId !== undefined &&
         mode !== undefined &&

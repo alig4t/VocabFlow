@@ -14,11 +14,15 @@ import { ReviewCard } from "@/components/vocabulary/ReviewCard";
 import { ReviewActions } from "@/components/vocabulary/ReviewActions";
 import { useWords } from "@/hooks/useVocabulary";
 import { useUpdateWordStatus } from "@/hooks/useProgress";
-import { useVolumesSimple, useLessonsSimple } from "@/hooks/useBooks";
+import {
+  useBooksSimple,
+  useVolumesSimple,
+  useLessonsSimple,
+} from "@/hooks/useBooks";
 import { useWatchlistBooks } from "@/hooks/useDashboard";
 import { cn } from "@/lib/utils";
 import { isNative } from "@/lib/platform";
-import { parseVocabParams } from "@/lib/vocabFilters";
+import { parseVocabParams, serializeVocabParams } from "@/lib/vocabFilters";
 import {
   playPronunciation,
   stopPronunciation,
@@ -28,7 +32,7 @@ import type { ReviewMode, WordStatus, Word } from "@/types";
 
 const SELECT_CLASS = "select-field w-auto min-w-[9rem] cursor-pointer";
 
-type ReviewFilter = "ALL" | "NOT_READ" | "NOT_KNOWN";
+type ReviewFilter = WordStatus | "ALL";
 
 function loadPersistedMode(): ReviewMode {
   try {
@@ -51,7 +55,13 @@ function loadPersistedMuted(): boolean {
 function loadPersistedFilter(): ReviewFilter {
   try {
     const val = localStorage.getItem("vocab_review_filter");
-    if (val === "ALL" || val === "NOT_READ" || val === "NOT_KNOWN") return val;
+    if (
+      val === "ALL" ||
+      val === "NOT_READ" ||
+      val === "NOT_KNOWN" ||
+      val === "KNOWN"
+    )
+      return val;
   } catch {
     // ignore
   }
@@ -88,6 +98,7 @@ function loadPersistedScope(): {
 function statusToReviewFilter(status: WordStatus | "ALL"): ReviewFilter {
   if (status === "NOT_READ") return "NOT_READ";
   if (status === "NOT_KNOWN") return "NOT_KNOWN";
+  if (status === "KNOWN") return "KNOWN";
   return "ALL";
 }
 
@@ -101,12 +112,20 @@ export function ReviewPage() {
   // Seed the session from URL params carried over from the vocabulary page,
   // so "continue review" opens the same book/mode/status scope.
   const initial = useMemo(() => parseVocabParams(searchParams), [searchParams]);
+  const fromVocabulary = searchParams.get("source") === "vocabulary";
+  const [search, setSearch] = useState(
+    fromVocabulary ? initial.filters.search : "",
+  );
+  const [chapter, setChapter] = useState(
+    fromVocabulary ? initial.filters.chapter : undefined,
+  );
+  const sort = fromVocabulary ? initial.filters.sort : "chapter";
 
   const [mode, setMode] = useState<ReviewMode>(() =>
     searchParams.get("mode") ? initial.filters.mode : loadPersistedMode(),
   );
   const [reviewFilter, setReviewFilter] = useState<ReviewFilter>(() =>
-    searchParams.has("status")
+    fromVocabulary || searchParams.has("status")
       ? statusToReviewFilter(initial.filters.status)
       : loadPersistedFilter(),
   );
@@ -120,7 +139,7 @@ export function ReviewPage() {
   // the URL when arriving via "continue review" (authoritative); otherwise
   // restored from the last scope the user reviewed (persisted in localStorage).
   const persistedScope = useMemo(() => loadPersistedScope(), []);
-  const urlHasScope = searchParams.has("bookId");
+  const urlHasScope = fromVocabulary || searchParams.has("bookId");
   const [bookId, setBookId] = useState<string | undefined>(
     urlHasScope ? initial.filters.bookId : persistedScope.bookId,
   );
@@ -131,8 +150,11 @@ export function ReviewPage() {
     urlHasScope ? initial.filters.lessonId : persistedScope.lessonId,
   );
 
-  // Only books in the user's watchlist are selectable for review.
-  const { data: books } = useWatchlistBooks();
+  // Direct free review uses active plans; vocabulary results retain their full scope.
+  const watchlistQuery = useWatchlistBooks();
+  const allBooksQuery = useBooksSimple();
+  const booksQuery = fromVocabulary ? allBooksQuery : watchlistQuery;
+  const books = booksQuery.data;
   const { data: volumes } = useVolumesSimple(bookId ?? "");
   const { data: lessons } = useLessonsSimple(bookId ?? "", volumeId ?? "");
 
@@ -145,17 +167,23 @@ export function ReviewPage() {
   // once the watchlist has loaded and no longer contains it, falling back to
   // the whole-watchlist scope.
   useEffect(() => {
-    if (bookId && books && !books.some((b) => b.id === bookId)) {
+    if (
+      !fromVocabulary &&
+      bookId &&
+      books &&
+      !books.some((b) => b.id === bookId)
+    ) {
       setBookId(undefined);
       setVolumeId(undefined);
       setLessonId(undefined);
     }
-  }, [bookId, books]);
+  }, [bookId, books, fromVocabulary]);
 
   function handleBookChange(id: string) {
     setBookId(id || undefined);
     setVolumeId(undefined);
     setLessonId(undefined);
+    setChapter(undefined);
   }
 
   function handleVolumeChange(id: string) {
@@ -165,19 +193,13 @@ export function ReviewPage() {
 
   const { mutate: updateStatus } = useUpdateWordStatus();
 
-  // Fetch all words matching the filter (no pagination — review needs full list)
-  const apiStatus: WordStatus | undefined =
-    reviewFilter === "NOT_READ"
-      ? "NOT_READ"
-      : reviewFilter === "NOT_KNOWN"
-        ? "NOT_KNOWN"
-        : undefined;
+  // Freeze a bounded set of matches; larger scopes show the session's cap.
+  const apiStatus = reviewFilter === "ALL" ? undefined : reviewFilter;
 
   const watchlistBookIds = books?.map((b) => b.id) ?? [];
-  const isWatchlistLoading = books === undefined;
-  // Review is always scoped to the watchlist: a specific book, or the whole list.
-  // With no watchlist and no pinned book, there is nothing to review.
-  const hasScope = Boolean(bookId) || watchlistBookIds.length > 0;
+  // Direct review needs an active-plan scope; vocabulary entry can span all words.
+  const hasScope =
+    fromVocabulary || Boolean(bookId) || watchlistBookIds.length > 0;
 
   // A review session runs on a FROZEN snapshot of the matching words. Marking a
   // word updates its status in place (and on the server) but never drops it from
@@ -188,33 +210,50 @@ export function ReviewPage() {
   // a book leaves `sessionKey` unchanged, and the frozen snapshot + remembered
   // position (`lastReviewPos`) get silently reused against a now-different word
   // list on the next visit.
-  const watchlistKey = bookId ? "" : watchlistBookIds.slice().sort().join(",");
-  const sessionKey = `${mode}|${reviewFilter}|${bookId ?? ""}|${volumeId ?? ""}|${lessonId ?? ""}|${watchlistKey}`;
-  const [session, setSession] = useState<{ key: string; words: Word[] }>({
+  const watchlistKey =
+    fromVocabulary || bookId ? "" : watchlistBookIds.slice().sort().join(",");
+  const sessionKey = JSON.stringify([
+    fromVocabulary,
+    mode,
+    reviewFilter,
+    bookId,
+    volumeId,
+    lessonId,
+    watchlistKey,
+    search,
+    chapter,
+    sort,
+  ]);
+  const [session, setSession] = useState<{
+    key: string;
+    words: Word[];
+    matchedTotal?: number;
+  }>({
     key: "",
     words: [],
   });
   const sessionReady = hasScope && session.key === sessionKey;
 
-  const { data, isError, isFetching } = useWords(
+  const { data, isError, isFetching, refetch } = useWords(
     {
       limit: 500,
       page: 1,
       mode,
       status: apiStatus,
-      sort: "chapter",
+      sort,
       order: "asc",
-      // Scope to the selected book/volume/lesson; with no single book chosen,
-      // fall back to the union of the user's whole watchlist.
+      // Direct review falls back to active books; vocabulary keeps its exact scope.
       bookId,
-      bookIds: bookId
-        ? undefined
-        : watchlistBookIds.length > 0
-          ? watchlistBookIds
-          : undefined,
+      bookIds:
+        fromVocabulary || bookId
+          ? undefined
+          : watchlistBookIds.length > 0
+            ? watchlistBookIds
+            : undefined,
       volumeId,
       lessonId,
-      chapter: undefined,
+      chapter,
+      search: search.trim() || undefined,
     },
     // Fetch only until the snapshot is frozen; status updates must not refetch
     // and reshuffle the list under the user.
@@ -225,15 +264,25 @@ export function ReviewPage() {
   // lands. Wait until the query is no longer fetching so we never freeze STALE
   // cached data (which would show outdated known/not-known statuses on return).
   useEffect(() => {
-    if (hasScope && session.key !== sessionKey && data?.data && !isFetching) {
-      setSession({ key: sessionKey, words: data.data });
+    if (
+      hasScope &&
+      session.key !== sessionKey &&
+      data?.data &&
+      !isFetching &&
+      !isError
+    ) {
+      setSession({
+        key: sessionKey,
+        words: data.data,
+        matchedTotal: data.meta.total,
+      });
       const saved = lastReviewPos?.key === sessionKey ? lastReviewPos.index : 0;
       setCurrentIndex(
         Math.min(Math.max(0, saved), Math.max(0, data.data.length - 1)),
       );
       setFlipped(false);
     }
-  }, [hasScope, sessionKey, session.key, data, isFetching]);
+  }, [hasScope, sessionKey, session.key, data, isFetching, isError]);
 
   // Remember the current position so we can resume it when the page remounts.
   useEffect(() => {
@@ -243,14 +292,16 @@ export function ReviewPage() {
   // Persist the review filter + book/volume/lesson scope so the next visit to
   // this page restores the same filters the user last set.
   useEffect(() => {
+    if (fromVocabulary) return;
     try {
       localStorage.setItem("vocab_review_filter", reviewFilter);
     } catch {
       // ignore
     }
-  }, [reviewFilter]);
+  }, [reviewFilter, fromVocabulary]);
 
   useEffect(() => {
+    if (fromVocabulary) return;
     try {
       localStorage.setItem(
         "vocab_review_scope",
@@ -259,11 +310,14 @@ export function ReviewPage() {
     } catch {
       // ignore
     }
-  }, [bookId, volumeId, lessonId]);
+  }, [bookId, volumeId, lessonId, fromVocabulary]);
 
   const words = sessionReady ? session.words : [];
   const total = words.length;
-  const isLoading = isWatchlistLoading || (hasScope && !sessionReady);
+  const contentError = isError || booksQuery.isError;
+  const isLoading =
+    !contentError && (booksQuery.isLoading || (hasScope && !sessionReady));
+  const vocabularyUrl = `/vocabulary?${serializeVocabParams({ ...initial.filters, mode, status: reviewFilter, bookId, volumeId, lessonId, chapter, search, sort }, 1).toString()}`;
 
   const currentWord = words[currentIndex] ?? null;
 
@@ -328,7 +382,7 @@ export function ReviewPage() {
       // place) + persist to the server, then advance one step. The word stays
       // put, so the counter moves 1→2→… instead of collapsing off the front.
       setSession((s) => ({
-        key: s.key,
+        ...s,
         words: s.words.map((w) =>
           w.id === wordId
             ? {
@@ -447,7 +501,9 @@ export function ReviewPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/vocabulary")}
+            onClick={() =>
+              navigate(fromVocabulary ? vocabularyUrl : "/vocabulary")
+            }
             className="h-8 w-8 flex-shrink-0"
             title="بازگشت"
           >
@@ -513,8 +569,9 @@ export function ReviewPage() {
             {(
               [
                 { label: "همه", value: "ALL" },
-                { label: "نخوانده", value: "NOT_READ" },
-                { label: "یاد نگرفتم", value: "NOT_KNOWN" },
+                { label: "بدون علامت", value: "NOT_READ" },
+                { label: "بلدم", value: "KNOWN" },
+                { label: "بلد نیستم", value: "NOT_KNOWN" },
               ] as { label: string; value: ReviewFilter }[]
             ).map((opt) => (
               <button
@@ -540,7 +597,9 @@ export function ReviewPage() {
                 className={SELECT_CLASS}
                 aria-label="کتاب"
               >
-                <option value="">همه کتاب‌های لیست من</option>
+                <option value="">
+                  {fromVocabulary ? "همه کتاب‌ها" : "همه کتاب‌های لیست من"}
+                </option>
                 {books.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.title}
@@ -584,6 +643,45 @@ export function ReviewPage() {
         </div>
       </div>
 
+      {fromVocabulary && (
+        <div className="flex flex-wrap items-center gap-2 text-xs leading-6 text-muted-foreground">
+          <span>مرور نتایج انتخاب‌شده در واژگان</span>
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="min-h-11 rounded-lg border border-border px-2"
+              aria-label="حذف فیلتر جستجو"
+            >
+              جستجو: {search} ×
+            </button>
+          )}
+          {chapter !== undefined && (
+            <button
+              type="button"
+              onClick={() => setChapter(undefined)}
+              className="min-h-11 rounded-lg border border-border px-2"
+              aria-label="حذف فیلتر فصل"
+            >
+              فصل {chapter.toLocaleString("fa-IR")} ×
+            </button>
+          )}
+          <Button
+            variant="ghost"
+            className="h-11 text-xs"
+            onClick={() => navigate(vocabularyUrl)}
+          >
+            ویرایش فیلترها
+          </Button>
+          {sessionReady && (session.matchedTotal ?? 0) > total && (
+            <p className="w-full">
+              این جلسه شامل {total.toLocaleString("fa-IR")} واژهٔ نخست از{" "}
+              {session.matchedTotal?.toLocaleString("fa-IR")} نتیجه است.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Progress — one counter for the whole session */}
       {!isLoading && total > 0 && (
         <div className="space-y-1">
@@ -609,11 +707,22 @@ export function ReviewPage() {
       {/* Main content area */}
       {isLoading ? (
         <div className="h-72 rounded-2xl bg-muted animate-pulse" />
-      ) : isError ? (
+      ) : contentError ? (
         <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-6 py-12 text-center">
           <p className="text-sm text-destructive font-medium">
             خطا در بارگذاری واژگان.
           </p>
+          <Button
+            variant="outline"
+            className="mt-3 h-11"
+            disabled={isFetching || booksQuery.isFetching}
+            onClick={() => {
+              if (booksQuery.isError) void booksQuery.refetch();
+              void refetch();
+            }}
+          >
+            تلاش مجدد
+          </Button>
         </div>
       ) : !hasScope ? (
         <div className="rounded-2xl border border-border bg-card px-6 py-14 text-center space-y-3">
@@ -638,11 +747,13 @@ export function ReviewPage() {
             واژه‌ای برای مرور وجود ندارد
           </p>
           <p className="text-sm text-muted-foreground">
-            {reviewFilter === "NOT_READ"
-              ? "آفرین! همه واژگان این حالت را خواندید."
-              : reviewFilter === "NOT_KNOWN"
-                ? "واژه‌ای با وضعیت «یاد نگرفتم» در این حالت ندارید. ادامه بدید!"
-                : "واژه‌ای یافت نشد."}
+            {fromVocabulary
+              ? "واژه‌ای با این فیلترها پیدا نشد؛ جستجو یا وضعیت را تغییر دهید."
+              : reviewFilter === "NOT_READ"
+                ? "همهٔ واژه‌های این انتخاب در مرور آزاد علامت دارند."
+                : reviewFilter === "NOT_KNOWN"
+                  ? "واژه‌ای با وضعیت «بلد نیستم» در این حالت ندارید."
+                  : "واژه‌ای یافت نشد."}
           </p>
           <Button
             variant="outline"
