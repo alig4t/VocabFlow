@@ -593,12 +593,11 @@
 
 /* ── Memory card: words drifting around the brain ───────────── */
 /*
-  Resting and peak opacity for the words *outside* the brain. Per-theme because
-  the same alpha does not read the same on both: a quarter-strength hue on white
-  is pale but present, while on the near-black panel it all but disappears.
+  Resting and peak opacity keep the decorative vocabulary readable in each
+  theme while the words drift gently around the brain.
 */
 :root {
-  --drift-out-min: 0.26;
+  --drift-out-min: 0.2;
   --drift-out-max: 0.5;
   /*
     Real native system-bar heights, injected by src/lib/safeArea.ts from the
@@ -613,41 +612,172 @@
   --safe-bottom: max(env(safe-area-inset-bottom), var(--safe-bottom-px));
 }
 .dark {
-  --drift-out-min: 0.4;
-  --drift-out-max: 0.72;
+  --drift-out-min: 0.25;
+  --drift-out-max: 0.55;
+}
+
+.memory-halo {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  max-width: 28rem;
+  height: 15rem;
+  margin-inline: auto;
+  overflow: hidden;
+  user-select: none;
+  pointer-events: none;
+}
+
+.memory-halo-glow {
+  position: absolute;
+  inset: 8% 14% 6%;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse,
+    hsl(var(--brand-pink) / 0.24),
+    hsl(var(--brand-violet) / 0.07) 48%,
+    transparent 72%
+  );
+}
+
+.memory-halo-orbits {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  stroke-width: 0.75;
+}
+
+.memory-halo-shadow {
+  position: absolute;
+  top: 77%;
+  left: 50%;
+  width: 28%;
+  height: 0.875rem;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse,
+    hsl(var(--brand-pink-deep) / 0.2),
+    transparent 70%
+  );
+}
+
+.memory-halo-brain {
+  position: absolute;
+  z-index: 2;
+  top: 52%;
+  left: 50%;
+  width: clamp(6.25rem, 38%, 9rem);
+  transform: translate(-50%, -50%);
+}
+
+.memory-halo-brain-float {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 6px 0 hsl(var(--brand-pink-deep) / 0.12))
+    drop-shadow(0 12px 12px hsl(var(--brand-pink-deep) / 0.16));
+  animation: memoryBrainFloat 8s ease-in-out infinite paused;
+}
+
+.memory-halo-word-field {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  max-width: 22rem;
+  margin-inline: auto;
+  -webkit-mask-image: linear-gradient(
+    transparent,
+    #000 8%,
+    #000 92%,
+    transparent
+  );
+  mask-image: linear-gradient(transparent, #000 8%, #000 92%, transparent);
+}
+
+.memory-halo-slot {
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  transform: translate(-50%, -50%);
+}
+
+.memory-halo-word {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  border: 1px solid hsl(var(--border) / 0.25);
+  border-radius: 0.375rem;
+  padding: 0.125rem 0.25rem;
+  background: hsl(var(--card) / 0.46);
+  font-size: 0.5rem;
+  font-weight: 500;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @keyframes wordDrift {
   0%,
   100% {
-    transform: translateY(0) translateX(0);
-    opacity: var(--drift-min, 0.45);
+    transform: translateY(10px) scale(var(--word-scale, 1));
+    opacity: 0;
   }
-  50% {
-    transform: translateY(-7px) translateX(2px);
-    opacity: var(--drift-max, 1);
+  20% {
+    transform: translateY(5px) scale(var(--word-scale, 1));
+    opacity: var(--drift-out-min);
+  }
+  55% {
+    transform: translateY(-4px) scale(var(--word-scale, 1));
+    opacity: var(--drift-out-max);
+  }
+  85% {
+    transform: translateY(-10px) scale(var(--word-scale, 1));
+    opacity: 0;
   }
 }
 
 .word-drift {
-  animation: wordDrift var(--drift-dur, 7s) ease-in-out infinite;
+  animation: wordDrift var(--drift-dur, 7s) ease-in-out infinite paused;
   animation-delay: var(--drift-delay, 0s);
-  /*
-    `backwards`, or each word renders at its own full opacity for the length of
-    its delay and only then snaps to the keyframe — up to three seconds of
-    fully-opaque words popping down one by one on every mount.
-  */
-  animation-fill-mode: backwards;
 }
 
-/*
-  The halo is atmosphere, not information — every word it shows is also listed
-  in the legend below it. Hold them still for anyone who asked for less motion.
-*/
+.memory-halo[data-animate="true"] .word-drift,
+.memory-halo[data-animate="true"] .memory-halo-brain-float {
+  animation-play-state: running;
+}
+
+@keyframes memoryBrainFloat {
+  0%,
+  100% {
+    transform: translateY(1px) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(1deg);
+  }
+}
+
+@media (min-width: 640px) {
+  .memory-halo {
+    height: 16rem;
+  }
+  .memory-halo-word {
+    font-size: 0.5625rem;
+  }
+}
+
+/* Decorative motion pauses offscreen and stays still for reduced motion. */
 @media (prefers-reduced-motion: reduce) {
-  .word-drift {
+  .memory-halo .word-drift,
+  .memory-halo .memory-halo-brain-float {
     animation: none;
-    opacity: var(--drift-max, 1);
+    transform: none;
+  }
+  .memory-halo .word-drift {
+    transform: scale(var(--word-scale, 1));
+    opacity: var(--drift-out-max);
   }
 }
 
