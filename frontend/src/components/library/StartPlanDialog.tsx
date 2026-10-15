@@ -40,7 +40,7 @@ export function StartPlanDialog({
   const navigate = useNavigate();
   const { toast } = useToast();
   const { data: volumes, isLoading: volumesLoading } = useVolumes(
-    open && book ? book.id : "",
+    book?.id ?? "",
   );
   const { data: plans } = usePlans();
   const createPlan = useCreatePlan();
@@ -104,7 +104,10 @@ export function StartPlanDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    // Start the entrance with the final content height. Replacing the loading
+    // placeholder during a percentage-based slide changes its travel distance.
+    // Keep the volumes query selected on close so the exit keeps its height too.
+    <Dialog open={open && !volumesLoading} onOpenChange={onOpenChange}>
       <DialogBottomContent dir="rtl" className="font-persian">
         <DialogHeader className="text-right sm:text-right">
           <DialogTitle className="flex items-center gap-2">
@@ -121,54 +124,50 @@ export function StartPlanDialog({
               <p className="text-sm font-medium text-foreground">
                 جلد را انتخاب کنید
               </p>
-              {volumesLoading ? (
-                <div className="h-20 animate-pulse rounded-lg bg-muted" />
-              ) : (
-                <div className="grid max-h-64 grid-cols-2 gap-y-2 gap-x-2 p-1.5 overflow-y-auto sm:grid-cols-3">
-                  {volumes?.map((v) => {
-                    const planned = plannedVolumeIds.has(v.id);
-                    const selected = volumeId === v.id;
-                    return (
-                      <button
-                        key={v.id}
-                        onClick={() => setVolumeId(v.id)}
-                        className={cn(
-                          "group relative flex flex-col items-center gap-2 rounded-xl border p-2 text-center transition-colors",
-                          selected
-                            ? "border-primary bg-primary/5 ring-2 ring-primary"
-                            : "border-border hover:border-primary/50 hover:bg-accent",
-                        )}
-                      >
-                        {v.coverImage ? (
-                          <img
-                            src={v.coverImage}
-                            alt={v.title ?? `جلد ${v.volumeNumber}`}
-                            loading="lazy"
-                            className="h-[215px] md:h-[180px] w-full rounded-lg object-cover ring-1 ring-border"
-                          />
-                        ) : (
-                          <span className="flex h-34 w-full items-center justify-center rounded-lg bg-primary/10 text-primary">
-                            <BookText className="h-[215px] md:h-[180px] w-7" />
-                          </span>
-                        )}
-                        <span className="text-xs font-medium leading-tight text-foreground">
-                          {v.title ?? `جلد ${v.volumeNumber}`}
+              <div className="grid max-h-64 grid-cols-2 gap-y-2 gap-x-2 p-1.5 overflow-y-auto sm:grid-cols-3">
+                {volumes?.map((v) => {
+                  const planned = plannedVolumeIds.has(v.id);
+                  const selected = volumeId === v.id;
+                  return (
+                    <button
+                      key={v.id}
+                      onClick={() => setVolumeId(v.id)}
+                      className={cn(
+                        "group relative flex flex-col items-center gap-2 rounded-xl border p-2 text-center transition-colors",
+                        selected
+                          ? "border-primary bg-primary/5 ring-2 ring-primary"
+                          : "border-border hover:border-primary/50 hover:bg-accent",
+                      )}
+                    >
+                      {v.coverImage ? (
+                        <img
+                          src={v.coverImage}
+                          alt={v.title ?? `جلد ${v.volumeNumber}`}
+                          loading="lazy"
+                          className="h-[215px] md:h-[180px] w-full rounded-lg object-cover ring-1 ring-border"
+                        />
+                      ) : (
+                        <span className="flex h-34 w-full items-center justify-center rounded-lg bg-primary/10 text-primary">
+                          <BookText className="h-[215px] md:h-[180px] w-7" />
                         </span>
-                        {planned && (
-                          <span className="absolute right-1 top-1 rounded-full bg-green-500 p-0.5 text-white">
-                            <Check className="h-3 w-3" />
-                          </span>
-                        )}
-                        {selected && (
-                          <span className="absolute left-1 top-1 rounded-full bg-primary p-0.5 text-primary-foreground">
-                            <Check className="h-3 w-3" />
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+                      )}
+                      <span className="text-xs font-medium leading-tight text-foreground">
+                        {v.title ?? `جلد ${v.volumeNumber}`}
+                      </span>
+                      {planned && (
+                        <span className="absolute right-1 top-1 rounded-full bg-green-500 p-0.5 text-white">
+                          <Check className="h-3 w-3" />
+                        </span>
+                      )}
+                      {selected && (
+                        <span className="absolute left-1 top-1 rounded-full bg-primary p-0.5 text-primary-foreground">
+                          <Check className="h-3 w-3" />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
