@@ -5,6 +5,7 @@ import {
   BookOpen,
   ChevronDown,
   CircleHelp,
+  Gauge,
   Layers,
   Repeat,
   Rocket,
@@ -227,6 +228,69 @@ export function GuidePage() {
         </Section>
 
         <Section
+          icon={<Gauge className="h-5 w-5" />}
+          title="روزی چند واژه مناسب است؟"
+        >
+          <p className="text-[15px] leading-8 text-muted-foreground">
+            پیشنهاد ما برای شروع، روزی{" "}
+            <strong className="text-foreground">۱۰ واژه‌ی جدید</strong> است.
+            تعداد مناسب به وقت آزاد، آشنایی‌ات با واژه‌ها و حجم مرورهای قبلی
+            بستگی دارد؛ پیشنهادهای زیر نقطه‌ی شروع‌اند و می‌توانی برنامه‌ات را
+            با تجربه‌ی خودت تنظیم کنی.
+          </p>
+
+          <ul className="space-y-3 rounded-xl border border-border bg-card p-4 text-sm leading-7 text-muted-foreground">
+            <li>
+              <strong className="text-foreground">۱۰ واژه:</strong> برای
+              تازه‌کارها، وقت محدود یا وقتی کتابی دشوار را شروع می‌کنی؛ فرصتی
+              برای ساختن عادت مطالعه و شناختن حجم مرورها.
+            </li>
+            <li>
+              <strong className="text-foreground">۲۰ واژه:</strong> قدم بعدی
+              وقتی با ۱۰ واژه راحتی و هنوز برای کامل‌کردن مرورهای روزانه وقت
+              داری.
+            </li>
+            <li>
+              <strong className="text-foreground">۳۰ واژه:</strong> وقتی
+              مطالعه‌ی منظم داری و با بیشترشدن واژه‌های جدید، مرورهای قبلی هم
+              بدون عقب‌افتادگی انجام می‌شوند.
+            </li>
+            <li>
+              <strong className="text-foreground">۴۰ یا ۵۰ واژه:</strong> برای
+              برنامه‌ی فشرده، زمانی که تجربه‌ی تعدادهای کمتر را داری و می‌توانی
+              برای مرورهای بیشتر در روزهای بعد هم وقت بگذاری.
+            </li>
+          </ul>
+
+          <div className="space-y-3 rounded-xl border border-primary/20 bg-primary/[0.06] p-4 text-sm leading-7 text-muted-foreground">
+            <p>
+              <strong className="text-foreground">
+                واژه‌های جدید، همه‌ی مطالعه‌ی روزانه نیستند.
+              </strong>{" "}
+              در روزهای بعد، مرور واژه‌های قبلی هم اضافه می‌شود. اگر چند جلد
+              فعال داری، مجموع برنامه‌ها را در نظر بگیر؛ مثلاً ۱۰ واژه از هر
+              کدام از سه جلد یعنی ۳۰ واژه‌ی جدید در روز، به‌علاوه‌ی مرورها.
+            </p>
+            <p>
+              بعد از چند روز مطالعه‌ی منظم، اگر مرورها را کامل می‌کنی و هنوز وقت
+              و تمرکز کافی داری، تعداد را یک پله بیشتر کن. اگر مرورها عقب
+              افتادند یا به‌یادآوردن واژه‌ها سخت شد، افزایش تعداد را متوقف کن و
+              اگر بیشتر از ۱۰ واژه انتخاب کرده‌ای، یک پله کمترش کن. اولویت با
+              مرور منظم و ادامه‌دادن برنامه است.
+            </p>
+          </div>
+
+          <Button
+            asChild
+            variant="outline"
+            size="lg"
+            className="w-full sm:w-auto"
+          >
+            <Link to="/settings">تنظیم تعداد واژه‌های روزانه</Link>
+          </Button>
+        </Section>
+
+        <Section
           icon={<Repeat className="h-5 w-5" />}
           title="در «مطالعه امروز» چه کار کنم؟"
         >
@@ -290,8 +354,8 @@ export function GuidePage() {
             <div className="space-y-1 py-4">
               <h3 className="text-sm font-bold text-foreground">مرور آزاد</h3>
               <p className="text-sm leading-7 text-muted-foreground">
-                برای تمرین دلخواه واژه‌هاست. «گرفتم» و «نگرفتم» فقط علامت دستیِ
-                بلدم و بلد نیستم را ثبت می‌کنند و زمان‌بندی مطالعه‌ی روزانه را
+                برای تمرین دلخواه واژه‌هاست. «بلدم» و «بلد نیستم» فقط علامت
+                دستیِ هر واژه را ثبت می‌کنند و زمان‌بندی مطالعه‌ی روزانه را
                 تغییر نمی‌دهند. این علامت‌ها در صفحه‌ی واژگان هم برای فیلترکردن
                 قابل استفاده‌اند.
               </p>
