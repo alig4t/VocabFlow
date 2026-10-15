@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { X } from "lucide-react";
 import {
   Dialog,
   DialogBottomContent,
+  DialogClose,
   DialogTitle,
   DialogDescription,
 } from "../ui/dialog";
@@ -46,8 +48,26 @@ export function DeveloperAccessSheet({
         }
       }}
     >
-      <DialogBottomContent dir="rtl" className="font-persian">
-        <DialogTitle>Developer Access</DialogTitle>
+      <DialogBottomContent
+        dir="rtl"
+        className="font-persian"
+        onPointerDownOutside={(event) => event.preventDefault()}
+      >
+        <div className="flex items-center justify-between gap-4">
+          <DialogTitle>Developer Access</DialogTitle>
+          <DialogClose asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-11 w-11 shrink-0"
+              aria-label="بستن"
+              disabled={busy}
+            >
+              <X aria-hidden="true" />
+            </Button>
+          </DialogClose>
+        </div>
         <DialogDescription>کد دسترسی امروز را وارد کنید.</DialogDescription>
         <form onSubmit={activate} className="space-y-4">
           <label htmlFor="developer-access-code" className="text-sm">
