@@ -1,5 +1,6 @@
 // Actual React app + Chromium; API responses are fixtures, not a live database.
 // Run with Vite on :5173: node --experimental-websocket tests/dashboard-ui-smoke.mjs
+// Set VOCABFLOW_UI_PRODUCTION=1 to also check React's production lifecycle.
 import assert from "node:assert/strict";
 import { build } from "esbuild";
 import { createServer } from "node:http";
@@ -22,6 +23,7 @@ const browser =
 if (!browser) throw new Error("Set VOCABFLOW_CHROME to an installed Chromium.");
 const artifacts = mkdtempSync(join(tmpdir(), "vocabflow-dashboard-ui-"));
 const viteUrl = process.env.VOCABFLOW_VITE_URL ?? "http://127.0.0.1:5173";
+const production = process.env.VOCABFLOW_UI_PRODUCTION === "1";
 const dates = Array.from({ length: 91 }, (_, i) =>
   new Date(Date.UTC(2026, 6, 17 + i)).toISOString().slice(0, 10),
 );
@@ -104,11 +106,16 @@ const bundle = await build({
     contents: `import React from 'react'; import {createRoot} from 'react-dom/client';
       import {QueryClient,QueryClientProvider} from '@tanstack/react-query'; import App from './src/App';
       import {SessionSummaryScreen} from './src/components/study/SessionSummaryScreen';
+      import {AnimatedNumber} from './src/components/ui/animated-number';
       const client=new QueryClient({defaultOptions:{queries:{retry:false}}}); window.uiQueryClient=client;
       const root=createRoot(document.getElementById('root'));
       window.uiRenderSummary=(saving)=>root.render(React.createElement(SessionSummaryScreen,
         {saving,onHome:()=>{},onPracticeHard:()=>{},hardPracticeCount:2,
           stats:{reviewedCount:14,correctCount:10,wrongCount:4,hardCount:2,skippedCount:1,newCount:4,durationSec:180}}));
+      window.uiRenderCounter=(value,{below=false,strict=true,percent=false,key='counter'}={})=>root.render(
+        React.createElement(strict?React.StrictMode:React.Fragment,null,
+          React.createElement('div',{id:'counter-fixture',key,style:{paddingTop:below?1400:0}},
+            React.createElement(AnimatedNumber,{value,percent}))));
       root.render(React.createElement(React.StrictMode,null,
         React.createElement(QueryClientProvider,{client},React.createElement(App))));`,
     resolveDir: process.cwd(),
@@ -118,7 +125,12 @@ const bundle = await build({
   write: false,
   format: "esm",
   platform: "browser",
-  define: { "import.meta.env": "{}" },
+  define: {
+    "import.meta.env": "{}",
+    "process.env.NODE_ENV": JSON.stringify(
+      production ? "production" : "development",
+    ),
+  },
   plugins: [
     {
       name: "no-native-bootstrap",
@@ -327,6 +339,31 @@ async function noOverflow() {
     true,
   );
 }
+
+async function sampleCounter(action, duration = 900) {
+  return evaluate(`(async()=>{
+    ${action};
+    const frames=[];const started=performance.now();window.uiCounterWidths=[];
+    await new Promise(resolve=>{
+      const sample=()=>{
+        const value=document.querySelector('#counter-fixture [aria-hidden=true]');
+        if(value) {
+          frames.push(value.textContent);
+          window.uiCounterWidths.push(value.parentElement.getBoundingClientRect().width);
+        }
+        if(performance.now()-started<${duration}) requestAnimationFrame(sample); else resolve();
+      };requestAnimationFrame(sample);
+    });return frames;
+  })()`);
+}
+
+function assertCounted(frames, final, initial = "۰") {
+  assert.ok(
+    frames.some((value) => value !== initial && value !== final),
+    `expected intermediate counter values before ${final}; got ${JSON.stringify([...new Set(frames)])}`,
+  );
+  assert.equal(frames.at(-1), final);
+}
 try {
   const portFile = join(artifacts, "profile", "DevToolsActivePort");
   for (let i = 0; i < 100 && !existsSync(portFile); i++) await delay(100);
@@ -360,6 +397,9 @@ try {
   });
   await send("Emulation.setTouchEmulationEnabled", { enabled: true });
   await open("/dashboard");
+  await until(
+    "document.querySelector('.dashboard-hero-workload [aria-hidden=true]')?.textContent==='۱۲'",
+  );
   assert.equal(
     await evaluate(
       "document.querySelector('[role=progressbar]').getAttribute('aria-valuenow')",
@@ -393,9 +433,15 @@ try {
   );
   assert.equal(
     await evaluate(
-      "document.querySelector('[aria-label=\"آمار کلی\"] article:nth-child(3) .tabular-nums [aria-hidden=true]').textContent",
+      "document.querySelector('[aria-label=\"آمار کلی\"] article:nth-child(3) .sr-only').textContent",
     ),
     "۳",
+  );
+  await evaluate(
+    "document.querySelector('[aria-label=\"آمار کلی\"]').scrollIntoView({block:'center'})",
+  );
+  await until(
+    "document.querySelector('[aria-label=\"آمار کلی\"] article:nth-child(3) .tabular-nums [aria-hidden=true]')?.textContent==='۳'",
   );
 
   await open("/statistics");
@@ -605,13 +651,96 @@ try {
     true,
   );
   await screenshot("study-summary.png");
+  await send("Emulation.setEmulatedMedia", {
+    features: [{ name: "prefers-reduced-motion", value: "no-preference" }],
+  });
+  const firstCounter = await sampleCounter("window.uiRenderCounter(120)");
+  assertCounted(firstCounter, "۱۲۰");
+  assert.equal(
+    await evaluate(
+      "Math.max(...window.uiCounterWidths)-Math.min(...window.uiCounterWidths)<1",
+    ),
+    true,
+    "counting must reserve the final numeral width",
+  );
+  assert.equal(
+    await evaluate(
+      "document.querySelector('#counter-fixture .sr-only').textContent",
+    ),
+    "۱۲۰",
+  );
+  const productionCounter = await sampleCounter(
+    "window.uiRenderCounter(240,{strict:false,key:'production'})",
+  );
+  assertCounted(productionCounter, "۲۴۰");
+  const changedCounter = await sampleCounter(
+    "window.uiRenderCounter(400,{strict:false,key:'production'})",
+    500,
+  );
+  assertCounted(changedCounter, "۴۰۰", "۲۴۰");
+  const unchangedCounter = await sampleCounter(
+    "window.uiRenderCounter(400,{strict:false,key:'production'})",
+    150,
+  );
+  assert.ok(
+    unchangedCounter.every((value) => value === "۴۰۰"),
+    "unchanged data must not restart counting",
+  );
+  const offscreenCounter = await sampleCounter(
+    "window.uiRenderCounter(120,{below:true,key:'below'})",
+    200,
+  );
+  assert.ok(
+    offscreenCounter.every((value) => value === "۰"),
+    "offscreen counters wait for their first view",
+  );
+  assertCounted(
+    await sampleCounter(
+      "document.querySelector('#counter-fixture > span').scrollIntoView({block:'center'})",
+    ),
+    "۱۲۰",
+  );
+  await evaluate("window.scrollTo(0,0)");
+  await delay(100);
+  const revisitedCounter = await sampleCounter(
+    "document.querySelector('#counter-fixture > span').scrollIntoView({block:'center'})",
+    150,
+  );
+  assert.ok(
+    revisitedCounter.every((value) => value === "۱۲۰"),
+    "scrolling back must not restart counting",
+  );
+  await send("Emulation.setEmulatedMedia", {
+    features: [{ name: "prefers-reduced-motion", value: "reduce" }],
+  });
+  const reducedCounter = await sampleCounter(
+    "window.uiRenderCounter(80,{percent:true,key:'reduced'})",
+    150,
+  );
+  assert.ok(
+    reducedCounter.every((value) => value === "۸۰٪"),
+    "reduced motion must show the final value immediately",
+  );
+  await send("Emulation.setEmulatedMedia", {
+    features: [{ name: "prefers-reduced-motion", value: "no-preference" }],
+  });
+  await sampleCounter(
+    "window.uiRenderCounter(1200,{key:'motion-change'})",
+    100,
+  );
+  await send("Emulation.setEmulatedMedia", {
+    features: [{ name: "prefers-reduced-motion", value: "reduce" }],
+  });
+  await until(
+    "document.querySelector('#counter-fixture [aria-hidden=true]').textContent==='۱٬۲۰۰'",
+  );
   assert.equal(
     writes,
     0,
     "dashboard/statistics interactions must never write learning data",
   );
   console.log(
-    "UI smoke passed: touch/keyboard chart selection, date readouts, refetch stability, three themes, reduced motion, partial/done/rest/empty/loading/error, 320/360/1365px; no data writes.",
+    `UI smoke passed (${production ? "production" : "development"} React): counter first-view/update/offscreen/reduced-motion with/without StrictMode, touch/keyboard chart selection, date readouts, refetch stability, three themes, partial/done/rest/empty/loading/error, 320/360/1365px; no data writes.`,
   );
   console.log(`Screenshots: ${artifacts}`);
 } finally {
