@@ -15,6 +15,10 @@ interface ReviewCardProps {
   showPhonetics?: boolean;
   /** Show example sentences on the back face (user setting; default true). */
   showExamples?: boolean;
+  /** Respect the session's sound switch for word and example playback. */
+  muted?: boolean;
+  /** Use compact content spacing for free review. */
+  compact?: boolean;
 }
 
 export function ReviewCard({
@@ -24,6 +28,8 @@ export function ReviewCard({
   onToggle,
   showPhonetics = true,
   showExamples = true,
+  muted = false,
+  compact = false,
 }: ReviewCardProps) {
   const frontContent =
     mode === "EN_TO_FA"
@@ -44,7 +50,12 @@ export function ReviewCard({
 
   const Pos = () =>
     pos ? (
-      <span className="mb-3 rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground/70">
+      <span
+        className={cn(
+          "rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground/70",
+          compact ? "mb-2" : "mb-3",
+        )}
+      >
         {pos}
       </span>
     ) : null;
@@ -65,8 +76,6 @@ export function ReviewCard({
         className="relative w-full"
         style={{
           perspective: "1200px",
-          // Viewport-aware: shrink on short screens so the card plus the answer
-          // bar fit without page scroll, cap at 420px on tall ones.
           height: "clamp(300px, 60dvh, 420px)",
         }}
       >
@@ -80,47 +89,65 @@ export function ReviewCard({
         >
           {/* FRONT face */}
           <div
-            className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-lg"
+            className={cn(
+              "absolute inset-0 flex flex-col overflow-y-auto rounded-2xl border border-border bg-card shadow-lg",
+              compact ? "p-4" : "p-6",
+            )}
             style={{
               backfaceVisibility: "hidden",
               WebkitBackfaceVisibility: "hidden",
             }}
           >
-            <Pos />
-            <p
-              dir={frontContent.dir}
-              className={cn(
-                "max-w-full break-words text-center font-bold leading-tight",
-                frontContent.dir === "rtl"
-                  ? "rtl text-4xl sm:text-5xl"
-                  : "text-4xl tracking-tight sm:text-5xl",
-              )}
-            >
-              {frontContent.text}
-            </p>
-            <Phonetic show={frontContent.isEnglish} />
+            <div className="my-auto flex w-full flex-col items-center">
+              <Pos />
+              <p
+                dir={frontContent.dir}
+                className={cn(
+                  "max-w-full break-words text-center font-bold leading-tight",
+                  compact ? "text-3xl sm:text-4xl" : "text-4xl sm:text-5xl",
+                  frontContent.dir === "rtl" ? "rtl" : "tracking-tight",
+                )}
+              >
+                {frontContent.text}
+              </p>
+              <Phonetic show={frontContent.isEnglish} />
 
-            {frontContent.isEnglish && (
-              <SpeakButton
-                text={word.eng}
-                audioUrl={word.pronunciationAudio}
-                size="md"
-                label="پخش مجدد تلفظ"
-                className="mt-4"
-              />
-            )}
+              <div
+                className={cn(
+                  "flex items-center justify-center",
+                  compact ? "mt-3 gap-3" : "flex-col",
+                )}
+              >
+                {frontContent.isEnglish && (
+                  <SpeakButton
+                    text={word.eng}
+                    audioUrl={word.pronunciationAudio}
+                    size="md"
+                    label="پخش مجدد تلفظ"
+                    disabled={muted}
+                    className={compact ? "h-11 w-11" : "mt-4"}
+                  />
+                )}
 
-            <button
-              onClick={onToggle}
-              className="mt-8 rounded-full bg-primary px-8 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
-            >
-              {mode === "EN_TO_FA" ? "نمایش فارسی" : "نمایش انگلیسی"}
-            </button>
+                <button
+                  onClick={onToggle}
+                  className={cn(
+                    "min-h-11 shrink-0 rounded-full bg-primary px-8 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90",
+                    !compact && "mt-8",
+                  )}
+                >
+                  {mode === "EN_TO_FA" ? "نمایش فارسی" : "نمایش انگلیسی"}
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* BACK face — content centred; grows upward & scrolls as examples increase */}
           <div
-            className="absolute inset-0 flex flex-col overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-lg"
+            className={cn(
+              "absolute inset-0 flex flex-col overflow-y-auto rounded-2xl border border-border bg-card shadow-lg",
+              compact ? "p-4" : "p-6",
+            )}
             style={{
               backfaceVisibility: "hidden",
               WebkitBackfaceVisibility: "hidden",
@@ -148,7 +175,8 @@ export function ReviewCard({
                   audioUrl={word.pronunciationAudio}
                   size="md"
                   label="پخش مجدد تلفظ"
-                  className="mt-4"
+                  disabled={muted}
+                  className={cn("mt-4", compact && "h-11 w-11")}
                 />
               )}
 
@@ -162,7 +190,8 @@ export function ReviewCard({
                         <SpeakButton
                           text={ex.eng}
                           label="پخش تلفظ مثال"
-                          className="mt-0.5"
+                          disabled={muted}
+                          className={cn("mt-0.5", compact && "h-11 w-11")}
                         />
                         <p
                           dir="ltr"
@@ -186,7 +215,7 @@ export function ReviewCard({
 
               <button
                 onClick={onToggle}
-                className="mt-5 rounded-full border border-border px-5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                className="mt-5 min-h-11 shrink-0 rounded-full border border-border px-5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
               >
                 {mode === "EN_TO_FA" ? "نمایش انگلیسی" : "نمایش فارسی"}
               </button>

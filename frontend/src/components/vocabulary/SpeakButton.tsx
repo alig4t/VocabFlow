@@ -17,6 +17,7 @@ interface SpeakButtonProps {
   size?: "sm" | "md";
   /** Accessible label / tooltip. */
   label?: string;
+  disabled?: boolean;
   className?: string;
 }
 
@@ -38,6 +39,7 @@ export function SpeakButton({
   audioUrl,
   size = "sm",
   label = "پخش تلفظ جمله",
+  disabled = false,
   className,
 }: SpeakButtonProps) {
   const [playing, setPlaying] = useState(false);
@@ -53,7 +55,12 @@ export function SpeakButton({
     [],
   );
 
+  useEffect(() => {
+    if (disabled) setPlaying(false);
+  }, [disabled]);
+
   const handleClick = useCallback(() => {
+    if (disabled) return;
     if (playing) {
       stopPronunciation();
       setPlaying(false);
@@ -70,7 +77,7 @@ export function SpeakButton({
       // Only clear if nothing else started speaking in the meantime.
       if (tokenRef.current === currentPlayToken()) setPlaying(false);
     });
-  }, [playing, text, audioUrl]);
+  }, [disabled, playing, text, audioUrl]);
 
   const { box, icon } = SIZES[size];
 
@@ -78,11 +85,12 @@ export function SpeakButton({
     <button
       type="button"
       onClick={handleClick}
+      disabled={disabled}
       aria-label={label}
       aria-pressed={playing}
       title={label}
       className={cn(
-        "group relative inline-flex flex-shrink-0 items-center justify-center rounded-full border transition-all duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+        "group relative inline-flex flex-shrink-0 items-center justify-center rounded-full border transition-all duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:opacity-40 disabled:pointer-events-none",
         box,
         playing
           ? "border-primary/40 bg-primary/15 text-primary"
