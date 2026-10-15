@@ -340,13 +340,13 @@ export function ReviewTodayPage({ kind = "new" }: { kind?: "new" | "hard" }) {
             <p className="text-2xl font-bold tabular-nums text-green-500">
               {tally.known}
             </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">گرفتم</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">بلدم</p>
           </div>
           <div className="rounded-xl border border-border bg-card px-3 py-4">
             <p className="text-2xl font-bold tabular-nums text-red-500">
               {tally.notKnown}
             </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">نگرفتم</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">بلد نیستم</p>
           </div>
         </div>
 
@@ -499,6 +499,7 @@ export function ReviewTodayPage({ kind = "new" }: { kind?: "new" | "hard" }) {
             mode={activeMode}
             flipped={flipped}
             onToggle={toggleFlip}
+            muted={muted}
             showPhonetics={settings?.showPhonetics ?? true}
             showExamples={settings?.showExamples ?? true}
           />
@@ -553,8 +554,8 @@ export function ReviewTodayPage({ kind = "new" }: { kind?: "new" | "hard" }) {
                 { key: "→", label: "قبلی" },
                 { key: "←", label: "بعدی" },
                 { key: "Space", label: "برگرداندن" },
-                { key: "↑", label: "گرفتم" },
-                { key: "↓", label: "نگرفتم" },
+                { key: "↑", label: "بلدم" },
+                { key: "↓", label: "بلد نیستم" },
                 { key: "P", label: "تلفظ" },
               ].map((s) => (
                 <span key={s.label} className="inline-flex items-center gap-1">
