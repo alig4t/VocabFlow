@@ -140,6 +140,7 @@
     --chart-3: 152 55% 42%;
     --chart-4: 15 82% 55%;
     --chart-5: 265 55% 58%;
+    --heatmap-selected: 30 60% 32%;
     /*
       Hero panel — the landing page's own hero wash, so the app opens on the
       same surface the marketing page closes on.
@@ -1548,7 +1549,7 @@
 }
 
 .chart-heat-cell[aria-pressed="true"] {
-  outline: 2px solid hsl(var(--foreground) / 0.7);
+  outline: 2px solid hsl(var(--heatmap-selected));
   outline-offset: 1px;
   z-index: 1;
 }

@@ -331,6 +331,33 @@ async function screenshot(name) {
   const result = await send("Page.captureScreenshot", { format: "png" });
   writeFileSync(join(artifacts, name), Buffer.from(result.data, "base64"));
 }
+async function checkHeatmapLayout() {
+  assert.deepEqual(
+    await evaluate(`(()=>{
+      const cells=document.querySelectorAll('.chart-heat-cell');
+      const first=cells[0].getBoundingClientRect();
+      const column=cells[0].parentElement.getBoundingClientRect();
+      const selected=document.querySelector('.chart-heat-cell[aria-pressed="true"]');
+      return {
+        days:cells.length,
+        startsActive:!cells[0].classList.contains('heat-0'),
+        startsAtBottom:Math.abs(first.bottom-column.bottom)<1,
+        nextDayAbove:cells[1].getBoundingClientRect().top<first.top,
+        nextWeekRight:cells[7].getBoundingClientRect().left>first.left,
+        selectedColor:getComputedStyle(selected).outlineColor,
+      };
+    })()`),
+    {
+      days: heatmap.length - heatmap.findIndex((day) => day.count > 0),
+      startsActive: true,
+      startsAtBottom: true,
+      nextDayAbove: true,
+      nextWeekRight: true,
+      selectedColor: "rgb(131, 82, 33)",
+    },
+    "study activity starts at bottom left, climbs upwards and continues to the right with a bronze selection",
+  );
+}
 async function noOverflow() {
   assert.equal(
     await evaluate(
@@ -414,6 +441,7 @@ try {
   );
   await noOverflow();
   await screenshot("dashboard-mobile.png");
+  await checkHeatmapLayout();
   const before = statsRequests;
   await evaluate(
     "window.uiEntrances=0;document.querySelector('.dashboard-hero-heading').addEventListener('animationstart',()=>window.uiEntrances++)",
@@ -492,16 +520,17 @@ try {
     firstDetail,
   );
   await screenshot("statistics-chart-selected.png");
+  await checkHeatmapLayout();
   await evaluate("document.querySelectorAll('.chart-heat-cell')[20].focus()");
   await send("Input.dispatchKeyEvent", {
     type: "keyDown",
-    key: "ArrowLeft",
-    code: "ArrowLeft",
+    key: "ArrowRight",
+    code: "ArrowRight",
   });
   await send("Input.dispatchKeyEvent", {
     type: "keyUp",
-    key: "ArrowLeft",
-    code: "ArrowLeft",
+    key: "ArrowRight",
+    code: "ArrowRight",
   });
   assert.equal(
     await evaluate(
@@ -524,6 +553,13 @@ try {
     ),
     "true",
   );
+  assert.equal(
+    await evaluate(
+      "getComputedStyle(document.querySelector('.chart-heat-cell[aria-pressed=\"true\"]')).outlineColor",
+    ),
+    "rgb(131, 82, 33)",
+    "selected study day uses a dark bronze outline",
+  );
 
   for (const theme of ["dark", "study"]) {
     await open(`/statistics?theme=${theme}`);
@@ -532,6 +568,7 @@ try {
       true,
     );
     await noOverflow();
+    await checkHeatmapLayout();
     await screenshot(`statistics-${theme}.png`);
   }
   await send("Emulation.setEmulatedMedia", {

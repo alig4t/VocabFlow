@@ -26,18 +26,22 @@ function level(count: number): 0 | 1 | 2 | 3 | 4 {
 
 export function ActivityHeatmap({ days }: ActivityHeatmapProps) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const activityDays = useMemo(() => {
+    const firstActiveIndex = days.findIndex((day) => day.count > 0);
+    return days.slice(Math.max(0, firstActiveIndex));
+  }, [days]);
   const selectedIndex = Math.max(
     0,
     selectedDate
-      ? days.findIndex((day) => day.date === selectedDate)
-      : days.length - 1,
+      ? activityDays.findIndex((day) => day.date === selectedDate)
+      : activityDays.length - 1,
   );
-  // Group consecutive days into week columns of 7 (oldest → newest).
+  // Start at the first active day, retaining the full grid's size with empty slots.
   const weeks = useMemo(() => {
-    const out: HeatmapDay[][] = [];
-    for (let i = 0; i < days.length; i += 7) out.push(days.slice(i, i + 7));
-    return out;
-  }, [days]);
+    return Array.from({ length: Math.ceil(days.length / 7) }, (_, week) =>
+      Array.from({ length: 7 }, (_, row) => activityDays[week * 7 + row]),
+    );
+  }, [activityDays, days.length]);
 
   const totalReviews = useMemo(
     () => days.reduce((s, d) => s + d.count, 0),
@@ -85,63 +89,74 @@ export function ActivityHeatmap({ days }: ActivityHeatmapProps) {
         </span>
       </figcaption>
 
-      {/* Preserve the existing column order; arrow keys follow the visual grid. */}
+      {/* Days climb from the bottom left; each new week starts to the right. */}
       <div dir="ltr" className="w-full pb-1">
         <div
-          className="flex w-full flex-row-reverse gap-[3px] sm:gap-1"
+          className="flex w-full gap-[3px] sm:gap-1"
           role="group"
           aria-label="روزهای مطالعه؛ برای انتخاب روز از کلیدهای جهت استفاده کنید"
         >
           {weeks.map((week, wi) => (
             <div
               key={wi}
-              className="flex min-w-0 flex-1 flex-col gap-[3px] sm:gap-1"
+              className="flex min-w-0 flex-1 flex-col-reverse gap-[3px] sm:gap-1"
             >
-              {week.map((day, row) => (
-                <button
-                  type="button"
-                  key={day.date}
-                  className={`chart-heat-cell heat-${level(day.count)} aspect-square w-full rounded-[3px]`}
-                  aria-label={`${faStudyDate(day.date, true)}، ${faNum(day.count)} مرور`}
-                  aria-pressed={wi * 7 + row === selectedIndex}
-                  tabIndex={wi * 7 + row === selectedIndex ? 0 : -1}
-                  onClick={() => setSelectedDate(day.date)}
-                  onFocus={() => setSelectedDate(day.date)}
-                  onKeyDown={(event) => {
-                    const index = wi * 7 + row;
-                    const next =
-                      event.key === "ArrowLeft"
-                        ? index + 7
-                        : event.key === "ArrowRight"
+              {week.map((day, row) =>
+                day ? (
+                  <button
+                    type="button"
+                    key={day.date}
+                    className={`chart-heat-cell heat-${level(day.count)} aspect-square w-full rounded-[3px]`}
+                    aria-label={`${faStudyDate(day.date, true)}، ${faNum(day.count)} مرور`}
+                    aria-pressed={wi * 7 + row === selectedIndex}
+                    tabIndex={wi * 7 + row === selectedIndex ? 0 : -1}
+                    onClick={() => setSelectedDate(day.date)}
+                    onFocus={() => setSelectedDate(day.date)}
+                    onKeyDown={(event) => {
+                      const index = wi * 7 + row;
+                      const next =
+                        event.key === "ArrowLeft"
                           ? index - 7
-                          : event.key === "ArrowDown"
-                            ? index + (row < week.length - 1 ? 1 : 0)
-                            : event.key === "ArrowUp"
+                          : event.key === "ArrowRight"
+                            ? index + 7
+                            : event.key === "ArrowDown"
                               ? index - (row > 0 ? 1 : 0)
-                              : event.key === "Home"
-                                ? 0
-                                : event.key === "End"
-                                  ? days.length - 1
-                                  : null;
-                    if (next === null) return;
-                    event.preventDefault();
-                    const target = Math.max(0, Math.min(days.length - 1, next));
-                    event.currentTarget
-                      .closest('[role="group"]')
-                      ?.querySelectorAll<HTMLButtonElement>("button")
-                      [target]?.focus();
-                  }}
-                />
-              ))}
+                              : event.key === "ArrowUp"
+                                ? index + (row < week.length - 1 ? 1 : 0)
+                                : event.key === "Home"
+                                  ? 0
+                                  : event.key === "End"
+                                    ? activityDays.length - 1
+                                    : null;
+                      if (next === null) return;
+                      event.preventDefault();
+                      const target = Math.max(
+                        0,
+                        Math.min(activityDays.length - 1, next),
+                      );
+                      event.currentTarget
+                        .closest('[role="group"]')
+                        ?.querySelectorAll<HTMLButtonElement>("button")
+                        [target]?.focus();
+                    }}
+                  />
+                ) : (
+                  <span
+                    key={`empty-${row}`}
+                    aria-hidden="true"
+                    className="heat-0 aspect-square w-full rounded-[3px]"
+                  />
+                ),
+              )}
             </div>
           ))}
         </div>
       </div>
 
       <ChartDayDetails
-        days={days}
+        days={activityDays}
         index={selectedIndex}
-        onSelect={(index) => setSelectedDate(days[index].date)}
+        onSelect={(index) => setSelectedDate(activityDays[index].date)}
       />
 
       {/* Legend */}
