@@ -1,9 +1,10 @@
 import path from 'path'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
+import { conditionalCompat } from './scripts/conditional-compat'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), conditionalCompat()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

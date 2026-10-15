@@ -74,6 +74,8 @@ export function ReviewCard({
     <div className="w-full max-w-4xl mx-auto select-none">
       <div
         className="relative w-full"
+        data-review-card
+        data-flipped={flipped}
         style={{
           perspective: "1200px",
           height: compact
@@ -83,6 +85,7 @@ export function ReviewCard({
       >
         <div
           className="relative w-full h-full"
+          data-review-turn
           style={{
             transformStyle: "preserve-3d",
             transition: "transform 0.55s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -91,6 +94,8 @@ export function ReviewCard({
         >
           {/* FRONT face */}
           <div
+            data-review-face="front"
+            aria-hidden={flipped}
             className={cn(
               "absolute inset-0 flex flex-col overflow-y-auto rounded-2xl border border-border bg-card shadow-lg",
               compact ? "p-4" : "p-6",
@@ -136,6 +141,8 @@ export function ReviewCard({
 
           {/* BACK face — content centred; grows upward & scrolls as examples increase */}
           <div
+            data-review-face="back"
+            aria-hidden={!flipped}
             className={cn(
               "absolute inset-0 flex flex-col overflow-y-auto rounded-2xl border border-border bg-card shadow-lg",
               compact ? "p-4" : "p-6",
