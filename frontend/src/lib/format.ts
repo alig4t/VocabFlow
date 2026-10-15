@@ -10,6 +10,21 @@ export function faPercent(value: number): string {
   return `${faNum(Math.round(value))}٪`;
 }
 
+/** Calendar date keys are local study days, not UTC instants. */
+const studyDateFormatters = [
+  new Intl.DateTimeFormat("fa-IR", { month: "long", day: "numeric" }),
+  new Intl.DateTimeFormat("fa-IR", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }),
+];
+
+export function faStudyDate(iso: string, full = false): string {
+  return studyDateFormatters[full ? 1 : 0].format(new Date(`${iso}T12:00:00`));
+}
+
 /** Relative date in Persian: امروز / دیروز / N روز پیش / full date. */
 export function faRelativeDate(iso: string | null): string {
   if (!iso) return "هنوز مطالعه نشده";

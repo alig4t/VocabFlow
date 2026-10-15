@@ -1049,7 +1049,7 @@
     font-weight: 900;
     font-variant-numeric: tabular-nums;
   }
-  .dashboard-hero-workload > span {
+  .dashboard-hero-workload-unit {
     font-size: 0.48em;
     font-weight: 700;
   }
@@ -1502,5 +1502,184 @@
   .onboarding-dot span,
   .onboarding-skip {
     transition: none;
+  }
+}
+
+/* Dashboard/statistics motion only changes paint/compositing, not layout. */
+.ui-enter,
+.ui-reveal[data-entered="true"] {
+  animation: vocab-reveal 280ms ease-out backwards;
+}
+
+.dashboard-hero-stats.ui-enter {
+  animation-delay: 50ms;
+}
+
+.chart-review-day {
+  display: flex;
+  position: relative;
+  min-width: 0;
+  height: 100%;
+  flex: 1;
+  align-items: flex-end;
+  border-radius: 0.25rem;
+  touch-action: manipulation;
+}
+
+.chart-review-fill {
+  display: block;
+  width: 100%;
+  border-radius: 0.25rem 0.25rem 0 0;
+  transform-origin: bottom;
+}
+
+.chart-review-fill[data-entered="true"] {
+  animation: chart-rise 420ms ease-out backwards;
+}
+
+.chart-review-day[aria-pressed="true"] {
+  background: hsl(var(--primary) / 0.08);
+  box-shadow: 0 0 0 1px hsl(var(--primary) / 0.55);
+}
+
+.chart-heat-cell {
+  position: relative;
+  touch-action: manipulation;
+}
+
+.chart-heat-cell[aria-pressed="true"] {
+  outline: 2px solid hsl(var(--foreground) / 0.7);
+  outline-offset: 1px;
+  z-index: 1;
+}
+
+.chart-review-day:focus-visible,
+.chart-heat-cell:focus-visible,
+.chart-day-step:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 3px;
+  z-index: 2;
+}
+
+.chart-day-details {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.375rem;
+  border-radius: 1rem;
+  background: hsl(var(--muted) / 0.45);
+}
+
+.chart-day-step {
+  display: flex;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  color: hsl(var(--foreground));
+  transition: background-color 160ms;
+  touch-action: manipulation;
+}
+
+.chart-day-step:hover:not(:disabled) {
+  background: hsl(var(--primary) / 0.12);
+}
+
+.chart-day-step:disabled {
+  opacity: 0.3;
+}
+
+.chart-share-fill {
+  transform-origin: right center;
+}
+
+.chart-share-fill[data-entered="true"] {
+  animation: chart-fill 420ms ease-out backwards;
+}
+
+.chart-growth-line[data-entered="true"] {
+  stroke-dasharray: 1;
+  animation: chart-draw 650ms ease-out backwards;
+}
+
+[data-study-complete="true"] {
+  animation: study-complete 420ms ease-out backwards;
+}
+
+[data-study-complete="true"] path,
+[data-study-complete="true"] polyline {
+  stroke-dasharray: 40;
+  animation: study-check 420ms ease-out backwards;
+}
+
+@keyframes chart-rise {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes chart-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes chart-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes study-complete {
+  0% {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  65% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes study-check {
+  from {
+    stroke-dashoffset: 40;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (max-width: 639px) {
+  .statistics-headline > article:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-enter,
+  .ui-reveal[data-entered="true"],
+  .chart-review-fill[data-entered="true"],
+  .chart-share-fill[data-entered="true"],
+  .chart-growth-line[data-entered="true"],
+  [data-study-complete="true"],
+  [data-study-complete="true"] path,
+  [data-study-complete="true"] polyline {
+    animation: none;
   }
 }

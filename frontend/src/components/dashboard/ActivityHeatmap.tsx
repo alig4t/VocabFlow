@@ -1,5 +1,6 @@
-import { useMemo } from "react";
-import { faNum } from "../../lib/format";
+import { useMemo, useState } from "react";
+import { faNum, faStudyDate } from "../../lib/format";
+import { ChartDayDetails } from "./ChartDayDetails";
 import type { HeatmapDay } from "../../types";
 
 interface ActivityHeatmapProps {
@@ -24,6 +25,13 @@ function level(count: number): 0 | 1 | 2 | 3 | 4 {
 }
 
 export function ActivityHeatmap({ days }: ActivityHeatmapProps) {
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const selectedIndex = Math.max(
+    0,
+    selectedDate
+      ? days.findIndex((day) => day.date === selectedDate)
+      : days.length - 1,
+  );
   // Group consecutive days into week columns of 7 (oldest → newest).
   const weeks = useMemo(() => {
     const out: HeatmapDay[][] = [];
@@ -46,7 +54,7 @@ export function ActivityHeatmap({ days }: ActivityHeatmapProps) {
 
   return (
     <figure className="m-0">
-      {/* Accessible summary — the cells themselves are decorative. */}
+      {/* Summary remains available alongside the individually selectable days. */}
       <figcaption className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
         <span>
           <span className="font-semibold tabular-nums text-foreground">
@@ -77,28 +85,64 @@ export function ActivityHeatmap({ days }: ActivityHeatmapProps) {
         </span>
       </figcaption>
 
-      {/* Cells flex to fill the card width (newest week on the right, RTL-friendly). */}
+      {/* Preserve the existing column order; arrow keys follow the visual grid. */}
       <div dir="ltr" className="w-full pb-1">
         <div
           className="flex w-full flex-row-reverse gap-[3px] sm:gap-1"
-          aria-hidden="true"
+          role="group"
+          aria-label="روزهای مطالعه؛ برای انتخاب روز از کلیدهای جهت استفاده کنید"
         >
           {weeks.map((week, wi) => (
             <div
               key={wi}
               className="flex min-w-0 flex-1 flex-col gap-[3px] sm:gap-1"
             >
-              {week.map((day) => (
-                <span
+              {week.map((day, row) => (
+                <button
+                  type="button"
                   key={day.date}
-                  className={`heat-${level(day.count)} aspect-square w-full rounded-[3px]`}
-                  title={`${day.date} — ${day.count} مرور`}
+                  className={`chart-heat-cell heat-${level(day.count)} aspect-square w-full rounded-[3px]`}
+                  aria-label={`${faStudyDate(day.date, true)}، ${faNum(day.count)} مرور`}
+                  aria-pressed={wi * 7 + row === selectedIndex}
+                  tabIndex={wi * 7 + row === selectedIndex ? 0 : -1}
+                  onClick={() => setSelectedDate(day.date)}
+                  onFocus={() => setSelectedDate(day.date)}
+                  onKeyDown={(event) => {
+                    const index = wi * 7 + row;
+                    const next =
+                      event.key === "ArrowLeft"
+                        ? index + 7
+                        : event.key === "ArrowRight"
+                          ? index - 7
+                          : event.key === "ArrowDown"
+                            ? index + (row < week.length - 1 ? 1 : 0)
+                            : event.key === "ArrowUp"
+                              ? index - (row > 0 ? 1 : 0)
+                              : event.key === "Home"
+                                ? 0
+                                : event.key === "End"
+                                  ? days.length - 1
+                                  : null;
+                    if (next === null) return;
+                    event.preventDefault();
+                    const target = Math.max(0, Math.min(days.length - 1, next));
+                    event.currentTarget
+                      .closest('[role="group"]')
+                      ?.querySelectorAll<HTMLButtonElement>("button")
+                      [target]?.focus();
+                  }}
                 />
               ))}
             </div>
           ))}
         </div>
       </div>
+
+      <ChartDayDetails
+        days={days}
+        index={selectedIndex}
+        onSelect={(index) => setSelectedDate(days[index].date)}
+      />
 
       {/* Legend */}
       <div className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import type { HTMLAttributes } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   BarChart3,
@@ -16,83 +16,37 @@ import {
   BookCheck,
   AlarmClock,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatTile } from "@/components/dashboard/StatTile";
 import { MemoryOverview } from "@/components/dashboard/MemoryOverview";
 import { PremiumContent } from "../../components/subscription/PremiumGate";
 import { ActivityHeatmap } from "@/components/dashboard/ActivityHeatmap";
+import { DailyReviewsChart } from "@/components/dashboard/DailyReviewsChart";
+import { AnimatedNumber } from "@/components/ui/animated-number";
+import { Reveal } from "@/components/ui/reveal";
+import { useInViewOnce } from "@/hooks/useInViewOnce";
 import { useStats, useDashboard } from "@/hooks/useDashboard";
-import { faNum, faPercent } from "@/lib/format";
+import { faNum, faPercent, faStudyDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { DailyStat, LearningStats } from "@/types";
+import type { LearningStats } from "@/types";
 
 /** "۱۲ مرداد" — short Persian date for a YYYY-MM-DD key. */
-function faShortDate(iso: string): string {
-  return new Intl.DateTimeFormat("fa-IR", {
-    month: "long",
-    day: "numeric",
-  }).format(new Date(`${iso}T12:00:00`));
-}
+const faShortDate = faStudyDate;
 
-/** Reviews per day over the last 30 days. */
-function DailyReviewsChart({ days }: { days: DailyStat[] }) {
-  // Oldest → newest regardless of the order the API returns, so with dir=ltr
-  // time always reads forward along the x-axis (oldest on the left).
-  const ordered = useMemo(
-    () => [...days].sort((a, b) => a.date.localeCompare(b.date)),
-    [days],
-  );
-  const max = useMemo(
-    () => Math.max(1, ...ordered.map((d) => d.reviews)),
-    [ordered],
-  );
-  const total = useMemo(
-    () => ordered.reduce((s, d) => s + d.reviews, 0),
-    [ordered],
-  );
-
-  if (total === 0) {
-    return (
-      <p className="py-10 text-center text-sm text-muted-foreground">
-        در ۳۰ روز اخیر مروری ثبت نشده است.
-      </p>
-    );
-  }
-
+/** Match dashboard surfaces locally, without changing shared cards elsewhere. */
+function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <figure className="m-0 space-y-3">
-      <figcaption className="text-xs text-muted-foreground">
-        مجموع {faNum(total)} مرور — بیشترین {faNum(max)} در یک روز
-      </figcaption>
-      {/* dir=ltr so the oldest day sits on the left and time reads forward. */}
-      <div dir="ltr" className="flex h-28 items-end gap-[3px]">
-        {ordered.map((d) => (
-          <span
-            key={d.date}
-            title={`${d.date} — ${d.reviews} مرور`}
-            className={cn(
-              "min-w-0 flex-1 rounded-t-sm",
-              d.reviews > 0 ? "bg-primary/70" : "bg-muted",
-            )}
-            style={{
-              height:
-                d.reviews > 0
-                  ? `${Math.max(4, (d.reviews / max) * 100)}%`
-                  : "3%",
-            }}
-          />
-        ))}
-      </div>
+    <Reveal className="h-full">
       <div
-        dir="ltr"
-        className="flex justify-between text-[11px] text-muted-foreground"
-      >
-        <span>{faShortDate(ordered[0].date)}</span>
-        <span>{faShortDate(ordered[ordered.length - 1].date)}</span>
-      </div>
-    </figure>
+        className={cn(
+          "surface h-full rounded-3xl text-card-foreground",
+          className,
+        )}
+        {...props}
+      />
+    </Reveal>
   );
 }
 
@@ -111,8 +65,9 @@ function ShareRow({
   suffix?: string;
 }) {
   const pct = total > 0 ? (value / total) * 100 : 0;
+  const { ref, entered } = useInViewOnce<HTMLLIElement>();
   return (
-    <li className="space-y-1.5">
+    <li ref={ref} className="space-y-1.5">
       <div className="flex items-baseline gap-2 text-sm">
         <span className="text-foreground">{label}</span>
         <span className="mr-auto font-bold tabular-nums text-foreground">
@@ -125,7 +80,8 @@ function ShareRow({
       </div>
       <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
         <span
-          className={cn("block h-full rounded-full", bar)}
+          data-entered={entered}
+          className={cn("chart-share-fill block h-full rounded-full", bar)}
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -144,7 +100,7 @@ function RecordRow({
   hint?: string;
 }) {
   return (
-    <li className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
+    <li className="surface-sunken flex items-center gap-3 rounded-2xl p-3">
       <span className="text-sm text-muted-foreground">{label}</span>
       <span className="mr-auto text-left">
         <span className="block font-bold tabular-nums text-foreground">
@@ -163,16 +119,19 @@ function RecordRow({
 function StatsSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
-          <Skeleton key={i} className="h-[76px] rounded-xl" />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {[...Array(3)].map((_, i) => (
+          <Skeleton
+            key={i}
+            className="h-[88px] rounded-3xl last:max-sm:col-span-2"
+          />
         ))}
       </div>
-      <Skeleton className="h-64 rounded-xl" />
-      <Skeleton className="h-52 rounded-xl" />
+      <Skeleton className="h-32 rounded-3xl" />
+      <Skeleton className="h-64 rounded-3xl" />
       <div className="grid gap-4 lg:grid-cols-2">
-        <Skeleton className="h-64 rounded-xl" />
-        <Skeleton className="h-64 rounded-xl" />
+        <Skeleton className="h-64 rounded-3xl" />
+        <Skeleton className="h-64 rounded-3xl" />
       </div>
     </div>
   );
@@ -191,8 +150,11 @@ export function StatisticsPage() {
   const { data: dash } = useDashboard();
 
   return (
-    <div dir="rtl" className="font-persian mx-auto max-w-5xl space-y-6">
-      <header className="flex flex-col gap-3 pr-1.5 sm:flex-row sm:items-center sm:justify-between">
+    <div
+      dir="rtl"
+      className="statistics-page page-atmosphere font-persian mx-auto max-w-5xl space-y-6"
+    >
+      <header className="ui-enter flex flex-col gap-3 pr-1.5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-foreground">
             <BarChart3 className="h-6 w-6 text-primary" aria-hidden="true" />
@@ -275,66 +237,76 @@ function StatsContent({
       )}
 
       {/* Headline numbers */}
-      <section
-        aria-label="خلاصه آمار"
-        className="grid grid-cols-2 gap-3 lg:grid-cols-3"
-      >
-        <StatTile
-          icon={Flame}
-          accent="warning"
-          label="روزهای پیاپی"
-          value={faNum(currentStreak)}
-          hint="روز پیاپی"
-          empty={currentStreak === 0}
-          emptyLabel="با مطالعه‌ی امروز شروع می‌شود"
-        />
-        <StatTile
-          icon={BookCheck}
-          accent="mint"
-          label="واژه‌های یادگرفته"
-          value={faNum(learnedWords)}
-          empty={learnedWords === 0}
-          emptyLabel="با اولین جلسه پر می‌شود"
-        />
-        <StatTile
-          icon={AlarmClock}
-          accent="violet"
-          label="موعد مرور امروز"
-          value={faNum(dueNow)}
-          hint={dueNow > 0 ? "آماده‌ی مرور" : undefined}
-          empty={dueNow === 0}
-          emptyLabel="چیزی عقب نیفتاده"
-        />
-        <StatTile
-          icon={Repeat2}
-          accent="primary"
-          label="کل مرورها"
-          value={faNum(totals.reviews)}
-        />
-        <StatTile
-          icon={Target}
-          accent="mint"
-          label="دقت کل"
-          value={faPercent(stats.accuracy)}
-        />
-        <StatTile
-          icon={Clock}
-          accent="violet"
-          label="زمان مطالعه"
-          value={
-            totals.studyMinutes >= 60
-              ? `${faNum(Math.round(totals.studyMinutes / 60))} ساعت`
-              : `${faNum(totals.studyMinutes)} دقیقه`
-          }
-          hint={`${faNum(totals.sessions)} جلسه`}
-        />
-        <StatTile
-          icon={CalendarCheck}
-          accent="warning"
-          label="روزهای فعال"
-          value={faNum(totals.activeDays)}
-        />
-      </section>
+      <Reveal>
+        <section
+          aria-label="خلاصه آمار"
+          className="statistics-headline surface grid grid-cols-2 gap-1 rounded-3xl p-2 sm:grid-cols-3 sm:p-3"
+        >
+          <StatTile
+            icon={Flame}
+            accent="warning"
+            label="روزهای پیاپی"
+            value={<AnimatedNumber value={currentStreak} />}
+            hint="روز پیاپی"
+            empty={currentStreak === 0}
+            emptyLabel="با مطالعه‌ی امروز شروع می‌شود"
+          />
+          <StatTile
+            icon={BookCheck}
+            accent="mint"
+            label="واژه‌های یادگرفته"
+            value={<AnimatedNumber value={learnedWords} />}
+            empty={learnedWords === 0}
+            emptyLabel="با اولین جلسه پر می‌شود"
+          />
+          <StatTile
+            icon={AlarmClock}
+            accent="violet"
+            label="موعد مرور امروز"
+            value={<AnimatedNumber value={dueNow} />}
+            hint={dueNow > 0 ? "آماده‌ی مرور" : undefined}
+            empty={dueNow === 0}
+            emptyLabel="چیزی عقب نیفتاده"
+          />
+        </section>
+      </Reveal>
+
+      <Reveal>
+        <section
+          aria-label="کارنامه مطالعه"
+          className="surface grid grid-cols-2 gap-1 rounded-3xl p-2 sm:p-3 lg:grid-cols-4"
+        >
+          <StatTile
+            icon={Repeat2}
+            accent="primary"
+            label="کل مرورها"
+            value={<AnimatedNumber value={totals.reviews} />}
+          />
+          <StatTile
+            icon={Target}
+            accent="mint"
+            label="دقت کل"
+            value={<AnimatedNumber value={stats.accuracy} percent />}
+          />
+          <StatTile
+            icon={Clock}
+            accent="violet"
+            label="زمان مطالعه"
+            value={
+              totals.studyMinutes >= 60
+                ? `${faNum(Math.round(totals.studyMinutes / 60))} ساعت`
+                : `${faNum(totals.studyMinutes)} دقیقه`
+            }
+            hint={`${faNum(totals.sessions)} جلسه`}
+          />
+          <StatTile
+            icon={CalendarCheck}
+            accent="warning"
+            label="روزهای فعال"
+            value={<AnimatedNumber value={totals.activeDays} />}
+          />
+        </section>
+      </Reveal>
 
       {/* Memory + exact growth curve */}
       <MemoryOverview

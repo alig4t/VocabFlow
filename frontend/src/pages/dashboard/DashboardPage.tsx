@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Reveal } from "@/components/ui/reveal";
 import { GlobalStats } from "@/components/dashboard/GlobalStats";
 import { SectionHeading } from "@/components/dashboard/SectionHeading";
 import { StudyTodayHero } from "@/components/dashboard/StudyTodayHero";
@@ -96,88 +97,96 @@ export function DashboardPage() {
             <GlobalStats stats={data.stats} />
 
             {/* ④ چه می‌خوانم؟ — with the per-book review queue as its lead-in */}
-            <section className="space-y-4">
-              <SectionHeading icon={Library} accent="کتاب‌های">
-                من
-              </SectionHeading>
+            <Reveal>
+              <section className="space-y-4">
+                <SectionHeading icon={Library} accent="کتاب‌های">
+                  من
+                </SectionHeading>
 
-              <ContinueLearning queue={data.queue} />
+                <ContinueLearning queue={data.queue} />
 
-              {data.watchlist.length === 0 ? (
-                <div className="surface flex flex-col items-center gap-3 rounded-3xl px-6 py-14 text-center">
-                  <Library
-                    className="h-10 w-10 text-muted-foreground opacity-40"
-                    aria-hidden="true"
-                  />
-                  <div>
-                    <p className="text-base font-medium text-foreground">
-                      هنوز کتابی اضافه نکرده‌اید
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      از کتابخانه یک کتاب به لیست یادگیری خود اضافه کنید.
-                    </p>
-                  </div>
-                  <Button
-                    className="gap-2"
-                    onClick={() => navigate("/library")}
-                  >
-                    <Compass className="h-4 w-4" aria-hidden="true" />
-                    رفتن به کتابخانه
-                  </Button>
-                </div>
-              ) : (
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {data.watchlist.map((book) => (
-                    <WatchlistBookCard key={book.id} book={book} />
-                  ))}
-                </div>
-              )}
-            </section>
-
-            {/* ⑤ کجا گیر کرده‌ام؟ */}
-            <section className="space-y-4">
-              <SectionHeading icon={AlertTriangle} accent="واژه‌های">
-                دردسرساز
-              </SectionHeading>
-              <div className="surface rounded-3xl p-4 sm:p-5">
-                <PremiumContent>
-                  <HardWords words={data.hardWords} />
-                </PremiumContent>
-              </div>
-            </section>
-
-            {/* ⑥ چه چیزی در راه است؟ */}
-            <section className="space-y-4">
-              <SectionHeading icon={CalendarClock} accent="مرورهای">
-                پیش رو
-              </SectionHeading>
-              <div className="surface rounded-3xl p-5 sm:p-6">
-                <UpcomingReviews days={data.upcoming} />
-              </div>
-            </section>
-
-            {/* ⑦ سابقه‌ام چیست؟ */}
-            <section className="space-y-4">
-              <SectionHeading icon={Activity} accent="فعالیت">
-                مطالعه
-              </SectionHeading>
-              <div className="grid gap-4 lg:grid-cols-3">
-                <div className="surface rounded-3xl p-3 pl-3 pr-4 sm:p-6 lg:col-span-2">
-                  <ActivityHeatmap days={data.heatmap} />
-                </div>
-
-                <div className="surface space-y-3 rounded-3xl p-5 sm:p-6">
-                  <p className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                    <CalendarDays
-                      className="h-4 w-4 text-accent-foreground"
+                {data.watchlist.length === 0 ? (
+                  <div className="surface flex flex-col items-center gap-3 rounded-3xl px-6 py-14 text-center">
+                    <Library
+                      className="h-10 w-10 text-muted-foreground opacity-40"
                       aria-hidden="true"
                     />
-                    مقایسه کتاب‌ها
-                  </p>
-                  <BookComparison books={data.watchlist} />
+                    <div>
+                      <p className="text-base font-medium text-foreground">
+                        هنوز کتابی اضافه نکرده‌اید
+                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        از کتابخانه یک کتاب به لیست یادگیری خود اضافه کنید.
+                      </p>
+                    </div>
+                    <Button
+                      className="gap-2"
+                      onClick={() => navigate("/library")}
+                    >
+                      <Compass className="h-4 w-4" aria-hidden="true" />
+                      رفتن به کتابخانه
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    {data.watchlist.map((book) => (
+                      <WatchlistBookCard key={book.id} book={book} />
+                    ))}
+                  </div>
+                )}
+              </section>
+            </Reveal>
+
+            {/* ⑤ کجا گیر کرده‌ام؟ */}
+            <Reveal>
+              <section className="space-y-4">
+                <SectionHeading icon={AlertTriangle} accent="واژه‌های">
+                  دردسرساز
+                </SectionHeading>
+                <div className="surface rounded-3xl p-4 sm:p-5">
+                  <PremiumContent>
+                    <HardWords words={data.hardWords} />
+                  </PremiumContent>
                 </div>
-              </div>
-            </section>
+              </section>
+            </Reveal>
+
+            {/* ⑥ چه چیزی در راه است؟ */}
+            <Reveal>
+              <section className="space-y-4">
+                <SectionHeading icon={CalendarClock} accent="مرورهای">
+                  پیش رو
+                </SectionHeading>
+                <div className="surface rounded-3xl p-5 sm:p-6">
+                  <UpcomingReviews days={data.upcoming} />
+                </div>
+              </section>
+            </Reveal>
+
+            {/* ⑦ سابقه‌ام چیست؟ */}
+            <Reveal>
+              <section className="space-y-4">
+                <SectionHeading icon={Activity} accent="فعالیت">
+                  مطالعه
+                </SectionHeading>
+                <div className="grid gap-4 lg:grid-cols-3">
+                  <div className="surface rounded-3xl p-3 pl-3 pr-4 sm:p-6 lg:col-span-2">
+                    <ActivityHeatmap days={data.heatmap} />
+                  </div>
+
+                  <div className="surface space-y-3 rounded-3xl p-5 sm:p-6">
+                    <p className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                      <CalendarDays
+                        className="h-4 w-4 text-accent-foreground"
+                        aria-hidden="true"
+                      />
+                      مقایسه کتاب‌ها
+                    </p>
+                    <BookComparison books={data.watchlist} />
+                  </div>
+                </div>
+              </section>
+            </Reveal>
           </>
         )}
       </div>

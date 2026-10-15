@@ -1,10 +1,11 @@
 import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { cn } from "../../lib/utils";
 
 export interface StatTileProps {
   icon: LucideIcon;
   label: string;
-  value: string;
+  value: ReactNode;
   hint?: string;
   /**
    * No data behind this number yet. Shows `emptyLabel` instead of a zero, so a

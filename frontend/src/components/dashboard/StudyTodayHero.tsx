@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AnimatedNumber } from "@/components/ui/animated-number";
 import { HeroBlob } from "./HeroBlob";
 import { HeroPattern } from "./HeroPattern";
 import { useStudyToday } from "@/hooks/useStudy";
@@ -34,7 +35,7 @@ function HeroStats({
       ? [
           {
             icon: Flame,
-            value: faNum(streak),
+            value: streak,
             label: "روز پیاپی",
             tone: "dashboard-hero-icon-streak",
           },
@@ -44,7 +45,8 @@ function HeroStats({
       ? [
           {
             icon: Target,
-            value: faPercent(accuracy),
+            value: accuracy,
+            percent: true,
             label: "دقت پاسخ‌ها",
             tone: "dashboard-hero-icon-accuracy",
           },
@@ -54,7 +56,7 @@ function HeroStats({
       ? [
           {
             icon: Brain,
-            value: faNum(wordsInMemory),
+            value: wordsInMemory,
             label: "واژه در حافظه",
             tone: "dashboard-hero-icon-memory",
           },
@@ -78,24 +80,30 @@ function HeroStats({
         </div>
       ) : metrics.length > 0 ? (
         <dl
-          className="dashboard-hero-stats"
+          className="dashboard-hero-stats ui-enter"
           style={{
             gridTemplateColumns: `repeat(${metrics.length}, minmax(0, 1fr))`,
           }}
         >
-          {metrics.map(({ icon: Icon, value, label, tone }) => (
-            <div key={label} className="dashboard-hero-stat">
-              <dt className="dashboard-hero-stat-label">{label}</dt>
-              <dd className="dashboard-hero-stat-value">
-                <Icon
-                  className={`h-3.5 w-3.5 ${tone}`}
-                  strokeWidth={1.8}
-                  aria-hidden="true"
-                />
-                {value}
-              </dd>
-            </div>
-          ))}
+          {metrics.map((metric) => {
+            const { icon: Icon, value, label, tone } = metric;
+            return (
+              <div key={label} className="dashboard-hero-stat">
+                <dt className="dashboard-hero-stat-label">{label}</dt>
+                <dd className="dashboard-hero-stat-value">
+                  <Icon
+                    className={`h-3.5 w-3.5 ${tone}`}
+                    strokeWidth={1.8}
+                    aria-hidden="true"
+                  />
+                  <AnimatedNumber
+                    value={value}
+                    percent={"percent" in metric && metric.percent}
+                  />
+                </dd>
+              </div>
+            );
+          })}
         </dl>
       ) : (
         <p className="dashboard-hero-signature">
@@ -169,7 +177,7 @@ export function StudyTodayHero({
               </div>
             ) : (
               <>
-                <h2 className="dashboard-hero-heading">
+                <h2 className="dashboard-hero-heading ui-enter">
                   {failed ? (
                     <>
                       برنامه امروز
@@ -199,7 +207,10 @@ export function StudyTodayHero({
                   ) : (
                     <>
                       <span className="dashboard-hero-workload">
-                        {faNum(remaining)} <span>واژه</span>
+                        <AnimatedNumber value={remaining} />{" "}
+                        <span className="dashboard-hero-workload-unit">
+                          واژه
+                        </span>
                       </span>
                       <span>یک قدم جلوتر، هر روز.</span>
                     </>
@@ -259,7 +270,11 @@ export function StudyTodayHero({
                     aria-valuenow={Math.round(progress)}
                     aria-valuetext={`${faNum(reviewed)} از ${faNum(planned)} واژه مرور شده`}
                   >
-                    <span style={{ width: `${progress}%` }} />
+                    <span
+                      className="chart-share-fill"
+                      data-entered="true"
+                      style={{ width: `${progress}%` }}
+                    />
                   </div>
                   <p
                     className="dashboard-hero-progress-caption"
@@ -273,6 +288,7 @@ export function StudyTodayHero({
                     {done && (
                       <Check
                         className="dashboard-hero-icon-memory h-3.5 w-3.5"
+                        data-study-complete="true"
                         aria-hidden="true"
                       />
                     )}

@@ -101,8 +101,18 @@ export function SessionSummaryScreen({
       className="font-persian mx-auto max-w-2xl space-y-6 px-4 py-8 text-center"
     >
       <div className="space-y-2">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-          <Sparkles className="h-8 w-8 text-primary" />
+        <div
+          className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10"
+          data-study-complete={
+            !saving && (stats.reviewedCount > 0 || stats.newCount > 0)
+          }
+          aria-hidden="true"
+        >
+          {!saving && (stats.reviewedCount > 0 || stats.newCount > 0) ? (
+            <CheckCircle2 className="h-8 w-8 text-primary" />
+          ) : (
+            <Sparkles className="h-8 w-8 text-primary" />
+          )}
         </div>
         <h1 className="text-2xl font-bold text-foreground">
           مطالعه امروز تمام شد! 🎉
@@ -124,7 +134,7 @@ export function SessionSummaryScreen({
         </div>
         <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-muted">
           <div
-            className="h-full rounded-full bg-primary transition-all"
+            className="h-full rounded-full bg-primary transition-[width] duration-300 motion-reduce:transition-none"
             style={{ width: `${successPercent}%` }}
           />
         </div>
