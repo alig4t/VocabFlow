@@ -1,22 +1,22 @@
 /**
- * The band's designed texture: a faint ink dot grid concentrated behind the
- * navbar half of the field, a couple of drawn rings, and small four-point
- * sparkles — depth and personality without competing with the content.
- * Everything is ink or deep amber at single-digit opacity, so any of it may
- * sit under text and chips without hurting contrast. Purely decorative.
+ * A faint dot grid, the user's book/bulb vectors, and small sparkles.
+ * The vectors use CSS masks for theme-aware ink, with low opacity and
+ * responsive sizes that keep the centre clear. Purely decorative.
  */
 export function HeroPattern() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute inset-0 overflow-hidden"
+      className="pointer-events-none absolute inset-0 select-none overflow-hidden"
     >
       {/* The dot grid, masked to the upper-inline-start half. */}
       <div className="hero-dots hero-dots-mask absolute inset-0" />
 
-      {/* Rings — one solid, one dashed, at opposite corners of the field. */}
-      <span className="absolute end-[7%] top-[20%] h-16 w-16 rounded-full border-[2.5px] border-[hsl(45_60%_10%_/_0.1)]" />
-      <span className="absolute start-[12%] bottom-[26%] h-9 w-9 rounded-full border-2 border-dashed border-[hsl(45_60%_10%_/_0.16)]" />
+      {/* Downloaded SVGs sit at the edges, behind the hero content. */}
+      <span className="hero-doodle hero-doodle-book" />
+      <span className="hero-doodle hero-doodle-pages" />
+      <span className="hero-doodle hero-doodle-bulb hero-doodle-bulb-top" />
+      <span className="hero-doodle hero-doodle-bulb hero-doodle-bulb-bottom" />
 
       {/* Sparkles — four-point stars, amber-leaning, scattered lightly. */}
       <svg

@@ -467,6 +467,54 @@
     mask-image: radial-gradient(85% 80% at 75% 0%, black 30%, transparent 75%);
   }
 
+  /* Local SVG masks keep the downloaded artwork in the hero's ink colour. */
+  .hero-doodle {
+    position: absolute;
+    display: block;
+    aspect-ratio: 1;
+    background-color: hsl(var(--deep-fg));
+    opacity: 0.065;
+  }
+  .hero-doodle-book {
+    top: calc(5.5rem + var(--safe-top));
+    inset-inline-end: 3%;
+    width: clamp(3rem, 14vw, 7rem);
+    transform: rotate(-16deg);
+    opacity: 0.08;
+    -webkit-mask: url("./assets/dashboard/open-book.svg") center / contain
+      no-repeat;
+    mask: url("./assets/dashboard/open-book.svg") center / contain no-repeat;
+  }
+  .hero-doodle-pages {
+    bottom: 3rem;
+    inset-inline-start: 3%;
+    width: clamp(4rem, 18vw, 9rem);
+    transform: rotate(14deg);
+    opacity: 0.055;
+    -webkit-mask: url("./assets/dashboard/open-book-pages.svg") center / contain
+      no-repeat;
+    mask: url("./assets/dashboard/open-book-pages.svg") center / contain
+      no-repeat;
+  }
+  .hero-doodle-bulb {
+    -webkit-mask: url("./assets/dashboard/light-bulb.svg") center / contain
+      no-repeat;
+    mask: url("./assets/dashboard/light-bulb.svg") center / contain no-repeat;
+  }
+  .hero-doodle-bulb-top {
+    top: calc(7.25rem + var(--safe-top));
+    inset-inline-start: 3%;
+    width: clamp(2.5rem, 10vw, 5.5rem);
+    transform: rotate(18deg);
+  }
+  .hero-doodle-bulb-bottom {
+    bottom: 30%;
+    inset-inline-end: 2%;
+    width: clamp(2rem, 8vw, 4rem);
+    transform: rotate(-22deg);
+    opacity: 0.05;
+  }
+
   /*
     Full bleed like `page-bleed`, but also sliding up under the transparent
     hero navbar (h-16 = 4rem + the edge-to-edge status-bar inset) so the

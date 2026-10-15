@@ -1,6 +1,6 @@
 {
   "name": "english-learning-frontend",
-  "version": "1.12.14",
+  "version": "1.12.15",
   "type": "module",
   "scripts": {
     "dev": "vite",
