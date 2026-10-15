@@ -57,14 +57,7 @@ function PracticeHeading({
   );
 }
 
-/**
- * The section wrapper.
- *
- * `mt-*` pushes it clear of the hero's diagonal. The page container pulls its
- * children up onto that edge on purpose, but this is the first card and a
- * translucent panel sitting on the cream produced a stray gold wedge showing
- * through the box; the surface below is opaque for the same reason.
- */
+/** Keep the practice section close to the hero wave, including while loading. */
 function PracticeSection({
   children,
   loading = false,
@@ -74,7 +67,7 @@ function PracticeSection({
 }) {
   return (
     <section
-      className="mt-10 sm:mt-14"
+      className="mt-4 sm:mt-6"
       aria-busy={loading || undefined}
       aria-label={loading ? "در حال بارگذاری تمرین امروز" : undefined}
       role={loading ? "status" : undefined}
