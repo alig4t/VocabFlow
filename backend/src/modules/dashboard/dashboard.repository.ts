@@ -136,6 +136,24 @@ export class DashboardRepository {
     })
   }
 
+  /** Activity is saved with each answer, including unfinished sessions. */
+  async getReviewDates(userId: string, mode: ReviewMode, since: Date, until: Date) {
+    return prisma.reviewEvent.findMany({
+      where: { userId, reviewMode: mode, reviewedAt: { gte: since, lte: until } },
+      select: { reviewedAt: true },
+    })
+  }
+
+  /** Older installs have session history from before answer logging existed. */
+  async getReviewHistoryStart(userId: string): Promise<Date | null> {
+    const first = await prisma.reviewEvent.findFirst({
+      where: { userId },
+      orderBy: { reviewedAt: 'asc' },
+      select: { reviewedAt: true },
+    })
+    return first?.reviewedAt ?? null
+  }
+
   /** Distinct session day-stamps (local ISO date), newest first, for the streak. */
   async getSessionDates(userId: string) {
     return prisma.studySession.findMany({

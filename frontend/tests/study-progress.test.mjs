@@ -30,8 +30,9 @@ after(() => {
 const bundled = await build({
   stdin: {
     contents: `export { getDb } from './src/offline/db';
-      export { getStudyToday, answerStudy } from './src/offline/repo';
-      export { StudyService } from '../backend/src/modules/study/study.service';`,
+      export { getStudyToday, answerStudy, getDashboard, recordStudySession } from './src/offline/repo';
+      export { StudyService } from '../backend/src/modules/study/study.service';
+      export { DashboardService } from '../backend/src/modules/dashboard/dashboard.service';`,
     resolveDir: process.cwd(),
     loader: "ts",
   },
@@ -264,4 +265,110 @@ test("web today metadata uses live completed words, with the current direction a
     countArguments[4].getTime(),
     new RealDate(2026, 9, 14, 6).getTime() - 1,
   );
+});
+
+test("dashboard shows ten saved reviews before the session ends, without counting the summary twice", async () => {
+  const { api, query } = await fixture();
+  assert.equal((await api.getDashboard()).heatmap.at(-1).count, 0);
+  for (let i = 1; i <= 10; i++) await api.answerStudy(`word-${i}`, "EASY");
+  assert.equal(
+    (await query("SELECT COUNT(*) AS c FROM study_sessions")).values[0].c,
+    0,
+  );
+  let dashboard = await api.getDashboard();
+  assert.equal(dashboard.stats.reviewsToday, 10);
+  assert.equal(dashboard.heatmap.at(-1).count, 10);
+  await api.recordStudySession({
+    startedAt: new Date().toISOString(),
+    endedAt: new Date().toISOString(),
+    durationSec: 60,
+    reviewedCount: 10,
+    correctCount: 10,
+    wrongCount: 0,
+    hardCount: 0,
+    skippedCount: 0,
+    newCount: 0,
+  });
+  dashboard = await api.getDashboard();
+  assert.equal(dashboard.stats.reviewsToday, 10);
+  assert.equal(dashboard.heatmap.at(-1).count, 10);
+});
+
+test("dashboard activity respects direction and the 06:00 boundary, includes AGAIN and excludes SKIP", async () => {
+  const { api, database } = await fixture();
+  await api.answerStudy("word-1", "AGAIN");
+  await api.answerStudy("word-2", "SKIP");
+  assert.equal((await api.getDashboard()).heatmap.at(-1).count, 1);
+  database.run("UPDATE user_settings SET study_direction='FA_TO_EN'");
+  assert.equal((await api.getDashboard()).stats.reviewsToday, 0);
+  await api.answerStudy("word-1", "HARD");
+  clock = new RealDate(2026, 9, 14, 5, 59).getTime();
+  await api.answerStudy("word-2", "EASY");
+  assert.equal((await api.getDashboard()).heatmap.at(-1).count, 2);
+  clock = new RealDate(2026, 9, 14, 6).getTime();
+  let dashboard = await api.getDashboard();
+  assert.equal(dashboard.stats.reviewsToday, 0);
+  assert.equal(dashboard.heatmap.at(-2).count, 2);
+  await api.answerStudy("word-3", "HARD");
+  dashboard = await api.getDashboard();
+  assert.equal(dashboard.stats.reviewsToday, 1);
+  assert.equal(dashboard.heatmap.at(-1).count, 1);
+});
+
+test("dashboard retains sessions from before review logging was introduced", async () => {
+  const { api, database } = await fixture();
+  database.run(
+    "INSERT INTO study_sessions (id,started_at,reviewed_count) VALUES ('legacy',?,7)",
+    [new RealDate(2026, 9, 12, 12).toISOString()],
+  );
+  await api.answerStudy("word-1", "EASY");
+  const dashboard = await api.getDashboard();
+  assert.equal(dashboard.heatmap.at(-2).count, 7);
+  assert.equal(dashboard.heatmap.at(-1).count, 1);
+});
+
+test("web dashboard uses saved answers for activity with the current user, direction and study window", async () => {
+  const { api } = await fixture();
+  const reviewedAt = new Date();
+  let reviewArguments;
+  const sessions = [];
+  const service = new api.DashboardService({
+    getUserSettings: async () => ({ studyDirection: "FA_TO_EN" }),
+    getActivePlans: async () => [],
+    countKnown: async () => 0,
+    getSessions: async () => sessions,
+    getSessionDates: async () => [],
+    getReviewHistoryStart: async () => reviewedAt,
+    getReviewDates: async (...args) => {
+      reviewArguments = args;
+      return Array.from({ length: 10 }, () => ({ reviewedAt }));
+    },
+    getMemoryBuckets: async () => ({ fresh: 0, learning: 0, stable: 0 }),
+    getStableReviewDates: async () => [],
+    getUpcomingDue: async () => [],
+    getHardWords: async () => [],
+  });
+  let dashboard = await service.getDashboard("user", reviewedAt);
+  assert.equal(dashboard.stats.reviewsToday, 10);
+  assert.equal(dashboard.heatmap.at(-1).count, 10);
+  assert.equal(reviewArguments[0], "user");
+  assert.equal(reviewArguments[1], "FA_TO_EN");
+  assert.equal(
+    reviewArguments[2].getTime(),
+    new RealDate(2026, 5, 10, 6).getTime(),
+  );
+  assert.equal(
+    reviewArguments[3].getTime(),
+    new RealDate(2026, 9, 14, 6).getTime() - 1,
+  );
+  sessions.push({
+    startedAt: reviewedAt,
+    reviewedCount: 10,
+    correctCount: 10,
+    wrongCount: 0,
+    durationSec: 60,
+  });
+  dashboard = await service.getDashboard("user", reviewedAt);
+  assert.equal(dashboard.heatmap.at(-1).count, 10);
+  assert.equal(dashboard.stats.reviewsToday, 10);
 });

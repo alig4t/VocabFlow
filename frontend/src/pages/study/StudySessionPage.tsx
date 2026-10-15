@@ -9,7 +9,6 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tooltip } from "@/components/ui/tooltip";
 import { ReviewCard } from "@/components/vocabulary/ReviewCard";
 import {
   SessionSummaryScreen,
@@ -217,7 +216,7 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
     "w-full rounded-lg border px-2 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2";
   return (
     <div className="flex items-stretch gap-2">
-      <Tooltip label="اصلاً یادم نیامد" className="flex-1">
+      <span className="inline-flex flex-1">
         <button
           onClick={() => onAnswer("AGAIN")}
           className={cn(
@@ -232,8 +231,8 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
             <span className="text-[7px] leading-tight">(اصلاً یادم نیامد)</span>
           )}
         </button>
-      </Tooltip>
-      <Tooltip label="به سختی یادم آمد" className="flex-1">
+      </span>
+      <span className="inline-flex flex-1">
         <button
           onClick={() => onAnswer("HARD")}
           className={cn(
@@ -248,8 +247,8 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
             <span className="text-[7px] leading-tight">(به سختی یادم آمد)</span>
           )}
         </button>
-      </Tooltip>
-      <Tooltip label="به‌راحتی یادم آمد" className="flex-1">
+      </span>
+      <span className="inline-flex flex-1">
         <button
           onClick={() => onAnswer("EASY")}
           className={cn(
@@ -266,8 +265,8 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
             </span>
           )}
         </button>
-      </Tooltip>
-      <Tooltip label={!isNative() ? "فعلاً رد کن (بدون تغییر زمان‌بندی)" : ""}>
+      </span>
+      <span className="inline-flex">
         <button
           onClick={() => onAnswer("SKIP")}
           className={cn(
@@ -282,7 +281,7 @@ function AnswerBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
             <span className="text-[7px] leading-tight">(فعلاً رد کن)</span>
           )}
         </button>
-      </Tooltip>
+      </span>
     </div>
   );
 }
@@ -298,7 +297,7 @@ function ReadBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
     "rounded-lg border px-2 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2";
   return (
     <div className="flex items-stretch gap-2">
-      <Tooltip label="این واژه جدید را خواندم" className="flex-1">
+      <span className="inline-flex flex-1">
         <button
           onClick={() => onAnswer("AGAIN")}
           className={cn(
@@ -308,8 +307,8 @@ function ReadBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
         >
           خواندم
         </button>
-      </Tooltip>
-      <Tooltip label={!isNative() ? "فعلاً رد کن (بدون تغییر زمان‌بندی)" : ""}>
+      </span>
+      <span className="inline-flex">
         <button
           onClick={() => onAnswer("SKIP")}
           className={cn(
@@ -319,7 +318,7 @@ function ReadBar({ onAnswer }: { onAnswer: (a: StudyAnswer) => void }) {
         >
           رد
         </button>
-      </Tooltip>
+      </span>
     </div>
   );
 }
@@ -583,7 +582,11 @@ export function StudySessionPage() {
             skippedCount: flushStats.skippedCount,
             newCount: flushStats.newCount,
           })
-          .catch((e) => console.error("flush abandoned session failed", e));
+          .catch((e) => console.error("flush abandoned session failed", e))
+          .finally(() => {
+            queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+            queryClient.invalidateQueries({ queryKey: ["stats"] });
+          });
       }
       clearPersistedSession();
     }
@@ -600,14 +603,19 @@ export function StudySessionPage() {
       segmentStartRef.current = Date.now();
       if (initial.length > 0) persist(initial, 0);
     }
-  }, [today, queue, isFetching, persist, plans, isPlansFetching]);
+  }, [today, queue, isFetching, persist, plans, isPlansFetching, queryClient]);
 
   // Leaving the session (even mid-way) → refresh the dashboard + today counts so
   // due/new numbers reflect the answers just given.
   useEffect(() => {
     return () => {
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      queryClient.invalidateQueries({ queryKey: ["study"] });
+      // Answers may still be saving when the user navigates away. Refresh
+      // after they settle so the next page cannot cache the earlier zero.
+      void Promise.all([...pendingAnswers.current]).then(() => {
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+        queryClient.invalidateQueries({ queryKey: ["stats"] });
+        queryClient.invalidateQueries({ queryKey: ["study"] });
+      });
     };
   }, [queryClient]);
 
@@ -664,6 +672,7 @@ export function StudySessionPage() {
         .finally(() => {
           setSaving(false);
           queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+          queryClient.invalidateQueries({ queryKey: ["stats"] });
           queryClient.invalidateQueries({ queryKey: ["study"] });
           // Studied today → drop tonight's reminder (and refresh the horizon).
           rescheduleNotifications();
@@ -685,8 +694,11 @@ export function StudySessionPage() {
           answerInFlight.current = true;
           setAnswerSaving(true);
           setAnswerError("");
+          const pending = studyService.answer(cur.word.id, a);
+          const settled = pending.catch(() => undefined);
+          pendingAnswers.current.add(settled);
           try {
-            await studyService.answer(cur.word.id, a);
+            await pending;
           } catch (error) {
             setAnswerError(
               error instanceof Error
@@ -698,6 +710,7 @@ export function StudySessionPage() {
             });
             return;
           } finally {
+            pendingAnswers.current.delete(settled);
             answerInFlight.current = false;
             setAnswerSaving(false);
           }

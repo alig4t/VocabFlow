@@ -149,15 +149,29 @@ export class DashboardService {
     // Global stats.
     const since = new Date(dayStart)
     since.setDate(since.getDate() - (HEATMAP_DAYS - 1))
-    const [totalWordsLearned, sessions, sessionDates] = await Promise.all([
+    const [totalWordsLearned, sessions, sessionDates, reviews, historyStart] = await Promise.all([
       this.repo.countKnown(userId, mode),
       this.repo.getSessions(userId, since),
       this.repo.getSessionDates(userId),
+      this.repo.getReviewDates(userId, mode, since, dayEnd),
+      this.repo.getReviewHistoryStart(userId),
     ])
 
-    const reviewsToday = sessions
-      .filter((sess) => sess.startedAt >= dayStart && sess.startedAt <= dayEnd)
-      .reduce((sum, sess) => sum + sess.reviewedCount, 0)
+    // Answers are durable before a session ends. Never add its summary again;
+    // use summaries only for days predating the review log (across both modes).
+    const firstLoggedDay = historyStart ? isoDay(historyStart) : null
+    const perDay = new Map<string, number>()
+    for (const sess of sessions) {
+      const key = isoDay(sess.startedAt)
+      if (firstLoggedDay === null || key < firstLoggedDay) {
+        perDay.set(key, (perDay.get(key) ?? 0) + sess.reviewedCount)
+      }
+    }
+    for (const review of reviews) {
+      const key = isoDay(review.reviewedAt)
+      perDay.set(key, (perDay.get(key) ?? 0) + 1)
+    }
+    const reviewsToday = perDay.get(isoDay(dayStart)) ?? 0
 
     const totalCorrect = sessions.reduce((s, x) => s + x.correctCount, 0)
     const totalWrong = sessions.reduce((s, x) => s + x.wrongCount, 0)
@@ -181,12 +195,7 @@ export class DashboardService {
       accuracyRate,
     }
 
-    // Heatmap: sum reviewedCount per day across the window (fill gaps with 0).
-    const perDay = new Map<string, number>()
-    for (const sess of sessions) {
-      const key = isoDay(sess.startedAt)
-      perDay.set(key, (perDay.get(key) ?? 0) + sess.reviewedCount)
-    }
+    // Heatmap: saved answers per study day (fill gaps with 0).
     const heatmap: HeatmapDay[] = []
     for (let i = HEATMAP_DAYS - 1; i >= 0; i--) {
       const d = new Date(dayStart)

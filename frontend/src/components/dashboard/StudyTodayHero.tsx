@@ -147,11 +147,13 @@ export function StudyTodayHero({
   const done = remaining === 0;
   const hasPlans = !!meta?.hasPlans;
   const failed = isError && !data;
-  const plan = meta?.plans[0];
+  const plan = meta?.plans.find((p) => p.currentLesson != null);
   const lessonLabel =
     plan && plan.currentLesson != null
       ? `${plan.continueLesson ? "ادامه‌ی" : "شروع"} درس ${faNum(plan.currentLesson)} — ${plan.bookTitle}`
-      : null;
+      : meta?.plans.length
+        ? "فقط مرورها باقی مانده‌اند"
+        : null;
 
   return (
     <section

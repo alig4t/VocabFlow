@@ -496,6 +496,8 @@ export function ReviewPage() {
   const selectedLesson = lessons?.find((lesson) => lesson.id === lessonId);
   const filterSummary = [
     MODE_OPTIONS.find((option) => option.value === mode)?.label,
+    REVIEW_FILTER_OPTIONS.find((option) => option.value === reviewFilter)
+      ?.label,
     bookId
       ? books?.find((book) => book.id === bookId)?.title
       : fromVocabulary
@@ -647,6 +649,32 @@ export function ReviewPage() {
               />
             )}
           </div>
+          <div
+            role="group"
+            aria-label="وضعیت واژه"
+            className="grid grid-cols-4 gap-1.5 sm:gap-2"
+          >
+            {REVIEW_FILTER_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                aria-pressed={reviewFilter === option.value}
+                onClick={() => setReviewFilter(option.value)}
+                className={cn(
+                  "min-h-11 min-w-0 whitespace-nowrap rounded-full border px-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transition-none sm:px-3",
+                  reviewFilter === option.value
+                    ? option.value === "KNOWN"
+                      ? "border-success/50 bg-success/10 font-semibold text-success shadow-sm"
+                      : option.value === "NOT_KNOWN"
+                        ? "border-destructive/50 bg-destructive/10 font-semibold text-destructive shadow-sm"
+                        : "border-primary bg-primary/15 font-semibold text-foreground shadow-sm"
+                    : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:bg-muted hover:text-foreground",
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
           {((bookId && volumesQuery.isError) ||
             (volumeId && lessonsQuery.isError)) && (
             <div className="flex items-center justify-between gap-2 text-xs text-destructive">
@@ -664,33 +692,6 @@ export function ReviewPage() {
             </div>
           )}
         </div>
-      </div>
-
-      <div
-        role="group"
-        aria-label="وضعیت واژه"
-        className="grid grid-cols-4 gap-1.5 sm:gap-2"
-      >
-        {REVIEW_FILTER_OPTIONS.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            aria-pressed={reviewFilter === option.value}
-            onClick={() => setReviewFilter(option.value)}
-            className={cn(
-              "min-h-11 min-w-0 whitespace-nowrap rounded-full border px-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transition-none sm:px-3",
-              reviewFilter === option.value
-                ? option.value === "KNOWN"
-                  ? "border-success/50 bg-success/10 font-semibold text-success shadow-sm"
-                  : option.value === "NOT_KNOWN"
-                    ? "border-destructive/50 bg-destructive/10 font-semibold text-destructive shadow-sm"
-                    : "border-primary bg-primary/15 font-semibold text-foreground shadow-sm"
-                : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:bg-muted hover:text-foreground",
-            )}
-          >
-            {option.label}
-          </button>
-        ))}
       </div>
 
       {fromVocabulary && (
@@ -827,7 +828,7 @@ export function ReviewPage() {
             compact
           />
 
-          <div className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-card p-2">
+          <div className="flex items-center justify-center gap-1.5">
             <Button
               variant="outline"
               size="icon"

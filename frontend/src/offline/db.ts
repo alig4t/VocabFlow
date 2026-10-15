@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS learning_plans (
   is_active INTEGER NOT NULL DEFAULT 1,
   created_at TEXT
 );
--- One row per completed daily study session (streak / heatmap / accuracy).
+-- One row per completed daily study session (streak / duration / accuracy).
 CREATE TABLE IF NOT EXISTS study_sessions (
   id TEXT PRIMARY KEY NOT NULL,
   started_at TEXT,

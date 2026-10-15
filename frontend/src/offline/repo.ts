@@ -944,7 +944,7 @@ export async function getDashboard(): Promise<DashboardData> {
     });
   }
 
-  // Global stats — from sessions (streak/accuracy/avg) + progress (learned).
+  // Global stats — answer activity + sessions (streak/accuracy/avg) + progress.
   const learnedRow = await query<{ c: number }>(
     `SELECT COUNT(*) AS c FROM progress WHERE review_mode=? AND status='KNOWN'`,
     [mode],
@@ -960,9 +960,32 @@ export async function getDashboard(): Promise<DashboardData> {
     [],
   );
 
-  const reviewsToday = sessions
-    .filter((s) => dayOf(s.started_at) === today)
-    .reduce((sum, s) => sum + s.reviewed_count, 0);
+  const since = startOfDay(now);
+  since.setDate(since.getDate() - 125);
+  const reviews = await query<{ reviewed_at: string }>(
+    `SELECT reviewed_at FROM review_events
+     WHERE review_mode=? AND reviewed_at>=? AND reviewed_at<=?`,
+    [mode, since.toISOString(), dayEndIso],
+  );
+  const history = await query<{ first_reviewed_at: string | null }>(
+    "SELECT MIN(reviewed_at) AS first_reviewed_at FROM review_events",
+    [],
+  );
+  // Count saved answers even when the session is unfinished. Session summaries
+  // contribute only before answer logging began, so finishing cannot double it.
+  const firstLoggedDay = dayOf(history[0]?.first_reviewed_at);
+  const counts = new Map<string, number>();
+  for (const s of sessions) {
+    const d = dayOf(s.started_at);
+    if (d && (firstLoggedDay === null || d < firstLoggedDay)) {
+      counts.set(d, (counts.get(d) ?? 0) + s.reviewed_count);
+    }
+  }
+  for (const review of reviews) {
+    const d = isoDayLocal(new Date(review.reviewed_at));
+    counts.set(d, (counts.get(d) ?? 0) + 1);
+  }
+  const reviewsToday = counts.get(today) ?? 0;
   const totalCorrect = sessions.reduce((s, x) => s + x.correct_count, 0);
   const totalWrong = sessions.reduce((s, x) => s + x.wrong_count, 0);
   const accuracyRate =
@@ -1005,12 +1028,7 @@ export async function getDashboard(): Promise<DashboardData> {
     .filter((b) => b.dueCount > 0)
     .map((b) => ({ bookId: b.bookId, title: b.title, dueCount: b.dueCount }));
 
-  // Activity heatmap: last 126 days, reviewed words per day from sessions.
-  const counts = new Map<string, number>();
-  for (const s of sessions) {
-    const d = dayOf(s.started_at);
-    if (d) counts.set(d, (counts.get(d) ?? 0) + s.reviewed_count);
-  }
+  // Activity heatmap: last 126 study days, including unfinished sessions.
   const heatmap: HeatmapDay[] = [];
   const base = startOfDay(new Date());
   for (let i = 125; i >= 0; i--) {

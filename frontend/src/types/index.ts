@@ -450,7 +450,7 @@ export interface StudyAnswerResult {
   correct?: boolean;
 }
 
-/** Payload recorded at the end of a session (drives summary/streak/heatmap). */
+/** Payload recorded at session end (summary, streak, duration and accuracy). */
 export interface SessionSummary {
   startedAt: string;
   endedAt: string;

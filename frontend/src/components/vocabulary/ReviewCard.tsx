@@ -17,7 +17,7 @@ interface ReviewCardProps {
   showExamples?: boolean;
   /** Respect the session's sound switch for word and example playback. */
   muted?: boolean;
-  /** Use compact content spacing for free review. */
+  /** Use compact content spacing and a shorter card for free review. */
   compact?: boolean;
 }
 
@@ -76,7 +76,9 @@ export function ReviewCard({
         className="relative w-full"
         style={{
           perspective: "1200px",
-          height: "clamp(300px, 60dvh, 420px)",
+          height: compact
+            ? "calc(clamp(300px, 60dvh, 420px) - 40px)"
+            : "clamp(300px, 60dvh, 420px)",
         }}
       >
         <div
@@ -112,33 +114,23 @@ export function ReviewCard({
               </p>
               <Phonetic show={frontContent.isEnglish} />
 
-              <div
-                className={cn(
-                  "flex items-center justify-center",
-                  compact ? "mt-3 gap-3" : "flex-col",
-                )}
-              >
-                {frontContent.isEnglish && (
-                  <SpeakButton
-                    text={word.eng}
-                    audioUrl={word.pronunciationAudio}
-                    size="md"
-                    label="پخش مجدد تلفظ"
-                    disabled={muted}
-                    className={compact ? "h-11 w-11" : "mt-4"}
-                  />
-                )}
+              {frontContent.isEnglish && (
+                <SpeakButton
+                  text={word.eng}
+                  audioUrl={word.pronunciationAudio}
+                  size="md"
+                  label="پخش مجدد تلفظ"
+                  disabled={muted}
+                  className={cn("mt-4", compact && "h-11 w-11")}
+                />
+              )}
 
-                <button
-                  onClick={onToggle}
-                  className={cn(
-                    "min-h-11 shrink-0 rounded-full bg-primary px-8 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90",
-                    !compact && "mt-8",
-                  )}
-                >
-                  {mode === "EN_TO_FA" ? "نمایش فارسی" : "نمایش انگلیسی"}
-                </button>
-              </div>
+              <button
+                onClick={onToggle}
+                className="mt-8 min-h-11 shrink-0 rounded-full bg-primary px-8 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+              >
+                {mode === "EN_TO_FA" ? "نمایش فارسی" : "نمایش انگلیسی"}
+              </button>
             </div>
           </div>
 
