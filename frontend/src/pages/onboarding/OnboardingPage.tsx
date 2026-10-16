@@ -82,7 +82,7 @@ export default function OnboardingPage() {
         touchStart.current = null;
       }}
     >
-      <OnboardingSlide {...SLIDES[index]} step={index + 1} onSkip={finish}>
+      <OnboardingSlide {...SLIDES[index]} step={index + 1}>
         <PaginationDots
           count={SLIDES.length}
           active={index}

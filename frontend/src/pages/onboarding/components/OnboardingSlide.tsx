@@ -7,7 +7,6 @@ interface OnboardingSlideProps {
   body: string;
   imgSrc: string;
   step: number;
-  onSkip: () => void;
   children: ReactNode;
 }
 export function OnboardingSlide({
@@ -16,7 +15,6 @@ export function OnboardingSlide({
   body,
   imgSrc,
   step,
-  onSkip,
   children,
 }: OnboardingSlideProps) {
   return (
@@ -24,24 +22,7 @@ export function OnboardingSlide({
       <div className="onboarding-art">
         <OnboardingBackground className="pointer-events-none absolute inset-0 h-full w-full" />
         <header className="onboarding-brand">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm">
-              <img
-                src="/logo/logo-flow-192.png"
-                alt=""
-                className="h-9 w-9 object-contain"
-              />
-            </span>
-            <span className="text-base font-bold">وکب فلو</span>
-          </div>
-          <button
-            type="button"
-            onClick={onSkip}
-            className="onboarding-skip"
-            aria-label="رد کردن معرفی و ورود به برنامه"
-          >
-            بعداً
-          </button>
+          <span className="text-base font-bold">وکب فلو</span>
         </header>
         <div className="onboarding-illustration">
           <img
