@@ -6,7 +6,7 @@ import {
 } from "../../config/subscription";
 import { useSubscription } from "../../hooks/useSubscription";
 import { Button } from "../../components/ui/button";
-import { Label } from "../../components/ui/label";
+import { DiscountCodeEntry } from "../../components/subscription/DiscountCodeEntry";
 import { PageLoader } from "../../components/layout/PageLoader";
 import { isNative } from "../../lib/platform";
 
@@ -158,33 +158,11 @@ export function SubscriptionPage() {
           )}
         </ul>
         {SUBSCRIPTION_DISCOUNTS_ENABLED && (
-          <div className="space-y-3 rounded-2xl border border-border bg-card p-5">
-            <Label htmlFor="subscription-discount-token">
-              کد تخفیف (اختیاری)
-            </Label>
-            <textarea
-              id="subscription-discount-token"
-              dir="ltr"
-              rows={3}
-              value={discountToken}
-              disabled={busy}
-              autoComplete="off"
-              autoCapitalize="none"
-              spellCheck={false}
-              aria-describedby="subscription-discount-help"
-              onChange={(event) => setDiscountToken(event.target.value)}
-              placeholder="کد کامل را اینجا وارد کنید"
-              className="block w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-left font-mono text-xs leading-6 ring-offset-background placeholder:font-persian focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-            <p
-              id="subscription-discount-help"
-              className="text-xs leading-6 text-muted-foreground"
-            >
-              کد مربوط به اشتراک انتخابی را وارد کنید. مبلغ نهایی پس از بررسی کد
-              در بازار نمایش داده می‌شود. تخفیف فقط برای همین خرید است؛ تمدید
-              خودکار با قیمت اصلی انجام می‌شود.
-            </p>
-          </div>
+          <DiscountCodeEntry
+            value={discountToken}
+            onChange={setDiscountToken}
+            disabled={busy}
+          />
         )}
         <div className="grid gap-3 sm:grid-cols-3">
           {SUBSCRIPTION_PLANS.map((plan) => {

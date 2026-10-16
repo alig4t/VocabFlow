@@ -148,33 +148,68 @@ const server = createServer(async (request, response) => {
       window.addEventListener('error',e=>document.body.dataset.error=e.message);
     </script><script type="module" src="${fixture.discountsEnabled ? "/app.js" : "/app-disabled.js"}"></script>
     ${
-      url.searchParams.has("previewDiscount")
-        ? `<script>setTimeout(()=>{
-      const input=document.querySelector('#subscription-discount-token');
-      if(!input){document.body.dataset.actionError='discount input missing';return;}
-      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(input,'header.'+'example'.repeat(45)+'.signature');
-      input.dispatchEvent(new Event('input',{bubbles:true}));
-      input.parentElement.scrollIntoView({block:'start'});
-      document.body.dataset.horizontalOverflow=String(document.documentElement.scrollWidth>document.documentElement.clientWidth);
-    },2000);</script>`
-        : ""
-    }
-    ${
-      fixture.purchase
-        ? `<script>setTimeout(()=>{
-      const input=document.querySelector('#subscription-discount-token');
-      if(window.fixture.discountsEnabled){
-        if(!input){document.body.dataset.actionError='discount input missing';return;}
-        const token=window.fixture.purchase==='ordinary'?'':window.fixture.purchase==='invalid'?'invalid-code':'  header.payload.signature  ';
-        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(input,token);
-        input.dispatchEvent(new Event('input',{bubbles:true}));
-      }else if(input){document.body.dataset.actionError='disabled input visible';return;}
-      setTimeout(()=>{
-        const button=[...document.querySelectorAll('button')].find(e=>e.textContent.trim()==='خرید اشتراک');
-        if(!button||button.disabled){document.body.dataset.actionError='purchase unavailable';return;}
-        button.click();
-        setTimeout(()=>{document.body.dataset.discountCleared=String(!input||input.value==='');},500);
-      },200);
+      fixture.purchase ||
+      url.searchParams.has("previewDiscount") ||
+      url.searchParams.has("discountAction")
+        ? `<script>setTimeout(async()=>{
+      const pause=()=>new Promise(resolve=>setTimeout(resolve,100));
+      const button=text=>[...document.querySelectorAll('button')].find(e=>e.textContent.trim()===text);
+      const click=async(text)=>{const target=button(text);if(!target||target.disabled)throw new Error('button unavailable: '+text);target.click();await pause();};
+      const input=()=>document.querySelector('[role="dialog"][data-state="open"] #subscription-discount-token');
+      const type=async(token)=>{
+        if(!input())throw new Error('discount modal input missing');
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(input(),token);
+        input().dispatchEvent(new Event('input',{bubbles:true}));
+        await pause();
+      };
+      try{
+        const params=new URLSearchParams(location.search);
+        const action=params.get('discountAction');
+        const preview=params.has('previewDiscount');
+        const longToken='header.'+'example'.repeat(45)+'.signature';
+        if(window.fixture.discountsEnabled&&(window.fixture.purchase!=='ordinary')){
+          await click('درج کد تخفیف');
+          const token=window.fixture.purchase==='invalid'?'invalid-code':preview||action==='long'?longToken:'  header.payload.signature  ';
+          await type(token);
+          if(preview){
+            document.body.dataset.modalOverflow=String(document.querySelector('[role="dialog"]').scrollWidth>document.querySelector('[role="dialog"]').clientWidth);
+            return;
+          }
+          await click('ثبت کد تخفیف');
+          if(window.fixture.purchase==='invalid')return;
+          document.body.dataset.entrySaved=String(!input()&&!!button('ویرایش کد'));
+          if(action==='long'){
+            document.body.dataset.longCodeSaved=String(document.querySelector('bdi[title]')?.textContent===longToken);
+            button('ویرایش کد').scrollIntoView({block:'center'});
+          }
+          if(action==='edit'||action==='cancel'||action==='remove'){
+            await click('ویرایش کد');
+            document.body.dataset.editPrefilled=String(input()?.value==='header.payload.signature');
+            if(action==='remove')await click('حذف کد');
+            else{
+              await type('edited.payload.signature');
+              await click(action==='cancel'?'انصراف':'ثبت کد تخفیف');
+            }
+            document.body.dataset.finalCode=document.querySelector('bdi[title]')?.textContent??'empty';
+          }
+          if(action==='cancelNew'){
+            await click('ویرایش کد');
+            await click('حذف کد');
+            await click('درج کد تخفیف');
+            await type('unsaved.payload.signature');
+            await click('انصراف');
+            await click('درج کد تخفیف');
+            document.body.dataset.unsavedDiscarded=String(input()?.value==='');
+          }
+        }else if(input()||(!window.fixture.discountsEnabled&&button('درج کد تخفیف'))){
+          throw new Error('unexpected discount input');
+        }
+        document.body.dataset.horizontalOverflow=String(document.documentElement.scrollWidth>document.documentElement.clientWidth);
+        if(window.fixture.purchase){
+          await click('خرید اشتراک');
+          document.body.dataset.discountCleared=String(!!button('درج کد تخفیف')||!window.fixture.discountsEnabled);
+        }
+      }catch(error){document.body.dataset.actionError=error.message;}
     },1500);</script>`
         : ""
     }
@@ -245,12 +280,33 @@ try {
   assert.match(subscription, /مهلت استفاده بدون تأیید مجدد/);
   assert.match(subscription, /۱۰۰٬۰۰۰ ریال/);
   assert.match(subscription, /بازیابی خرید/);
-  assert.match(subscription, /id="subscription-discount-token"/);
+  assert.match(subscription, /کد تخفیف وکب فلو وارد نشده \(اختیاری\)/);
+  assert.match(subscription, /درج کد تخفیف/);
+  assert.doesNotMatch(subscription, /id="subscription-discount-token"/);
   const discountPreview = await page(
     "/subscription?previewDiscount=1",
     "discount-input.png",
   );
-  assert.match(discountPreview, /data-horizontal-overflow="false"/);
+  assert.match(discountPreview, /role="dialog"/);
+  assert.match(discountPreview, /id="subscription-discount-token"/);
+  assert.match(discountPreview, /data-modal-overflow="false"/);
+  const saved = await page(
+    "/subscription?discountAction=long",
+    "discount-saved.png",
+  );
+  assert.match(saved, /data-entry-saved="true"/);
+  assert.match(saved, /data-long-code-saved="true"/);
+  assert.match(saved, /data-horizontal-overflow="false"/);
+  const edited = await page("/subscription?discountAction=edit");
+  assert.match(edited, /data-edit-prefilled="true"/);
+  assert.match(edited, /data-final-code="edited.payload.signature"/);
+  const cancelled = await page("/subscription?discountAction=cancel");
+  assert.match(cancelled, /data-final-code="header.payload.signature"/);
+  const removed = await page("/subscription?discountAction=remove");
+  assert.match(removed, /data-final-code="empty"/);
+  assert.match(removed, /کد تخفیف وکب فلو وارد نشده \(اختیاری\)/);
+  const unsaved = await page("/subscription?discountAction=cancelNew");
+  assert.match(unsaved, /data-unsaved-discarded="true"/);
   const discounted = await page(
     "/subscription?purchase=discount",
     "discount-purchase.png",
@@ -269,6 +325,8 @@ try {
     "discount-error.png",
   );
   assert.match(invalid, /فرمت کد تخفیف درست نیست/);
+  assert.match(invalid, /role="dialog"/);
+  assert.match(invalid, /aria-invalid="true"/);
   assert.doesNotMatch(invalid, /data-purchase-sku=/);
   const locked = await page("/study?locked=1", "locked.png");
   assert.match(locked, /ادامه یادگیری با دسترسی Premium/);
@@ -281,7 +339,7 @@ try {
   assert.match(webAbout, /درباره‌ی سازنده/);
   assert.doesNotMatch(webAbout, /developer-access-code|Developer Access/);
   console.log(
-    "UI smoke: subscription prices/status, discounted and ordinary purchase, disabled discounts, invalid input, locked study, in-session deadline, seven-tap developer activation, web about passed.",
+    "UI smoke: subscription prices/status, discount modal, long codes, editing/cancelling/removing codes, discounted and ordinary purchase, disabled discounts, invalid input, locked study, in-session deadline, seven-tap developer activation, web about passed.",
   );
   console.log(`Screenshots: ${artifactDir}`);
 } finally {
