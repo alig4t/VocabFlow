@@ -4,7 +4,10 @@ import {
   PremiumAccessError,
   type EntitlementSnapshot,
 } from "../lib/entitlement";
-import type { SubscriptionPlanId } from "../config/subscription";
+import {
+  SUBSCRIPTION_DISCOUNTS_ENABLED,
+  type SubscriptionPlanId,
+} from "../config/subscription";
 
 const offline = () => import("../offline/entitlement.repo");
 const WEB_ACCESS: EntitlementSnapshot = {
@@ -109,7 +112,10 @@ export const subscriptionService = {
     return subscriptionService.refresh();
   },
 
-  purchase(plan: SubscriptionPlanId): Promise<void> {
+  purchase(
+    plan: SubscriptionPlanId,
+    dynamicPriceToken?: string,
+  ): Promise<void> {
     if (!isNative())
       return Promise.reject(
         new Error("خرید اشتراک در نسخه اندروید در دسترس است."),
@@ -117,11 +123,25 @@ export const subscriptionService = {
     if (purchaseFlight) return purchaseFlight;
     updateBilling({ purchasing: true, message: "" });
     purchaseFlight = (async () => {
+      // The flag controls the transport too, including calls outside the page.
+      const token = SUBSCRIPTION_DISCOUNTS_ENABLED
+        ? dynamicPriceToken?.trim()
+        : undefined;
+      if (
+        token &&
+        !/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(token)
+      )
+        throw new Error("فرمت کد تخفیف درست نیست؛ کد کامل را وارد کنید.");
       const configuration = await BazaarBilling.getConfiguration();
       const product = configuration.products.find((item) => item.plan === plan);
       if (!configuration.configured || !product?.sku)
         throw new Error("خرید اشتراک هنوز آماده نیست.");
-      await BazaarBilling.subscribe({ sku: product.sku });
+      // Bazaar validates the signature, SKU, expiry and price. Never retry a
+      // rejected discount as a full-price purchase without the user's choice.
+      await BazaarBilling.subscribe({
+        sku: product.sku,
+        ...(token ? { dynamicPriceToken: token } : {}),
+      });
       // A purchase callback is not an expiry or a new offline authorization.
       // A query that began before this purchase cannot confirm its result.
       if (refreshFlight) await refreshFlight.catch(() => undefined);

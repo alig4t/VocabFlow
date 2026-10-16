@@ -25,6 +25,7 @@ import ir.cafebazaar.poolakey.config.PaymentConfiguration;
 import ir.cafebazaar.poolakey.config.SecurityCheck;
 import ir.cafebazaar.poolakey.entity.PurchaseInfo;
 import ir.cafebazaar.poolakey.entity.SkuDetails;
+import ir.cafebazaar.poolakey.exception.DynamicPriceNotSupportedException;
 import ir.cafebazaar.poolakey.request.PurchaseRequest;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
@@ -186,9 +187,17 @@ public class BazaarBillingPlugin extends Plugin {
             call.reject("این اشتراک قابل خرید نیست.", "INVALID_SKU");
             return;
         }
+        String suppliedToken = call.getString("dynamicPriceToken");
+        final String dynamicPriceToken = suppliedToken == null || suppliedToken.trim().isEmpty()
+            ? null : suppliedToken.trim();
+        if (dynamicPriceToken != null
+            && !dynamicPriceToken.matches("[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+")) {
+            call.reject("فرمت کد تخفیف درست نیست؛ کد کامل را وارد کنید.", "INVALID_DISCOUNT_TOKEN");
+            return;
+        }
         enqueue(call, () -> {
             final BillingTask task = current;
-            PurchaseRequest request = new PurchaseRequest(sku, UUID.randomUUID().toString(), null);
+            PurchaseRequest request = new PurchaseRequest(sku, UUID.randomUUID().toString(), dynamicPriceToken);
             payment.subscribeProduct(getActivity().getActivityResultRegistry(), request, callback -> {
                 callback.purchaseSucceed(purchase -> {
                     try {
@@ -210,7 +219,11 @@ public class BazaarBillingPlugin extends Plugin {
                     return Unit.INSTANCE;
                 });
                 callback.failedToBeginFlow(error -> {
-                    fail(task, "صفحه پرداخت بازار باز نشد.", "PURCHASE_UNAVAILABLE");
+                    if (error instanceof DynamicPriceNotSupportedException) {
+                        fail(task, "برای خرید با کد تخفیف، برنامه بازار را به‌روز کنید.", "DYNAMIC_PRICE_NOT_SUPPORTED");
+                    } else {
+                        fail(task, "صفحه پرداخت بازار باز نشد.", "PURCHASE_UNAVAILABLE");
+                    }
                     return Unit.INSTANCE;
                 });
                 return Unit.INSTANCE;

@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { build } from "esbuild";
 import { createServer } from "node:http";
 import { spawn } from "node:child_process";
-import { existsSync, mkdtempSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -18,63 +18,80 @@ if (!browser)
   throw new Error("Set VOCABFLOW_CHROME to an installed Chromium executable.");
 const artifactDir = mkdtempSync(join(tmpdir(), "vocabflow-subscription-ui-"));
 const viteUrl = process.env.VOCABFLOW_VITE_URL ?? "http://127.0.0.1:5173";
-const result = await build({
-  stdin: {
-    contents: `import React from 'react'; import {createRoot} from 'react-dom/client';
+async function compileUi(discountsEnabled) {
+  const result = await build({
+    stdin: {
+      contents: `import React from 'react'; import {createRoot} from 'react-dom/client';
     import {QueryClient,QueryClientProvider} from '@tanstack/react-query'; import App from './src/App';
     createRoot(document.getElementById('root')).render(React.createElement(QueryClientProvider,
       {client:new QueryClient({defaultOptions:{queries:{retry:false}}})},React.createElement(App)));`,
-    resolveDir: process.cwd(),
-    loader: "tsx",
-  },
-  bundle: true,
-  write: false,
-  format: "esm",
-  platform: "browser",
-  minify: true,
-  define: { "import.meta.env": "{}" },
-  plugins: [
-    {
-      name: "native-ui-fixtures",
-      setup(builder) {
-        builder.onResolve({ filter: /(?:^|\/)lib\/platform$/ }, () => ({
-          path: "platform",
-          namespace: "fixture",
-        }));
-        builder.onResolve({ filter: /(?:^|\/)offline\/bootstrap$/ }, () => ({
-          path: "bootstrap",
-          namespace: "fixture",
-        }));
-        builder.onResolve(
-          { filter: /(?:^|\/)lib\/(notifications|safeArea)$/ },
-          (args) => ({
-            path: args.path.split("/").at(-1),
+      resolveDir: process.cwd(),
+      loader: "tsx",
+    },
+    bundle: true,
+    write: false,
+    format: "esm",
+    platform: "browser",
+    minify: true,
+    define: { "import.meta.env": "{}" },
+    plugins: [
+      {
+        name: "native-ui-fixtures",
+        setup(builder) {
+          builder.onLoad(
+            { filter: /[\\/]config[\\/]subscription\.ts$/ },
+            ({ path }) => ({
+              contents: readFileSync(path, "utf8").replace(
+                /export const SUBSCRIPTION_DISCOUNTS_ENABLED = (?:true|false);/,
+                `export const SUBSCRIPTION_DISCOUNTS_ENABLED = ${discountsEnabled};`,
+              ),
+              loader: "ts",
+            }),
+          );
+          builder.onResolve({ filter: /(?:^|\/)lib\/platform$/ }, () => ({
+            path: "platform",
             namespace: "fixture",
-          }),
-        );
-        builder.onResolve(
-          { filter: /(?:^|\/)offline\/entitlement\.repo$/ },
-          () => ({ path: "entitlement", namespace: "fixture" }),
-        );
-        builder.onResolve({ filter: /(?:^|\/)lib\/bazaarBilling$/ }, () => ({
-          path: "billing",
-          namespace: "fixture",
-        }));
-        builder.onLoad({ filter: /.*/, namespace: "fixture" }, ({ path }) => {
-          const modules = {
-            platform: "export const isNative=()=>window.fixture.native;",
-            bootstrap: "export const prepareNative=async()=>{};",
-            notifications:
-              "export const initNotifications=()=>{}; export const rescheduleNotifications=()=>{}; export const beginStudySession=()=>{}; export const endStudySession=()=>{}; export const ensureNotificationPermission=async()=>true;",
-            safeArea: "export const syncSafeAreaVars=()=>{};",
-            billing: `export const BazaarBilling={
+          }));
+          builder.onResolve({ filter: /(?:^|\/)offline\/bootstrap$/ }, () => ({
+            path: "bootstrap",
+            namespace: "fixture",
+          }));
+          builder.onResolve(
+            { filter: /(?:^|\/)lib\/(notifications|safeArea)$/ },
+            (args) => ({
+              path: args.path.split("/").at(-1),
+              namespace: "fixture",
+            }),
+          );
+          builder.onResolve(
+            { filter: /(?:^|\/)offline\/entitlement\.repo$/ },
+            () => ({ path: "entitlement", namespace: "fixture" }),
+          );
+          builder.onResolve({ filter: /(?:^|\/)lib\/bazaarBilling$/ }, () => ({
+            path: "billing",
+            namespace: "fixture",
+          }));
+          builder.onLoad({ filter: /.*/, namespace: "fixture" }, ({ path }) => {
+            const modules = {
+              platform: "export const isNative=()=>window.fixture.native;",
+              bootstrap: "export const prepareNative=async()=>{};",
+              notifications:
+                "export const initNotifications=()=>{}; export const rescheduleNotifications=()=>{}; export const beginStudySession=()=>{}; export const endStudySession=()=>{}; export const ensureNotificationPermission=async()=>true;",
+              safeArea: "export const syncSafeAreaVars=()=>{};",
+              billing: `export const BazaarBilling={
           addListener:async()=>({remove:async()=>{}}),
-          getEnvironment:async()=>({wallTime:Date.now(),elapsedRealtime:performance.now(),bootId:'ui',online:false}),
+          getEnvironment:async()=>({wallTime:Date.now(),elapsedRealtime:performance.now(),bootId:'ui',online:!!window.fixture.purchase}),
+          getSubscribedProducts:async()=>({purchases:[],clock:{wallTime:Date.now(),elapsedRealtime:performance.now(),bootId:'ui'}}),
           getConfiguration:async()=>({configured:true,products:[{plan:'monthly',sku:'month'},{plan:'quarterly',sku:'quarter'},{plan:'yearly',sku:'year'}]}),
           getProducts:async()=>({products:[{sku:'month',price:'۱۰۰٬۰۰۰ ریال'},{sku:'quarter',price:'۲۵۰٬۰۰۰ ریال'},{sku:'year',price:'۸۰۰٬۰۰۰ ریال'}]}),
+          subscribe:async(options)=>{
+            document.body.dataset.purchaseSku=options.sku;
+            document.body.dataset.purchaseToken=options.dynamicPriceToken??'omitted';
+            document.body.dataset.purchaseCount=String(Number(document.body.dataset.purchaseCount??0)+1);
+          },
           activateDeveloper:async()=>({version:1,activatedAt:Date.now(),validUntil:Date.now()+30*86400000,lastCodeDay:'20261011'})
         };`,
-            entitlement: `export const getEntitlementSnapshot=async()=>({
+              entitlement: `export const getEntitlementSnapshot=async()=>({
           hasPremiumAccess:window.fixture.premium&&(!window.fixture.expires||Date.now()<window.fixture.deadline),
           source:window.fixture.expires&&Date.now()>=window.fixture.deadline?'locked':window.fixture.cached?'bazaar':window.fixture.premium?'trial':'locked',
           bazaarStatus:window.fixture.cached&&Date.now()<window.fixture.deadline?'cached_active':'needs_verification',
@@ -82,15 +99,19 @@ const result = await build({
           lastVerifiedActiveAt:Date.now()-86400000,offlineAccessUntil:window.fixture.deadline,
           developerUntil:null,clockSuspicious:false,evaluatedAt:Date.now()
         });
+        export const saveVerifiedSubscriptions=async()=>{};
         export const saveDeveloperGrant=async()=>{window.fixture.premium=true;window.dispatchEvent(new Event('vocabflow:entitlement-changed'));};`,
-          };
-          return { contents: modules[path], loader: "js" };
-        });
+            };
+            return { contents: modules[path], loader: "js" };
+          });
+        },
       },
-    },
-  ],
-});
-const js = result.outputFiles[0].text;
+    ],
+  });
+  return result.outputFiles[0].text;
+}
+const js = await compileUi(true);
+const disabledJs = await compileUi(false);
 const server = createServer(async (request, response) => {
   if (/^\/(logo|fonts)\//.test(request.url)) {
     const asset = await fetch(`${viteUrl}${request.url}`);
@@ -102,9 +123,9 @@ const server = createServer(async (request, response) => {
     response.end(Buffer.from(await asset.arrayBuffer()));
     return;
   }
-  if (request.url === "/app.js") {
+  if (request.url === "/app.js" || request.url === "/app-disabled.js") {
     response.setHeader("Content-Type", "text/javascript");
-    response.end(js);
+    response.end(request.url === "/app-disabled.js" ? disabledJs : js);
     return;
   }
   const url = new URL(request.url, "http://fixture");
@@ -114,6 +135,8 @@ const server = createServer(async (request, response) => {
     premium: url.searchParams.get("locked") !== "1",
     cached: expires || url.searchParams.get("cached") === "1",
     expires,
+    purchase: url.searchParams.get("purchase"),
+    discountsEnabled: url.searchParams.get("discounts") !== "0",
   };
   const activate = url.searchParams.get("activate") === "1";
   response.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -123,7 +146,38 @@ const server = createServer(async (request, response) => {
       window.fixture.deadline=Date.now()+(window.fixture.expires?2000:6*86400000);
       localStorage.setItem('authUser',JSON.stringify({id:'ui',name:'کاربر',role:'ADMIN'}));localStorage.setItem('accessToken','ui');localStorage.setItem('refreshToken','ui');
       window.addEventListener('error',e=>document.body.dataset.error=e.message);
-    </script><script type="module" src="/app.js"></script>
+    </script><script type="module" src="${fixture.discountsEnabled ? "/app.js" : "/app-disabled.js"}"></script>
+    ${
+      url.searchParams.has("previewDiscount")
+        ? `<script>setTimeout(()=>{
+      const input=document.querySelector('#subscription-discount-token');
+      if(!input){document.body.dataset.actionError='discount input missing';return;}
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(input,'header.'+'example'.repeat(45)+'.signature');
+      input.dispatchEvent(new Event('input',{bubbles:true}));
+      input.parentElement.scrollIntoView({block:'start'});
+      document.body.dataset.horizontalOverflow=String(document.documentElement.scrollWidth>document.documentElement.clientWidth);
+    },2000);</script>`
+        : ""
+    }
+    ${
+      fixture.purchase
+        ? `<script>setTimeout(()=>{
+      const input=document.querySelector('#subscription-discount-token');
+      if(window.fixture.discountsEnabled){
+        if(!input){document.body.dataset.actionError='discount input missing';return;}
+        const token=window.fixture.purchase==='ordinary'?'':window.fixture.purchase==='invalid'?'invalid-code':'  header.payload.signature  ';
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(input,token);
+        input.dispatchEvent(new Event('input',{bubbles:true}));
+      }else if(input){document.body.dataset.actionError='disabled input visible';return;}
+      setTimeout(()=>{
+        const button=[...document.querySelectorAll('button')].find(e=>e.textContent.trim()==='خرید اشتراک');
+        if(!button||button.disabled){document.body.dataset.actionError='purchase unavailable';return;}
+        button.click();
+        setTimeout(()=>{document.body.dataset.discountCleared=String(!input||input.value==='');},500);
+      },200);
+    },1500);</script>`
+        : ""
+    }
     ${
       activate
         ? `<script>setTimeout(()=>{
@@ -191,6 +245,31 @@ try {
   assert.match(subscription, /مهلت استفاده بدون تأیید مجدد/);
   assert.match(subscription, /۱۰۰٬۰۰۰ ریال/);
   assert.match(subscription, /بازیابی خرید/);
+  assert.match(subscription, /id="subscription-discount-token"/);
+  const discountPreview = await page(
+    "/subscription?previewDiscount=1",
+    "discount-input.png",
+  );
+  assert.match(discountPreview, /data-horizontal-overflow="false"/);
+  const discounted = await page(
+    "/subscription?purchase=discount",
+    "discount-purchase.png",
+  );
+  assert.match(discounted, /data-purchase-sku="month"/);
+  assert.match(discounted, /data-purchase-token="header.payload.signature"/);
+  assert.match(discounted, /data-purchase-count="1"/);
+  assert.match(discounted, /data-discount-cleared="true"/);
+  const ordinary = await page("/subscription?purchase=ordinary");
+  assert.match(ordinary, /data-purchase-token="omitted"/);
+  const disabled = await page("/subscription?purchase=discount&discounts=0");
+  assert.doesNotMatch(disabled, /id="subscription-discount-token"/);
+  assert.match(disabled, /data-purchase-token="omitted"/);
+  const invalid = await page(
+    "/subscription?purchase=invalid",
+    "discount-error.png",
+  );
+  assert.match(invalid, /فرمت کد تخفیف درست نیست/);
+  assert.doesNotMatch(invalid, /data-purchase-sku=/);
   const locked = await page("/study?locked=1", "locked.png");
   assert.match(locked, /ادامه یادگیری با دسترسی Premium/);
   const timedOut = await page("/study?expires=1");
@@ -202,7 +281,7 @@ try {
   assert.match(webAbout, /درباره‌ی سازنده/);
   assert.doesNotMatch(webAbout, /developer-access-code|Developer Access/);
   console.log(
-    "UI smoke: subscription prices/status, locked study, in-session deadline, seven-tap developer activation, web about passed.",
+    "UI smoke: subscription prices/status, discounted and ordinary purchase, disabled discounts, invalid input, locked study, in-session deadline, seven-tap developer activation, web about passed.",
   );
   console.log(`Screenshots: ${artifactDir}`);
 } finally {

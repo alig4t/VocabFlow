@@ -1,3 +1,8 @@
+/** Set false to hide the discount input and stop sending tokens on all purchases.
+ * This is a build-time switch; changing it requires releasing a new app build.
+ */
+export const SUBSCRIPTION_DISCOUNTS_ENABLED = true;
+
 /** Product policy; actual Bazaar SKUs/RSA live in android/billing.local.properties. */
 export const SUBSCRIPTION_POLICY = {
   trialDays: 6,

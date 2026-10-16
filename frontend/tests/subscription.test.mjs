@@ -3,6 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { webcrypto } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { build } from "esbuild";
 import initSqlJs from "sql.js";
 
@@ -10,49 +11,66 @@ process.env.TZ = "Asia/Tehran";
 globalThis.crypto ??= webcrypto;
 globalThis.window = new EventTarget();
 const SQL = await initSqlJs();
-const bundled = await build({
-  stdin: {
-    contents: `export * from './src/lib/entitlement';
+async function compileApp(discountsEnabled) {
+  const bundled = await build({
+    stdin: {
+      contents: `export * from './src/lib/entitlement';
       export * from './src/offline/entitlement.repo';
       export * from './src/offline/db';
       export { answerStudy, updateWordStatus, resetProgress } from './src/offline/repo';
       export { subscriptionService } from './src/services/subscription.service';`,
-    resolveDir: process.cwd(),
-    loader: "ts",
-  },
-  bundle: true,
-  write: false,
-  format: "esm",
-  platform: "node",
-  plugins: [
-    {
-      name: "capacitor-test-boundary",
-      setup(builder) {
-        builder.onResolve({ filter: /^@capacitor-community\/sqlite$/ }, () => ({
-          path: "sqlite",
-          namespace: "test",
-        }));
-        builder.onResolve({ filter: /^@capacitor\/core$/ }, () => ({
-          path: "core",
-          namespace: "test",
-        }));
-        builder.onLoad({ filter: /.*/, namespace: "test" }, ({ path }) => ({
-          contents:
-            path === "core"
-              ? `export const Capacitor = { isNativePlatform: () => globalThis.__vfNative };
+      resolveDir: process.cwd(),
+      loader: "ts",
+    },
+    bundle: true,
+    write: false,
+    format: "esm",
+    platform: "node",
+    plugins: [
+      {
+        name: "capacitor-test-boundary",
+        setup(builder) {
+          builder.onLoad(
+            { filter: /[\\/]config[\\/]subscription\.ts$/ },
+            ({ path }) => ({
+              contents: readFileSync(path, "utf8").replace(
+                /export const SUBSCRIPTION_DISCOUNTS_ENABLED = (?:true|false);/,
+                `export const SUBSCRIPTION_DISCOUNTS_ENABLED = ${discountsEnabled};`,
+              ),
+              loader: "ts",
+            }),
+          );
+          builder.onResolve(
+            { filter: /^@capacitor-community\/sqlite$/ },
+            () => ({
+              path: "sqlite",
+              namespace: "test",
+            }),
+          );
+          builder.onResolve({ filter: /^@capacitor\/core$/ }, () => ({
+            path: "core",
+            namespace: "test",
+          }));
+          builder.onLoad({ filter: /.*/, namespace: "test" }, ({ path }) => ({
+            contents:
+              path === "core"
+                ? `export const Capacitor = { isNativePlatform: () => globalThis.__vfNative };
          export const registerPlugin = () => globalThis.__vfBilling;`
-              : `export const CapacitorSQLite = {};
+                : `export const CapacitorSQLite = {};
          export class SQLiteConnection {
            async isConnection() { return {result:true}; }
            async retrieveConnection() { return globalThis.__vfDatabase; }
          }`,
-          loader: "js",
-        }));
+            loader: "js",
+          }));
+        },
       },
-    },
-  ],
-});
-const compiled = bundled.outputFiles[0].text;
+    ],
+  });
+  return bundled.outputFiles[0].text;
+}
+const compiled = await compileApp(true);
+const disabledCompiled = await compileApp(false);
 let moduleNumber = 0;
 const day = (dayNumber, hour = 12, minute = 0) =>
   new Date(2026, 9, dayNumber, hour, minute);
@@ -123,7 +141,7 @@ class SQLiteAdapter {
   }
 }
 
-async function app(contents) {
+async function app(contents, discountsEnabled = true) {
   globalThis.__vfNative = true;
   const database = new SQLiteAdapter(contents);
   globalThis.__vfDatabase = database;
@@ -150,7 +168,7 @@ async function app(contents) {
   };
   globalThis.__vfBilling = billing;
   const api = await import(
-    `data:text/javascript;base64,${Buffer.from(`// isolated module ${moduleNumber++}\n${compiled}`).toString("base64")}`
+    `data:text/javascript;base64,${Buffer.from(`// isolated module ${moduleNumber++}\n${discountsEnabled ? compiled : disabledCompiled}`).toString("base64")}`
   );
   await api.getDb();
   return { api, database, billing, sample };
@@ -405,6 +423,114 @@ test("a purchase performs a fresh query after an already-running refresh", async
     JSON.parse(await api.getMeta("bazaar_subscription_v1")).state,
     "active",
   );
+});
+
+test("discount tokens reach Billing unchanged apart from surrounding whitespace for every plan", async () => {
+  const { api, billing } = await app();
+  const plans = ["monthly", "quarterly", "yearly"];
+  billing.getConfiguration = async () => ({
+    configured: true,
+    products: plans.map((plan) => ({ plan, sku: `test.${plan}` })),
+  });
+  const calls = [];
+  billing.subscribe = async (options) => {
+    calls.push(options);
+  };
+  for (const plan of plans)
+    await api.subscriptionService.purchase(
+      plan,
+      "  header.payload.signature\n",
+    );
+  assert.deepEqual(
+    calls,
+    plans.map((plan) => ({
+      sku: `test.${plan}`,
+      dynamicPriceToken: "header.payload.signature",
+    })),
+  );
+});
+
+test("ordinary purchases omit the discount field when the input is empty", async () => {
+  const { api, billing } = await app();
+  const calls = [];
+  billing.subscribe = async (options) => {
+    calls.push(options);
+  };
+  await api.subscriptionService.purchase("monthly");
+  await api.subscriptionService.purchase("monthly", " \n ");
+  assert.deepEqual(calls, [{ sku: "test.monthly" }, { sku: "test.monthly" }]);
+});
+
+test("malformed discount input is rejected before Billing without writing access", async () => {
+  const { api, billing } = await app();
+  let calls = 0;
+  billing.subscribe = async () => {
+    calls++;
+  };
+  for (const token of ["not-a-token", "a.b", "a.b.c.d", "a.b. c"])
+    await assert.rejects(
+      api.subscriptionService.purchase("monthly", token),
+      /کد کامل/,
+    );
+  assert.equal(calls, 0);
+  assert.equal(await api.getMeta("bazaar_subscription_v1"), null);
+  assert.equal(api.subscriptionService.getBillingState().purchasing, false);
+});
+
+test("the disabled flag omits supplied tokens at the service boundary", async () => {
+  const { api, billing } = await app(undefined, false);
+  const calls = [];
+  billing.subscribe = async (options) => {
+    calls.push(options);
+  };
+  await api.subscriptionService.purchase("monthly", "header.payload.signature");
+  await api.subscriptionService.purchase("monthly", "malformed-stale-input");
+  assert.deepEqual(calls, [{ sku: "test.monthly" }, { sku: "test.monthly" }]);
+});
+
+test("a rejected discount never retries at full price or changes the existing access cache", async () => {
+  const { api, billing } = await app();
+  await api.subscriptionService.refresh();
+  const original = await api.getMeta("bazaar_subscription_v1");
+  let calls = 0;
+  billing.subscribe = async () => {
+    calls++;
+    throw new Error("discount rejected");
+  };
+  billing.getSubscribedProducts = async () => {
+    throw new Error("must not query on failed purchase");
+  };
+  await assert.rejects(
+    api.subscriptionService.purchase("monthly", "header.payload.signature"),
+    /discount rejected/,
+  );
+  assert.equal(calls, 1);
+  assert.equal(await api.getMeta("bazaar_subscription_v1"), original);
+  assert.equal(
+    api.subscriptionService.getBillingState().message,
+    "discount rejected",
+  );
+});
+
+test("concurrent discounted purchases share one flow and retain the first token", async () => {
+  const { api, billing } = await app();
+  const calls = [];
+  billing.subscribe = async (options) => {
+    calls.push(options);
+  };
+  const first = api.subscriptionService.purchase(
+    "monthly",
+    "first.payload.signature",
+  );
+  const second = api.subscriptionService.purchase(
+    "monthly",
+    "second.payload.signature",
+  );
+  assert.equal(first, second);
+  await Promise.all([first, second]);
+  assert.deepEqual(calls, [
+    { sku: "test.monthly", dynamicPriceToken: "first.payload.signature" },
+  ]);
 });
 
 test("an answer is blocked at the cache boundary and cannot persist progress or another trial day", async () => {

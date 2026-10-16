@@ -33,7 +33,10 @@ interface BazaarBillingPlugin {
     clock: ClockSample;
   }>;
   getProducts(): Promise<{ products: BazaarProduct[] }>;
-  subscribe(options: { sku: string }): Promise<void>;
+  subscribe(options: {
+    sku: string;
+    dynamicPriceToken?: string;
+  }): Promise<void>;
   activateDeveloper(options: { code: string }): Promise<DeveloperGrant>;
 }
 

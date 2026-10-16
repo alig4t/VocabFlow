@@ -1,7 +1,12 @@
+import { useState } from "react";
 import { Crown, RefreshCw, RotateCcw, Check } from "lucide-react";
-import { SUBSCRIPTION_PLANS } from "../../config/subscription";
+import {
+  SUBSCRIPTION_DISCOUNTS_ENABLED,
+  SUBSCRIPTION_PLANS,
+} from "../../config/subscription";
 import { useSubscription } from "../../hooks/useSubscription";
 import { Button } from "../../components/ui/button";
+import { Label } from "../../components/ui/label";
 import { PageLoader } from "../../components/layout/PageLoader";
 import { isNative } from "../../lib/platform";
 
@@ -14,6 +19,8 @@ const date = (time: number | null) =>
       }).format(new Date(time));
 
 export function SubscriptionPage() {
+  // One-use tokens stay in memory; they are never persisted with entitlement.
+  const [discountToken, setDiscountToken] = useState("");
   const { entitlement, billing, configuration, products, actions } =
     useSubscription();
   if (!isNative())
@@ -150,6 +157,35 @@ export function SubscriptionPage() {
             ),
           )}
         </ul>
+        {SUBSCRIPTION_DISCOUNTS_ENABLED && (
+          <div className="space-y-3 rounded-2xl border border-border bg-card p-5">
+            <Label htmlFor="subscription-discount-token">
+              کد تخفیف (اختیاری)
+            </Label>
+            <textarea
+              id="subscription-discount-token"
+              dir="ltr"
+              rows={3}
+              value={discountToken}
+              disabled={busy}
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              aria-describedby="subscription-discount-help"
+              onChange={(event) => setDiscountToken(event.target.value)}
+              placeholder="کد کامل را اینجا وارد کنید"
+              className="block w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-left font-mono text-xs leading-6 ring-offset-background placeholder:font-persian focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+            <p
+              id="subscription-discount-help"
+              className="text-xs leading-6 text-muted-foreground"
+            >
+              کد مربوط به اشتراک انتخابی را وارد کنید. مبلغ نهایی پس از بررسی کد
+              در بازار نمایش داده می‌شود. تخفیف فقط برای همین خرید است؛ تمدید
+              خودکار با قیمت اصلی انجام می‌شود.
+            </p>
+          </div>
+        )}
         <div className="grid gap-3 sm:grid-cols-3">
           {SUBSCRIPTION_PLANS.map((plan) => {
             const sku = configuration.data?.products.find(
@@ -170,7 +206,15 @@ export function SubscriptionPage() {
                   className="w-full"
                   disabled={busy || !product || !configuration.data?.configured}
                   onClick={() =>
-                    void actions.purchase(plan.id).catch(() => undefined)
+                    void actions
+                      .purchase(
+                        plan.id,
+                        SUBSCRIPTION_DISCOUNTS_ENABLED
+                          ? discountToken
+                          : undefined,
+                      )
+                      .then(() => setDiscountToken(""))
+                      .catch(() => undefined)
                   }
                 >
                   {billing.purchasing ? "در حال خرید…" : "خرید اشتراک"}
