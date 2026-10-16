@@ -1,5 +1,19 @@
 apply plugin: 'com.android.application'
 
+// Keep Android's embedded version in sync with the app's single version source.
+def appVersionName = new groovy.json.JsonSlurper()
+    .parse(rootProject.file('../package.json')).version.toString()
+def appVersionParts = appVersionName =~ /^(0|[1-9]\d*)\.(0|[1-9]\d?)\.(0|[1-9]\d?)$/
+if (!appVersionParts.matches()) {
+    throw new GradleException('package.json version must be major.minor.patch with minor and patch between 0 and 99.')
+}
+// Example: 1.15.4 -> 11504. Each new release must increase package.json version.
+def appVersionCode = appVersionParts.group(1).toBigInteger() * 10000 +
+    appVersionParts.group(2).toInteger() * 100 + appVersionParts.group(3).toInteger()
+if (appVersionCode < 1 || appVersionCode > 2100000000) {
+    throw new GradleException('The calculated Android versionCode is outside the supported range.')
+}
+
 // Per-app build configuration. Never put the developer API secret here.
 def billingProperties = new Properties()
 def billingFile = rootProject.file('billing.local.properties')
@@ -17,8 +31,8 @@ android {
         applicationId "ir.vocabflow.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode appVersionCode.intValue()
+        versionName appVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField 'String', 'BAZAAR_RSA_PUBLIC_KEY', billingValue('bazaar.rsaPublicKey')
         buildConfigField 'String', 'BAZAAR_MONTHLY_SKU', billingValue('bazaar.monthlySku')

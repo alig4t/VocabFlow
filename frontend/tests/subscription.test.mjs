@@ -184,9 +184,72 @@ test("168-hour window has an exact boundary and uses confirmation, not purchase 
     api.evaluateEntitlement(state, new Date(day(18).getTime() - 1)).source,
     "bazaar",
   );
+  assert.deepEqual(
+    api.evaluateEntitlement(state, new Date(day(18).getTime() - 1))
+      .bazaarProductIds,
+    ["test.monthly"],
+  );
   const ended = api.evaluateEntitlement(state, day(18));
   assert.equal(ended.hasPremiumAccess, false);
   assert.equal(ended.bazaarStatus, "needs_verification");
+  assert.deepEqual(ended.bazaarProductIds, []);
+});
+
+test("verified plan identifiers survive reopening, deduplicate and disappear on revocation or clock suspicion", async () => {
+  const first = await app();
+  first.billing.getSubscribedProducts = async () => ({
+    purchases: [purchase, purchase, { ...purchase, productId: "test.yearly" }],
+    clock: { ...first.sample },
+  });
+  await first.api.subscriptionService.refresh();
+  assert.equal(
+    first.api.subscriptionService.getBillingState().messageKind,
+    "success",
+  );
+  const reopened = await app(first.database.db.export());
+  assert.deepEqual(
+    (await reopened.api.subscriptionService.getSnapshot()).bazaarProductIds,
+    ["test.monthly", "test.yearly"],
+  );
+  const state = await reopened.api.readEntitlementRecords(reopened.database);
+  state.clock.suspicious = true;
+  const suspicious = reopened.api.evaluateEntitlement(
+    state,
+    new Date(reopened.sample.wallTime),
+  );
+  assert.equal(suspicious.bazaarStatus, "needs_verification");
+  assert.deepEqual(suspicious.bazaarProductIds, []);
+  reopened.billing.getSubscribedProducts = async () => ({
+    purchases: [],
+    clock: { ...reopened.sample },
+  });
+  await reopened.api.subscriptionService.refresh();
+  assert.deepEqual(
+    (await reopened.api.subscriptionService.getSnapshot()).bazaarProductIds,
+    [],
+  );
+  assert.equal(
+    reopened.api.subscriptionService.getBillingState().messageKind,
+    "info",
+  );
+});
+
+test("a failed refresh reports an error while keeping the verified plan and deadline", async () => {
+  const { api, billing } = await app();
+  await api.subscriptionService.refresh();
+  const before = await api.subscriptionService.getSnapshot();
+  billing.getSubscribedProducts = async () => {
+    throw new Error("network unavailable");
+  };
+  await assert.rejects(
+    api.subscriptionService.refresh(),
+    /network unavailable/,
+  );
+  const after = await api.subscriptionService.getSnapshot();
+  assert.equal(api.subscriptionService.getBillingState().messageKind, "error");
+  assert.deepEqual(after.bazaarProductIds, before.bazaarProductIds);
+  assert.equal(after.offlineAccessUntil, before.offlineAccessUntil);
+  assert.equal(after.bazaarStatus, "cached_active");
 });
 
 test("trial gives six independent study days and retains the sixth day through 05:59", async () => {

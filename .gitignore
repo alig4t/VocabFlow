@@ -15,6 +15,9 @@ backend/.env.local
 backend/.env.*.local
 frontend/android/billing.local.properties
 
+# Private local Bazaar discount issuer (contains its signing key)
+/bazaar-discount-tool/
+
 # Build output
 frontend/dist/
 backend/dist/

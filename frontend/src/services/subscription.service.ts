@@ -15,6 +15,7 @@ const WEB_ACCESS: EntitlementSnapshot = {
   hasPremiumAccess: true,
   source: "web",
   bazaarStatus: "unknown",
+  bazaarProductIds: [],
   trialRemainingDays: 0,
   trialDayActive: false,
   lastSuccessfulQueryAt: null,
@@ -27,7 +28,19 @@ const WEB_ACCESS: EntitlementSnapshot = {
 let snapshotFlight: Promise<EntitlementSnapshot> | null = null;
 let refreshFlight: Promise<void> | null = null;
 let purchaseFlight: Promise<void> | null = null;
-let billingState = { refreshing: false, purchasing: false, message: "" };
+export interface BillingState {
+  refreshing: boolean;
+  purchasing: boolean;
+  message: string;
+  messageKind: "success" | "info" | "error" | null;
+}
+
+let billingState: BillingState = {
+  refreshing: false,
+  purchasing: false,
+  message: "",
+  messageKind: null,
+};
 const listeners = new Set<() => void>();
 function updateBilling(state: Partial<typeof billingState>) {
   billingState = { ...billingState, ...state };
@@ -82,7 +95,7 @@ export const subscriptionService = {
   refresh(): Promise<void> {
     if (!isNative()) return Promise.resolve();
     if (refreshFlight) return refreshFlight;
-    updateBilling({ refreshing: true, message: "" });
+    updateBilling({ refreshing: true, message: "", messageKind: null });
     refreshFlight = (async () => {
       const environment = await BazaarBilling.getEnvironment();
       if (!environment.online)
@@ -90,6 +103,7 @@ export const subscriptionService = {
       const { purchases, clock } = await BazaarBilling.getSubscribedProducts();
       await (await offline()).saveVerifiedSubscriptions(purchases, clock);
       updateBilling({
+        messageKind: purchases.length > 0 ? "success" : "info",
         message:
           purchases.length > 0
             ? "اشتراک از بازار تأیید شد."
@@ -98,7 +112,7 @@ export const subscriptionService = {
     })()
       .catch((error: unknown) => {
         // No cache writes on failure: in particular the 168-hour window stays put.
-        updateBilling({ message: errorMessage(error) });
+        updateBilling({ message: errorMessage(error), messageKind: "error" });
         throw error;
       })
       .finally(() => {
@@ -121,7 +135,7 @@ export const subscriptionService = {
         new Error("خرید اشتراک در نسخه اندروید در دسترس است."),
       );
     if (purchaseFlight) return purchaseFlight;
-    updateBilling({ purchasing: true, message: "" });
+    updateBilling({ purchasing: true, message: "", messageKind: null });
     purchaseFlight = (async () => {
       // The flag controls the transport too, including calls outside the page.
       const token = SUBSCRIPTION_DISCOUNTS_ENABLED
@@ -148,7 +162,7 @@ export const subscriptionService = {
       await subscriptionService.refresh();
     })()
       .catch((error: unknown) => {
-        updateBilling({ message: errorMessage(error) });
+        updateBilling({ message: errorMessage(error), messageKind: "error" });
         throw error;
       })
       .finally(() => {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Crown, RefreshCw, RotateCcw, Check } from "lucide-react";
+import { Crown, Check } from "lucide-react";
 import {
   SUBSCRIPTION_DISCOUNTS_ENABLED,
   SUBSCRIPTION_PLANS,
@@ -7,6 +7,7 @@ import {
 import { useSubscription } from "../../hooks/useSubscription";
 import { Button } from "../../components/ui/button";
 import { DiscountCodeEntry } from "../../components/subscription/DiscountCodeEntry";
+import { SubscriptionStatusCard } from "../../components/subscription/SubscriptionStatusCard";
 import { PageLoader } from "../../components/layout/PageLoader";
 import { isNative } from "../../lib/platform";
 
@@ -39,14 +40,6 @@ export function SubscriptionPage() {
     );
   const access = entitlement.data;
   const busy = billing.refreshing || billing.purchasing;
-  const status =
-    access.bazaarStatus === "cached_active"
-      ? "دسترسی با آخرین تأیید بازار"
-      : access.bazaarStatus === "needs_verification"
-        ? "برای ادامه دسترسی اشتراکی، بررسی مجدد لازم است"
-        : access.bazaarStatus === "inactive"
-          ? "بازار اشتراک فعالی برای این حساب گزارش نکرده است"
-          : "اشتراک هنوز بررسی نشده است";
 
   return (
     <div dir="rtl" className="mx-auto max-w-3xl space-y-6 pb-6 font-persian">
@@ -58,66 +51,21 @@ export function SubscriptionPage() {
         </p>
       </header>
 
-      <section className="space-y-3 rounded-2xl border border-border bg-card p-5">
-        <h2 className="font-bold">وضعیت اشتراک بازار</h2>
-        <p className="text-sm leading-7">{status}</p>
-        <dl className="space-y-2 text-sm text-muted-foreground">
-          <div>
-            <dt className="inline">آخرین تأیید اشتراک فعال: </dt>
-            <dd className="inline">{date(access.lastVerifiedActiveAt)}</dd>
-          </div>
-          {access.offlineAccessUntil !== null && (
-            <div>
-              <dt className="inline">مهلت استفاده بدون تأیید مجدد: </dt>
-              <dd className="inline">{date(access.offlineAccessUntil)}</dd>
-            </div>
-          )}
-        </dl>
-        <p className="text-xs leading-6 text-muted-foreground">
-          این مهلت ۷روزه، تاریخ انقضای واقعی اشتراک نیست. خطای بررسی، وضعیت
-          تأییدشده قبلی را پاک نمی‌کند.
-        </p>
-        {access.clockSuspicious && (
-          <p className="text-sm text-destructive">
-            زمان دستگاه تغییر کرده است؛ ساعت را تنظیم کنید و بررسی مجدد را
-            بزنید.
-          </p>
-        )}
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            disabled={busy}
-            className="gap-2"
-            onClick={() => void actions.refresh().catch(() => undefined)}
-          >
-            <RefreshCw
-              className={`h-4 w-4 ${billing.refreshing ? "animate-spin" : ""}`}
-            />
-            بررسی مجدد
-          </Button>
-          <Button
-            variant="outline"
-            disabled={busy}
-            className="gap-2"
-            onClick={() => void actions.restore().catch(() => undefined)}
-          >
-            <RotateCcw className="h-4 w-4" />
-            بازیابی خرید
-          </Button>
-        </div>
-        <p className="text-xs leading-6 text-muted-foreground">
-          برای بازیابی، با همان حساب خرید وارد برنامه بازار شوید و به اینترنت
-          وصل باشید.
-        </p>
-        {billing.message && (
-          <p role="status" className="text-sm leading-7">
-            {billing.message}
-          </p>
-        )}
-      </section>
+      <SubscriptionStatusCard
+        access={access}
+        products={configuration.data?.products}
+        billing={billing}
+        onRefresh={() => void actions.refresh().catch(() => undefined)}
+        onRestore={() => void actions.restore().catch(() => undefined)}
+      />
 
       <section className="space-y-2 rounded-2xl border border-border bg-card p-5">
         <h2 className="font-bold">دوره آزمایشی</h2>
+        {(access.source === "bazaar" || access.source === "developer") && (
+          <p className="text-xs leading-6 text-success">
+            روزهای آزمایشی شما برای بعد محفوظ‌اند.
+          </p>
+        )}
         <p className="text-sm">
           {new Intl.NumberFormat("fa-IR").format(access.trialRemainingDays)} روز
           مطالعه باقی مانده

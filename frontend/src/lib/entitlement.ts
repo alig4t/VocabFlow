@@ -55,6 +55,8 @@ export interface EntitlementSnapshot {
   hasPremiumAccess: boolean;
   source: "bazaar" | "developer" | "trial" | "locked" | "web";
   bazaarStatus: "cached_active" | "inactive" | "needs_verification" | "unknown";
+  /** Verified SKUs only while the Bazaar access cache is usable. */
+  bazaarProductIds: string[];
   trialRemainingDays: number;
   trialDayActive: boolean;
   lastSuccessfulQueryAt: number | null;
@@ -152,6 +154,9 @@ export function evaluateEntitlement(
         : bazaar?.state === "active"
           ? "needs_verification"
           : "unknown",
+    bazaarProductIds: bazaarActive
+      ? [...new Set(bazaar.purchases.map((purchase) => purchase.productId))]
+      : [],
     trialRemainingDays,
     trialDayActive,
     lastSuccessfulQueryAt: bazaar?.lastSuccessfulQueryAt ?? null,

@@ -10,6 +10,7 @@ const HOME_PATHS = new Set(["/dashboard", "/"]);
 /**
  * Wires the Android hardware back button to sensible behaviour on the native
  * (Capacitor) build:
+ *   - With a dialog open     → let its existing Escape handler dismiss it.
  *   - On the dashboard (home) → close the app.
  *   - Anywhere else          → go back one screen.
  *
@@ -29,6 +30,18 @@ export function NativeBackButton() {
     import("@capacitor/app")
       .then((m) =>
         m.App.addListener("backButton", () => {
+          if (document.querySelector('[role="dialog"][data-state="open"]')) {
+            // Radix dismisses only its top layer and respects dialogs that
+            // prevent dismissal. Keep navigation behind the modal untouched.
+            document.dispatchEvent(
+              new KeyboardEvent("keydown", {
+                key: "Escape",
+                bubbles: true,
+                cancelable: true,
+              }),
+            );
+            return;
+          }
           // Read the live path so the handler never closes over a stale route.
           if (HOME_PATHS.has(window.location.pathname)) {
             m.App.exitApp();
