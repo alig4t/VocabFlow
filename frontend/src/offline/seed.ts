@@ -316,9 +316,12 @@ export async function seedIfNeeded(
     // All files still share the same transaction: a read/decrypt/insert failure
     // rolls the entire seed back, including the initial wipe.
     for (let i = 0; i < files.length; i++) {
-      onProgress?.(i / files.length, `در حال آماده‌سازی ${files[i]}`);
       const res = await fetch(`${base}seed-enc/${files[i]}.enc`);
       const data = (await decryptSeedJson(await res.arrayBuffer())) as BookFile;
+      const bookSlug = isOldFormat(data)
+        ? slugFromFilename(files[i])
+        : data.bookSlug;
+      onProgress?.(i / files.length, `در حال آماده‌سازی ${bookSlug}`);
       collectFile(files[i], data, bookIdByTitle, rows);
       const flush = i === files.length - 1;
       await bulkInsert(
