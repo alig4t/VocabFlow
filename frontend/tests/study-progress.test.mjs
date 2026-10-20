@@ -61,6 +61,7 @@ const bundled = await build({
             path === "sqlite"
               ? `export const CapacitorSQLite = {};
              export class SQLiteConnection {
+               async checkConnectionsConsistency() { return { result: true }; }
                async isConnection() { return { result: true }; }
                async retrieveConnection() { return globalThis.__vfStudyDatabase; }
              }`

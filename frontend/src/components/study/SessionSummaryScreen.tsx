@@ -115,7 +115,7 @@ export function SessionSummaryScreen({
           )}
         </div>
         <h1 className="text-2xl font-bold text-foreground">
-          مطالعه امروز تمام شد! 🎉
+          مطالعه امروز تمام شد!
         </h1>
         <p className="text-sm text-muted-foreground">
           خلاصه‌ی کل مطالعه‌ی امروزت را ببینید.

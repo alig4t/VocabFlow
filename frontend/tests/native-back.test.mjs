@@ -50,6 +50,7 @@ let moduleId = 0;
 async function mount({
   path = "/subscription",
   dialog = false,
+  sidebar = false,
   native = true,
 } = {}) {
   const state = {
@@ -63,7 +64,15 @@ async function mount({
   globalThis.fixture = state;
   globalThis.window = { location: { pathname: path } };
   globalThis.document = new EventTarget();
-  document.querySelector = () => (dialog ? {} : null);
+  state.sidebar = new EventTarget();
+  document.querySelector = (selector) =>
+    selector.includes('role="dialog"')
+      ? dialog
+        ? {}
+        : null
+      : sidebar
+        ? state.sidebar
+        : null;
   globalThis.KeyboardEvent = class extends Event {
     constructor(type, options) {
       super(type, options);
@@ -100,6 +109,33 @@ test("a dialog that prevents dismissal also prevents navigating or exiting", asy
   });
   state.listener();
   assert.equal(received, true);
+  assert.deepEqual(state.navigation, []);
+  assert.equal(state.exits, 0);
+  state.cleanup();
+});
+
+test("back with an open sidebar dismisses it before navigating or exiting", async () => {
+  for (const path of ["/subscription", "/dashboard", "/"]) {
+    const state = await mount({ path, sidebar: true });
+    const keys = [];
+    state.sidebar.addEventListener("keydown", (event) => keys.push(event.key));
+    state.listener();
+    assert.deepEqual(keys, ["Escape"]);
+    assert.deepEqual(state.navigation, []);
+    assert.equal(state.exits, 0);
+    state.cleanup();
+  }
+});
+
+test("an open dialog takes precedence over the sidebar", async () => {
+  const state = await mount({ dialog: true, sidebar: true });
+  let sidebarKeys = 0;
+  state.sidebar.addEventListener("keydown", () => sidebarKeys++);
+  let dialogKeys = 0;
+  document.addEventListener("keydown", () => dialogKeys++);
+  state.listener();
+  assert.equal(dialogKeys, 1);
+  assert.equal(sidebarKeys, 0);
   assert.deepEqual(state.navigation, []);
   assert.equal(state.exits, 0);
   state.cleanup();

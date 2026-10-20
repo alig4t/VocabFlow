@@ -107,7 +107,7 @@ function HeroStats({
         </dl>
       ) : (
         <p className="dashboard-hero-signature">
-          یادگیری ماندگار، با قدم‌های کوچک.
+          آمار مطالعه‌ات اینجا نمایش داده می‌شود.
         </p>
       )}
     </footer>
@@ -188,16 +188,16 @@ export function StudyTodayHero({
                     </>
                   ) : !hasPlans ? (
                     <>
-                      یک شروع تازه،
+                      یک کتاب انتخاب کن
                       <br />
-                      <span>با یک کتاب خوب.</span>
+                      <span>و مطالعه را شروع کن.</span>
                     </>
                   ) : done ? (
                     reviewed > 0 ? (
                       <>
-                        امروزت را ساختی.
+                        مطالعه‌ی امروز تمام شد.
                         <br />
-                        <span>یک قدم دیگر جلوتر.</span>
+                        <span>تبریک میگم!</span>
                       </>
                     ) : (
                       <>
@@ -214,7 +214,7 @@ export function StudyTodayHero({
                           واژه
                         </span>
                       </span>
-                      <span>یک قدم جلوتر، هر روز.</span>
+                      <span>برای مطالعه‌ی امروز</span>
                     </>
                   )}
                 </h2>
@@ -305,7 +305,7 @@ export function StudyTodayHero({
                     className="dashboard-hero-icon-memory h-3.5 w-3.5"
                     aria-hidden="true"
                   />
-                  واژه‌ای در صف امروز نیست.
+                  برای امروز واژه‌ای باقی نمانده.
                 </p>
               )}
             </div>

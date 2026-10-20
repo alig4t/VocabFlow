@@ -136,6 +136,14 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   return (
     <aside
       dir="rtl"
+      data-sidebar="navigation"
+      data-state={open ? "open" : "closed"}
+      onKeyDown={(event) => {
+        if (open && event.key === "Escape") {
+          event.preventDefault();
+          onClose();
+        }
+      }}
       className={cn(
         "font-persian fixed inset-y-0 right-0 z-30 flex w-64 flex-col border-l border-border bg-card transition-transform duration-300 ease-in-out",
         "lg:relative lg:translate-x-0",

@@ -27,6 +27,7 @@ import { HardWords } from "@/components/dashboard/HardWords";
 import { useDashboard } from "@/hooks/useDashboard";
 import { useStudyToday } from "@/hooks/useStudy";
 import { PremiumContent } from "../../components/subscription/PremiumGate";
+import { DashboardSubscriptionBadge } from "../../components/subscription/DashboardSubscriptionBadge";
 
 function DashboardSkeleton() {
   return (
@@ -48,7 +49,11 @@ export function DashboardPage() {
   const study = useStudyToday();
 
   return (
-    <div dir="rtl" className="dashboard-page page-atmosphere font-persian">
+    <div
+      dir="rtl"
+      className="dashboard-page page-atmosphere relative font-persian"
+    >
+      <DashboardSubscriptionBadge />
       {/*
         ① امروز چه کار کنم؟ — the single primary action on the page. A
         full-bleed gold band merged with the navbar (Layout renders the bar

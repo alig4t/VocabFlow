@@ -58,6 +58,7 @@ async function compileApp(discountsEnabled) {
          export const registerPlugin = () => globalThis.__vfBilling;`
                 : `export const CapacitorSQLite = {};
          export class SQLiteConnection {
+           async checkConnectionsConsistency() { return {result:true}; }
            async isConnection() { return {result:true}; }
            async retrieveConnection() { return globalThis.__vfDatabase; }
          }`,

@@ -48,5 +48,6 @@ words-new.sql
 /scrap/output
 /scrap/book-scraper.js
 
-/docs/
+/docs/*
+!/docs/TECHNICAL_HANDBOOK.html
 

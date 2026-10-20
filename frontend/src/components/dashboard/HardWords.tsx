@@ -32,7 +32,7 @@ export function HardWords({ words }: HardWordsProps) {
   if (words.length === 0) {
     return (
       <p className="py-8 text-center text-sm text-muted-foreground">
-        فعلاً واژه‌ی دردسرسازی نداری — عالیه! 🎉
+        فعلاً واژه‌ی دردسرسازی نداری
       </p>
     );
   }

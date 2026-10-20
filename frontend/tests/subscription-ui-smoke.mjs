@@ -71,8 +71,20 @@ async function compileUi(discountsEnabled) {
             path: "billing",
             namespace: "fixture",
           }));
+          builder.onResolve({ filter: /^@capacitor\/app$/ }, () => ({
+            path: "app",
+            namespace: "fixture",
+          }));
           builder.onLoad({ filter: /.*/, namespace: "fixture" }, ({ path }) => {
             const modules = {
+              app: `export const App={
+                addListener:async(event,listener)=>{
+                  window.fixture.appListeners??={};
+                  window.fixture.appListeners[event]=listener;
+                  return {remove:()=>{delete window.fixture.appListeners[event];}};
+                },
+                exitApp:async()=>{document.body.dataset.appExited='true';}
+              };`,
               platform: "export const isNative=()=>window.fixture.native;",
               bootstrap: "export const prepareNative=async()=>{};",
               notifications:
@@ -80,26 +92,37 @@ async function compileUi(discountsEnabled) {
               safeArea: "export const syncSafeAreaVars=()=>{};",
               billing: `export const BazaarBilling={
           addListener:async()=>({remove:async()=>{}}),
-          getEnvironment:async()=>({wallTime:Date.now(),elapsedRealtime:performance.now(),bootId:'ui',online:!!window.fixture.purchase}),
-          getSubscribedProducts:async()=>({purchases:[],clock:{wallTime:Date.now(),elapsedRealtime:performance.now(),bootId:'ui'}}),
+          getEnvironment:async()=>({wallTime:Date.now(),elapsedRealtime:performance.now(),bootId:'ui',online:(!window.fixture.entryCheck||window.fixture.entryReady)&&(!!window.fixture.purchase||!!window.fixture.refresh)}),
+          getSubscribedProducts:async()=>{
+            document.body.dataset.subscriptionQueries=String(Number(document.body.dataset.subscriptionQueries??0)+1);
+            if(window.fixture.refresh==='error')throw new Error('ارتباط با بازار برقرار نشد.');
+            return {purchases:window.fixture.refresh==='active'||window.fixture.subscribed?[{productId:window.fixture.plan}]:[],clock:{wallTime:Date.now(),elapsedRealtime:performance.now(),bootId:'ui'}};
+          },
           getConfiguration:async()=>({configured:true,products:[{plan:'monthly',sku:'month'},{plan:'quarterly',sku:'quarter'},{plan:'yearly',sku:'year'}]}),
           getProducts:async()=>({products:[{sku:'month',price:'۱۰۰٬۰۰۰ ریال'},{sku:'quarter',price:'۲۵۰٬۰۰۰ ریال'},{sku:'year',price:'۸۰۰٬۰۰۰ ریال'}]}),
           subscribe:async(options)=>{
             document.body.dataset.purchaseSku=options.sku;
             document.body.dataset.purchaseToken=options.dynamicPriceToken??'omitted';
             document.body.dataset.purchaseCount=String(Number(document.body.dataset.purchaseCount??0)+1);
+            window.fixture.subscribed=true;
           },
           activateDeveloper:async()=>({version:1,activatedAt:Date.now(),validUntil:Date.now()+30*86400000,lastCodeDay:'20261011'})
         };`,
               entitlement: `export const getEntitlementSnapshot=async()=>({
           hasPremiumAccess:window.fixture.premium&&(!window.fixture.expires||Date.now()<window.fixture.deadline),
-          source:window.fixture.expires&&Date.now()>=window.fixture.deadline?'locked':window.fixture.cached?'bazaar':window.fixture.premium?'trial':'locked',
-          bazaarStatus:window.fixture.cached&&Date.now()<window.fixture.deadline?'cached_active':'needs_verification',
+          source:window.fixture.expires&&Date.now()>=window.fixture.deadline?'locked':window.fixture.cached&&!window.fixture.clockSuspicious?'bazaar':window.fixture.premium?'trial':'locked',
+          bazaarStatus:window.fixture.inactive?'inactive':window.fixture.cached&&Date.now()<window.fixture.deadline&&!window.fixture.clockSuspicious?'cached_active':window.fixture.cached?'needs_verification':'unknown',
+          bazaarProductIds:window.fixture.cached&&Date.now()<window.fixture.deadline&&!window.fixture.clockSuspicious?[window.fixture.plan]:[],
           trialRemainingDays:window.fixture.premium&&!window.fixture.expires?6:0,trialDayActive:false,
           lastVerifiedActiveAt:Date.now()-86400000,offlineAccessUntil:window.fixture.deadline,
-          developerUntil:null,clockSuspicious:false,evaluatedAt:Date.now()
+          developerUntil:null,clockSuspicious:window.fixture.clockSuspicious,evaluatedAt:Date.now()
         });
-        export const saveVerifiedSubscriptions=async()=>{};
+        export const saveVerifiedSubscriptions=async(purchases)=>{
+          window.fixture.cached=purchases.length>0;
+          window.fixture.inactive=purchases.length===0;
+          if(!window.fixture.expires)window.fixture.deadline=Date.now()+7*86400000;
+          window.dispatchEvent(new Event('vocabflow:entitlement-changed'));
+        };
         export const saveDeveloperGrant=async()=>{window.fixture.premium=true;window.dispatchEvent(new Event('vocabflow:entitlement-changed'));};`,
             };
             return { contents: modules[path], loader: "js" };
@@ -136,6 +159,10 @@ const server = createServer(async (request, response) => {
     cached: expires || url.searchParams.get("cached") === "1",
     expires,
     purchase: url.searchParams.get("purchase"),
+    plan: url.searchParams.get("plan") ?? "month",
+    refresh: url.searchParams.get("refresh"),
+    entryCheck: url.searchParams.has("entryCheck"),
+    clockSuspicious: url.searchParams.get("clock") === "1",
     discountsEnabled: url.searchParams.get("discounts") !== "0",
   };
   const activate = url.searchParams.get("activate") === "1";
@@ -146,7 +173,91 @@ const server = createServer(async (request, response) => {
       window.fixture.deadline=Date.now()+(window.fixture.expires?2000:6*86400000);
       localStorage.setItem('authUser',JSON.stringify({id:'ui',name:'کاربر',role:'ADMIN'}));localStorage.setItem('accessToken','ui');localStorage.setItem('refreshToken','ui');
       window.addEventListener('error',e=>document.body.dataset.error=e.message);
+      window.addEventListener('unhandledrejection',e=>document.body.dataset.error=String(e.reason));
     </script><script type="module" src="${fixture.discountsEnabled ? "/app.js" : "/app-disabled.js"}"></script>
+    ${
+      url.searchParams.has("sidebarBack")
+        ? `<script>setTimeout(async()=>{
+      const pause=()=>new Promise(resolve=>setTimeout(resolve,25));
+      const waitFor=async(check,label)=>{
+        for(let i=0;i<80;i++){if(check())return;await pause();}
+        throw new Error('sidebar check timed out: '+label);
+      };
+      const sidebarOpen=()=>document.querySelector('aside')?.classList.contains('translate-x-0');
+      const back=()=>window.fixture.appListeners.backButton();
+      try{
+        await waitFor(()=>window.fixture.appListeners?.backButton&&document.querySelector('aside'),'layout');
+        document.querySelector('a[href="/subscription"]').click();
+        await waitFor(()=>location.pathname==='/subscription'&&document.querySelector('h1')?.textContent==='اشتراک من','subscription');
+        const href=location.href;
+        const historyLength=history.length;
+        const open=async()=>{
+          document.querySelector('[aria-label="باز کردن منو"]').click();
+          await waitFor(sidebarOpen,'open');
+        };
+        await open();
+        back();
+        await waitFor(()=>!sidebarOpen(),'dismiss sidebar');
+        if(location.href!==href||history.length!==historyLength||document.body.dataset.appExited)
+          throw new Error('sidebar back navigated or exited');
+        // Dialogs still dismiss before a sidebar underneath them.
+        await open();
+        [...document.querySelectorAll('button')].find(e=>e.textContent.trim()==='درج کد تخفیف').click();
+        await waitFor(()=>document.querySelector('[role="dialog"][data-state="open"]'),'dialog');
+        back();
+        await waitFor(()=>!document.querySelector('[role="dialog"][data-state="open"]'),'dismiss dialog');
+        if(!sidebarOpen())throw new Error('dialog back also dismissed sidebar');
+        back();
+        await waitFor(()=>!sidebarOpen(),'dismiss sidebar after dialog');
+        if(location.href!==href)throw new Error('overlay dismissal changed route');
+        back();
+        await waitFor(()=>location.pathname==='/about','normal back after dismissal');
+        document.body.dataset.sidebarBack='passed';
+      }catch(error){document.body.dataset.actionError=error.message;}
+    },750);</script>`
+        : ""
+    }
+    ${
+      fixture.entryCheck
+        ? `<script>setTimeout(async()=>{
+      const pause=()=>new Promise(resolve=>setTimeout(resolve,25));
+      const waitFor=async(check,label)=>{
+        for(let i=0;i<60;i++){if(check())return;await pause();}
+        throw new Error('entry check timed out: '+label);
+      };
+      const button=text=>[...document.querySelectorAll('button')].find(e=>e.textContent.trim()===text);
+      const navigate=async(path)=>{
+        const link=document.querySelector('a[href="'+path+'"]');
+        if(!link)throw new Error('navigation link missing: '+path);
+        link.click();
+        const title=path==='/subscription'?'اشتراک من':'وکب فلو';
+        await waitFor(()=>location.pathname===path&&document.querySelector('h1')?.textContent===title,path);
+      };
+      const queries=()=>Number(document.body.dataset.subscriptionQueries??0);
+      const settled=()=>button('بررسی مجدد')&&!button('بررسی مجدد').disabled;
+      try{
+        // Startup was offline: only entering the subscription route can query Bazaar.
+        if(queries()!==0)throw new Error('unexpected startup subscription query');
+        window.fixture.entryReady=true;
+        const deadline=window.fixture.deadline;
+        await navigate('/subscription');
+        await waitFor(()=>queries()===1&&settled(),'first entry query');
+        window.dispatchEvent(new Event('vocabflow:entitlement-changed'));
+        await pause();
+        if(queries()!==1)throw new Error('render repeated subscription query');
+        await navigate('/about');
+        await navigate('/subscription');
+        await waitFor(()=>queries()===2&&settled(),'second entry query');
+        if(window.fixture.refresh==='error'&&window.fixture.deadline!==deadline)
+          throw new Error('failed entry refresh changed cached deadline');
+        button('بررسی مجدد').click();
+        await waitFor(()=>queries()===3&&settled(),'manual refresh after entry');
+        if(document.body.dataset.purchaseCount)throw new Error('entry started a purchase');
+        document.body.dataset.entryCheck='passed';
+      }catch(error){document.body.dataset.actionError=error.message;}
+    },750);</script>`
+        : ""
+    }
     ${
       fixture.purchase ||
       url.searchParams.has("previewDiscount") ||
@@ -181,6 +292,18 @@ const server = createServer(async (request, response) => {
           if(action==='long'){
             document.body.dataset.longCodeSaved=String(document.querySelector('bdi[title]')?.textContent===longToken);
             button('ویرایش کد').scrollIntoView({block:'center'});
+          }
+          if(action==='nativeBack'){
+            await click('ویرایش کد');
+            await type('unsaved.payload.signature');
+            if(!window.fixture.appListeners?.backButton)throw new Error('native back handler missing');
+            window.fixture.appListeners.backButton();
+            await pause();
+            document.body.dataset.pathAfterBack=location.pathname;
+            document.body.dataset.modalClosedAfterBack=String(!input());
+            document.body.dataset.savedCodeAfterBack=document.querySelector('bdi[title]')?.textContent??'empty';
+            await click('ویرایش کد');
+            document.body.dataset.draftAfterBack=input()?.value??'missing';
           }
           if(action==='edit'||action==='cancel'||action==='remove'){
             await click('ویرایش کد');
@@ -276,13 +399,67 @@ async function page(path, screenshot) {
   return html;
 }
 try {
+  const sidebarBack = await page("/about?sidebarBack=1");
+  assert.match(sidebarBack, /data-sidebar-back="passed"/);
+  assert.doesNotMatch(sidebarBack, /data-app-exited=/);
+  for (const result of ["active", "error"]) {
+    const entered = await page(
+      `/about?entryCheck=1&refresh=${result}${result === "error" ? "&cached=1" : ""}`,
+    );
+    assert.match(entered, /data-entry-check="passed"/);
+    assert.match(entered, /data-subscription-queries="3"/);
+    assert.match(entered, /اشتراک یک‌ماهه فعال است/);
+  }
   const subscription = await page("/subscription?cached=1", "subscription.png");
-  assert.match(subscription, /مهلت استفاده بدون تأیید مجدد/);
+  assert.match(subscription, /اشتراک یک‌ماهه فعال است/);
+  assert.match(subscription, /تأییدشده در بازار/);
+  assert.match(subscription, /data-subscription-status="cached_active"/);
+  assert.match(subscription, /جزئیات تأیید و استفاده آفلاین/);
   assert.match(subscription, /۱۰۰٬۰۰۰ ریال/);
   assert.match(subscription, /بازیابی خرید/);
   assert.match(subscription, /کد تخفیف وکب فلو وارد نشده \(اختیاری\)/);
   assert.match(subscription, /درج کد تخفیف/);
   assert.doesNotMatch(subscription, /id="subscription-discount-token"/);
+  for (const [sku, title] of [
+    ["quarter", "سه‌ماهه"],
+    ["year", "یک‌ساله"],
+  ]) {
+    const plan = await page(`/subscription?cached=1&plan=${sku}`);
+    assert.match(plan, new RegExp(`اشتراک ${title} فعال است`));
+  }
+  const unknownPlan = await page("/subscription?cached=1&plan=unknown");
+  assert.match(unknownPlan, /اشتراک شما فعال است/);
+  assert.doesNotMatch(unknownPlan, /اشتراک یک‌ماهه فعال است/);
+  const confirmed = await page(
+    "/subscription?refresh=active",
+    "subscription-confirmed.png",
+  );
+  assert.match(confirmed, /اشتراک یک‌ماهه فعال است/);
+  assert.match(confirmed, /role="status" class="[^"]*text-success/);
+  assert.match(confirmed, /اشتراک از بازار تأیید شد/);
+  const failed = await page(
+    "/subscription?cached=1&refresh=error",
+    "subscription-refresh-error.png",
+  );
+  assert.match(failed, /اشتراک یک‌ماهه فعال است/);
+  assert.match(failed, /role="alert" class="[^"]*text-destructive/);
+  assert.match(failed, /ارتباط با بازار برقرار نشد/);
+  const revoked = await page("/subscription?cached=1&refresh=inactive");
+  assert.match(revoked, /data-subscription-status="inactive"/);
+  assert.match(revoked, /اشتراک فعالی پیدا نشد/);
+  assert.doesNotMatch(revoked, /اشتراک یک‌ماهه فعال است/);
+  const stale = await page(
+    "/subscription?cached=1&expires=1",
+    "subscription-verification.png",
+  );
+  assert.match(stale, /data-subscription-status="needs_verification"/);
+  assert.doesNotMatch(stale, /اشتراک یک‌ماهه فعال است/);
+  const staleSuccess = await page("/subscription?refresh=active&expires=1");
+  assert.match(staleSuccess, /data-subscription-status="needs_verification"/);
+  assert.doesNotMatch(staleSuccess, /اشتراک از بازار تأیید شد/);
+  const clockChanged = await page("/subscription?cached=1&clock=1");
+  assert.match(clockChanged, /زمان دستگاه تغییر کرده است/);
+  assert.doesNotMatch(clockChanged, /اشتراک یک‌ماهه فعال است/);
   const discountPreview = await page(
     "/subscription?previewDiscount=1",
     "discount-input.png",
@@ -302,6 +479,15 @@ try {
   assert.match(edited, /data-final-code="edited.payload.signature"/);
   const cancelled = await page("/subscription?discountAction=cancel");
   assert.match(cancelled, /data-final-code="header.payload.signature"/);
+  const nativeBack = await page("/subscription?discountAction=nativeBack");
+  assert.match(nativeBack, /data-path-after-back="\/subscription"/);
+  assert.match(nativeBack, /data-modal-closed-after-back="true"/);
+  assert.match(
+    nativeBack,
+    /data-saved-code-after-back="header.payload.signature"/,
+  );
+  assert.match(nativeBack, /data-draft-after-back="header.payload.signature"/);
+  assert.doesNotMatch(nativeBack, /data-app-exited=/);
   const removed = await page("/subscription?discountAction=remove");
   assert.match(removed, /data-final-code="empty"/);
   assert.match(removed, /کد تخفیف وکب فلو وارد نشده \(اختیاری\)/);
@@ -339,7 +525,7 @@ try {
   assert.match(webAbout, /درباره‌ی سازنده/);
   assert.doesNotMatch(webAbout, /developer-access-code|Developer Access/);
   console.log(
-    "UI smoke: subscription prices/status, discount modal, long codes, editing/cancelling/removing codes, discounted and ordinary purchase, disabled discounts, invalid input, locked study, in-session deadline, seven-tap developer activation, web about passed.",
+    "UI smoke: sidebar dismissal before navigation, dialog priority over sidebar, automatic entry/re-entry refresh without render loops or unintended purchases, manual refresh, verified subscription plans, success/error notices, cache expiry/revocation/clock change, prices, discount modal, long codes, editing/cancelling/removing codes, discounted and ordinary purchase, disabled discounts, invalid input, locked study, in-session deadline, seven-tap developer activation, web about passed.",
   );
   console.log(`Screenshots: ${artifactDir}`);
 } finally {

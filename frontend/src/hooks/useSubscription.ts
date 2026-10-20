@@ -12,6 +12,9 @@ export function useEntitlement() {
     queryFn: () => subscriptionService.getSnapshot(),
     staleTime: 0,
     retry: false,
+    // Native resume, entitlement events and deadline timers keep this local
+    // snapshot current; focusing the window does not need another read.
+    refetchOnWindowFocus: false,
     refetchInterval: isNative() ? 60_000 : false,
   });
   useEffect(() => {
@@ -69,6 +72,12 @@ export function useSubscription() {
     enabled: isNative() && configuration.data?.configured === true,
     retry: false,
   });
+  useEffect(() => {
+    if (!isNative()) return;
+    // Each page visit uses the manual refresh flow, sharing any pending query.
+    // Failures are reported through billing state without changing cached access.
+    void subscriptionService.refresh().catch(() => undefined);
+  }, []);
   return {
     entitlement,
     billing,

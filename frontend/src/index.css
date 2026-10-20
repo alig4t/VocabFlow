@@ -1174,6 +1174,15 @@
   .dashboard-page {
     min-width: 0;
   }
+  .dashboard-subscription-label {
+    background-color: hsl(39 47% 89%);
+    border-color: hsl(36 30% 70% / 0.65);
+  }
+  .dark .dashboard-subscription-label,
+  .study .dashboard-subscription-label {
+    background-color: hsl(var(--card));
+    border-color: hsl(var(--border));
+  }
   .dashboard-today-hero {
     --deep-fg: 222 44% 16%;
     --deep-muted: 220 24% 30%;

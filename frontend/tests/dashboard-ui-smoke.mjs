@@ -104,10 +104,11 @@ let writes = 0;
 const bundle = await build({
   stdin: {
     contents: `import React from 'react'; import {createRoot} from 'react-dom/client';
-      import {QueryClient,QueryClientProvider} from '@tanstack/react-query'; import App from './src/App';
+      import {QueryClient,QueryClientProvider,focusManager} from '@tanstack/react-query'; import App from './src/App';
       import {SessionSummaryScreen} from './src/components/study/SessionSummaryScreen';
       import {AnimatedNumber} from './src/components/ui/animated-number';
       const client=new QueryClient({defaultOptions:{queries:{retry:false}}}); window.uiQueryClient=client;
+      window.uiSetFocused=focused=>focusManager.setFocused(focused);
       const root=createRoot(document.getElementById('root'));
       window.uiRenderSummary=(saving)=>root.render(React.createElement(SessionSummaryScreen,
         {saving,onHome:()=>{},onPracticeHard:()=>{},hardPracticeCount:2,
@@ -139,8 +140,81 @@ const bundle = await build({
           path: "bootstrap",
           namespace: "fixture",
         }));
-        builder.onLoad({ filter: /.*/, namespace: "fixture" }, () => ({
-          contents: "export const prepareNative=async()=>{};",
+        builder.onResolve(
+          {
+            filter:
+              /(?:^|\/)lib\/(platform|notifications|safeArea|bazaarBilling)$/,
+          },
+          ({ path }) => ({
+            path: path.split("/").at(-1),
+            namespace: "fixture",
+          }),
+        );
+        builder.onResolve({ filter: /(?:^|\/)offline\/repo$/ }, () => ({
+          path: "repo",
+          namespace: "fixture",
+        }));
+        builder.onResolve(
+          { filter: /(?:^|\/)offline\/entitlement\.repo$/ },
+          () => ({ path: "entitlement", namespace: "fixture" }),
+        );
+        builder.onResolve({ filter: /^@capacitor\/app$/ }, () => ({
+          path: "app",
+          namespace: "fixture",
+        }));
+        builder.onLoad({ filter: /.*/, namespace: "fixture" }, ({ path }) => ({
+          contents: {
+            bootstrap: "export const prepareNative=async()=>{};",
+            platform: "export const isNative=()=>window.nativeFixture.enabled;",
+            notifications:
+              "export const initNotifications=()=>{}; export const rescheduleNotifications=()=>{}; export const beginStudySession=()=>{}; export const endStudySession=()=>{}; export const ensureNotificationPermission=async()=>true;",
+            safeArea: "export const syncSafeAreaVars=()=>{};",
+            app: `export const App={
+              addListener:async()=>({remove:async()=>{}}),exitApp:async()=>{}
+            };`,
+            bazaarBilling: `export const BazaarBilling={
+              addListener:async()=>({remove:async()=>{}}),
+              getEnvironment:async()=>({wallTime:Date.now(),elapsedRealtime:performance.now(),bootId:'ui',online:window.nativeFixture.online}),
+              getSubscribedProducts:async()=>{
+                window.nativeFixture.queries++;
+                return {purchases:[{productId:'month'}],clock:{wallTime:Date.now(),elapsedRealtime:performance.now(),bootId:'ui'}};
+              },
+              getConfiguration:async()=>{
+                window.nativeFixture.configurations++;
+                return {configured:true,products:[{plan:'monthly',sku:'month'}]};
+              },
+              getProducts:async()=>{
+                window.nativeFixture.products++;
+                return {products:[{sku:'month',price:'۱۰۰٬۰۰۰ ریال'}]};
+              }
+            };`,
+            repo: `export const getDashboard=async()=>({
+              stats:{watchlistCount:0,totalWordsLearned:0,reviewsToday:0,currentStreak:0,avgStudyMinutes:0,accuracyRate:0},
+              watchlist:[],heatmap:[],queue:[],memory:{total:0,fresh:0,learning:0,stable:0},upcoming:[],hardWords:[],growth:[]
+            });
+            export const getStudyToday=async()=>({due:[],new:[],meta:{dueCount:0,newCount:0,dailyGoal:20,reviewedToday:0,introducedToday:0,hardTodayCount:0,hasPlans:false,direction:'EN_TO_FA',plans:[]}});`,
+            entitlement: `export const getEntitlementSnapshot=async()=>{
+              const f=window.nativeFixture;
+              if(f.holdSnapshot)await new Promise(resolve=>{f.resolveSnapshot=resolve;});
+              if(f.failSnapshot)throw new Error('snapshot unavailable');
+              const expired=f.source==='bazaar'&&Date.now()>=f.deadline;
+              const source=expired?'locked':f.source;
+              return {
+                evaluatedAt:Date.now(),hasPremiumAccess:source!=='locked',source,
+                bazaarStatus:f.source==='bazaar'?(expired?'needs_verification':'cached_active'):f.status,
+                bazaarProductIds:f.source==='bazaar'&&!expired?['month']:[],
+                trialRemainingDays:f.trialRemainingDays,trialDayActive:f.trialDayActive,
+                lastSuccessfulQueryAt:null,lastVerifiedActiveAt:null,
+                offlineAccessUntil:f.source==='bazaar'?f.deadline:null,
+                developerUntil:f.source==='developer'?Date.now()+86400000:null,clockSuspicious:false
+              };
+            };
+            export const saveVerifiedSubscriptions=async()=>{
+              window.nativeFixture.source='bazaar';window.nativeFixture.deadline=Date.now()+7*86400000;
+              window.dispatchEvent(new Event('vocabflow:entitlement-changed'));
+            };`,
+          }[path],
+          loader: "js",
         }));
       },
     },
@@ -264,6 +338,7 @@ const server = createServer(async (request, response) => {
       <script>localStorage.setItem('authUser',JSON.stringify({id:'ui',name:'کاربر',role:'USER'}));
       localStorage.setItem('accessToken','ui');localStorage.setItem('refreshToken','ui');
       localStorage.setItem('eng-theme',${JSON.stringify(url.searchParams.get("theme") ?? "light")});
+      window.nativeFixture={enabled:${url.searchParams.get("native") === "1"},source:'bazaar',status:'unknown',deadline:Date.now()+7*86400000,trialRemainingDays:6,trialDayActive:false,online:false,queries:0,configurations:0,products:0};
       window.uiErrors=[];window.addEventListener('error',e=>window.uiErrors.push(e.message));
       window.addEventListener('unhandledrejection',e=>window.uiErrors.push(String(e.reason)));
       </script><script type="module" src="/app.js"></script></body></html>`);
@@ -423,7 +498,143 @@ try {
     mobile: true,
   });
   await send("Emulation.setTouchEmulationEnabled", { enabled: true });
+  // Native status uses the shared local cache, even while Bazaar is offline.
+  await open("/dashboard?native=1");
+  await until(
+    "!!document.querySelector('[data-dashboard-subscription=active]')",
+  );
+  const badge = "document.querySelector('[data-dashboard-subscription]')";
+  assert.equal(
+    await evaluate(`${badge}.getAttribute('href')`),
+    "/subscription",
+  );
+  assert.ok(await evaluate(`${badge}.getBoundingClientRect().height>=44`));
+  await noOverflow();
+  await screenshot("dashboard-subscription-active.png");
+  await evaluate("window.uiSetFocused(false);window.uiSetFocused(true);true");
+  await delay(150);
+  await evaluate("document.querySelector('a[href=\"/about\"]').click();true");
+  await until("location.pathname==='/about'");
+  await evaluate(
+    "document.querySelector('a[href=\"/dashboard\"]').click();true",
+  );
+  await until(
+    "!!document.querySelector('[data-dashboard-subscription=active]')",
+  );
+  assert.deepEqual(
+    await evaluate(
+      "(({queries,configurations,products})=>({queries,configurations,products}))(window.nativeFixture)",
+    ),
+    { queries: 0, configurations: 0, products: 0 },
+    "dashboard focus and re-entry must not query Bazaar, configuration or prices",
+  );
+  // A deliberate visit to subscription still queries, and its result reaches home.
+  await evaluate(
+    "window.nativeFixture.source='trial';window.dispatchEvent(new Event('vocabflow:entitlement-changed'));true",
+  );
+  await until(
+    "!!document.querySelector('[data-dashboard-subscription=trial]')",
+  );
+  await evaluate(`window.nativeFixture.online=true;${badge}.click();true`);
+  await until(
+    "location.pathname==='/subscription'&&window.nativeFixture.queries===1&&window.uiQueryClient.isFetching()===0",
+  );
+  await evaluate(
+    "document.querySelector('a[href=\"/dashboard\"]').click();true",
+  );
+  await until(
+    "!!document.querySelector('[data-dashboard-subscription=active]')",
+  );
+  assert.equal(await evaluate("window.nativeFixture.queries"), 1);
+  for (const [source, expected] of [
+    ["trial", "trial"],
+    ["developer", "developer"],
+    ["locked", "inactive"],
+  ]) {
+    await evaluate(
+      `window.nativeFixture.source=${JSON.stringify(source)};window.dispatchEvent(new Event('vocabflow:entitlement-changed'));true`,
+    );
+    await until(
+      `!!document.querySelector('[data-dashboard-subscription=${expected}]')`,
+    );
+    assert.equal(await evaluate("window.nativeFixture.queries"), 1);
+    await noOverflow();
+  }
+  await evaluate(
+    "window.nativeFixture.source='trial';window.nativeFixture.trialRemainingDays=0;window.nativeFixture.trialDayActive=true;window.dispatchEvent(new Event('vocabflow:entitlement-changed'));true",
+  );
+  await until(
+    "!!document.querySelector('[data-dashboard-subscription=trial]')",
+  );
+  assert.match(
+    await evaluate(`${badge}.getAttribute('aria-label')`),
+    /آخرین روز آزمایشی/,
+  );
+  await evaluate(
+    "window.nativeFixture.source='bazaar';window.nativeFixture.deadline=Date.now()+700;window.dispatchEvent(new Event('vocabflow:entitlement-changed'));true",
+  );
+  await until(
+    "!!document.querySelector('[data-dashboard-subscription=active]')",
+  );
+  await until(
+    "!!document.querySelector('[data-dashboard-subscription=verification]')",
+  );
+  assert.equal(
+    await evaluate("window.nativeFixture.queries"),
+    1,
+    "deadline re-evaluation must stay local",
+  );
+  await screenshot("dashboard-subscription-verification.png");
+  await evaluate(
+    "window.nativeFixture.failSnapshot=true;window.dispatchEvent(new Event('vocabflow:entitlement-changed'));true",
+  );
+  await until(
+    "!!document.querySelector('[data-dashboard-subscription=unknown]')",
+  );
+  assert.doesNotMatch(await evaluate(`${badge}.textContent`), /غیرفعال/);
+  await evaluate(
+    "window.nativeFixture.failSnapshot=false;window.nativeFixture.holdSnapshot=true;void window.uiQueryClient.resetQueries({queryKey:['subscription','entitlement']});true",
+  );
+  await until(
+    "!!document.querySelector('[data-dashboard-subscription=loading]')",
+  );
+  await evaluate(
+    "window.nativeFixture.holdSnapshot=false;window.nativeFixture.resolveSnapshot();true",
+  );
+  await until(
+    "!!document.querySelector('[data-dashboard-subscription=verification]')",
+  );
+  assert.deepEqual(await evaluate("window.uiErrors"), []);
+  for (const theme of ["dark", "study"]) {
+    await open(`/dashboard?native=1&theme=${theme}`);
+    await until(
+      "!!document.querySelector('[data-dashboard-subscription=active]')",
+    );
+    await noOverflow();
+    await screenshot(`dashboard-subscription-${theme}.png`);
+  }
+  await send("Emulation.setDeviceMetricsOverride", {
+    width: 320,
+    height: 800,
+    deviceScaleFactor: 1,
+    mobile: true,
+  });
+  await noOverflow();
+  assert.ok(await evaluate(`${badge}.getBoundingClientRect().height>=44`));
+  await screenshot("dashboard-subscription-320.png");
+  await send("Emulation.setDeviceMetricsOverride", {
+    width: 360,
+    height: 800,
+    deviceScaleFactor: 1,
+    mobile: true,
+  });
+
   await open("/dashboard");
+  assert.equal(
+    await evaluate("!!document.querySelector('[data-dashboard-subscription]')"),
+    false,
+    "web has no native subscription badge",
+  );
   await until(
     "document.querySelector('.dashboard-hero-workload [aria-hidden=true]')?.textContent==='۱۲'",
   );
@@ -777,7 +988,7 @@ try {
     "dashboard/statistics interactions must never write learning data",
   );
   console.log(
-    `UI smoke passed (${production ? "production" : "development"} React): counter first-view/update/offscreen/reduced-motion with/without StrictMode, touch/keyboard chart selection, date readouts, refetch stability, three themes, partial/done/rest/empty/loading/error, 320/360/1365px; no data writes.`,
+    `UI smoke passed (${production ? "production" : "development"} React): native subscription states, shared cache, local expiry, loading/error, 44px targets and focus/re-entry without Bazaar requests; counter first-view/update/offscreen/reduced-motion with/without StrictMode, touch/keyboard chart selection, date readouts, refetch stability, three themes, partial/done/rest/empty/loading/error, 320/360/1365px; no data writes.`,
   );
   console.log(`Screenshots: ${artifacts}`);
 } finally {

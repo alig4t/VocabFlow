@@ -267,6 +267,9 @@ function makePassphrase(): string {
 export async function getDb(): Promise<SQLiteDBConnection> {
   if (dbPromise) return dbPromise;
   dbPromise = (async () => {
+    // A WebView reload replaces the JS connection map while the native plugin
+    // can still hold the old connection. Reconcile before creating/reusing it.
+    await sqlite.checkConnectionsConsistency();
     const isConn = (await sqlite.isConnection(DB_NAME, false)).result;
     let db: SQLiteDBConnection;
     if (isConn) {
@@ -307,7 +310,12 @@ export async function getDb(): Promise<SQLiteDBConnection> {
     await db.execute(SCHEMA);
     await migrateSchema(db);
     return db;
-  })();
+  })().catch((error: unknown) => {
+    // A transient open/schema failure must not poison every subsequent query.
+    // The next caller can retry, reusing any connection already created above.
+    dbPromise = null;
+    throw error;
+  });
   return dbPromise;
 }
 

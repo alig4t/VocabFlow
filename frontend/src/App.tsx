@@ -161,6 +161,8 @@ export default function App() {
   // Native offline build seeds the local SQLite DB on first launch.
   const [dbReady, setDbReady] = useState(!isNative());
   const [seed, setSeed] = useState({ progress: 0, label: "" });
+  const [startupFailed, setStartupFailed] = useState(false);
+  const [startupAttempt, setStartupAttempt] = useState(0);
 
   useEffect(() => {
     initAuth();
@@ -168,13 +170,22 @@ export default function App() {
 
   useEffect(() => {
     if (!isNative()) return;
-    prepareNative((progress, label) => setSeed({ progress, label }))
-      .then(() => setDbReady(true))
+    let disposed = false;
+    prepareNative((progress, label) => {
+      if (!disposed) setSeed({ progress, label });
+    })
+      .then(() => {
+        if (!disposed) setDbReady(true);
+      })
       .catch((e) => {
+        if (disposed) return;
         console.error("offline seed failed", e);
-        setDbReady(true);
+        setStartupFailed(true);
       });
-  }, []);
+    return () => {
+      disposed = true;
+    };
+  }, [startupAttempt]);
 
   // Native: mirror the real system-bar insets into CSS variables (the WebView
   // doesn't expose the full status-bar height through env() on Android). Runs
@@ -252,7 +263,19 @@ export default function App() {
     return (
       <ThemeProvider defaultTheme="system" storageKey="eng-theme">
         <StatusBarSync />
-        <SeedLoader progress={seed.progress} label={seed.label} />
+        <SeedLoader
+          progress={seed.progress}
+          label={seed.label}
+          onRetry={
+            startupFailed
+              ? () => {
+                  setStartupFailed(false);
+                  setSeed({ progress: 0, label: "" });
+                  setStartupAttempt((attempt) => attempt + 1);
+                }
+              : undefined
+          }
+        />
       </ThemeProvider>
     );
   }
